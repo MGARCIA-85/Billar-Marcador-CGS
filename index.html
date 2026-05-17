@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Billares García</title>
   <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a1f0a}</style>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Firebase PRIMERO, antes de todo -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script>
@@ -19,8 +17,32 @@
       messagingSenderId:"390194364006",
       appId:"1:390194364006:web:4c1ee811253423f77437a7"
     });
-    const db = firebase.firestore();
+    var db = firebase.firestore();
+
+    // Guardar partidas en Firebase
+    window._saveMatches = function(nm) {
+      db.collection("billar").doc("partidas").set({ matches: nm }).catch(function(){});
+    };
+
+    // Escuchar cambios en tiempo real
+    db.collection("billar").doc("partidas").onSnapshot(function(snap) {
+      if (snap.exists && snap.data() && snap.data().matches) {
+        if (window._setMatches) window._setMatches(snap.data().matches);
+      }
+    });
+
+    // Verificar código de acceso
+    window._checkCodigo = async function(c) {
+      try {
+        var snap = await db.collection("config").doc("acceso").get();
+        return snap.exists && snap.data().codigo === c.trim();
+      } catch(e) { return false; }
+    };
   </script>
+  <!-- React y Babel DESPUÉS de Firebase -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
 <div id="root"></div>
@@ -98,25 +120,63 @@ function BillarApp() {
   const [lobbyTab, setLobbyTab] = useState("active");
   const [showUndo, setShowUndo] = useState(false);
 
-  // ── Firebase: escuchar cambios en tiempo real ──
-  useEffect(() => {
-    const unsub = db.collection("billar").doc("partidas").onSnapshot(snap => {
-      if (snap.exists) { const d = snap.data(); if (d && d.matches) setMatches(d.matches); }
-    });
-    return () => unsub();
-  }, []);
+  // ── Sincronización con storage compartido ──────────────────
+  const STORAGE_KEY = "billar-gt-matches";
 
-  const saveToFirebase = async (nm) => {
-    try { await db.collection("billar").doc("partidas").set({ matches: nm }); } catch(e) {}
+  // Cargar desde storage al iniciar
+  useState(() => {
+    const load = async () => {
+      try {
+        const res = await window.storage.get(STORAGE_KEY, true);
+        if (res && res.value) {
+          const data = JSON.parse(res.value);
+          setMatches(data);
+        }
+      } catch (e) { /* sin datos previos */ }
+    };
+    load();
+  });
+
+  // Guardar en storage compartido y actualizar estado local
+
+  useEffect(() => {
+    // Recibir datos de Firebase (inicializados desde script separado)
+    window._setMatches = setMatches;
+    return () => { window._setMatches = null; };
+  }, []);
+  const saveMatches = async (newMatches) => {
+    setMatches(newMatches);
+    try {
+      await window.storage.set(STORAGE_KEY, JSON.stringify(newMatches), true);
+    } catch (e) { console.error("Error al guardar:", e); }
+    setLastSync(Date.now());
   };
 
-  const saveMatches = (nm) => { setMatches(nm); saveToFirebase(nm); };
+  // Polling: leer cambios de otros usuarios cada 3 segundos
+  useState(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await window.storage.get(STORAGE_KEY, true);
+        if (res && res.value) {
+          const data = JSON.parse(res.value);
+          setMatches(data);
+        }
+      } catch (e) {}
+    }, 3000);
+    return () => clearInterval(interval);
+  });
 
+  // ── updateMatch guarda en storage compartido ───────────────
   const updateMatch = (id, fn) => {
-    setMatches(prev => {
-      const nm = prev.map(m => m.id === id ? fn(m) : m);
-      saveToFirebase(nm);
-      return nm;
+    setMatches((prev) => {
+      const newMatches = prev.map((m) => m.id === id ? fn(m) : m);
+      // Guardar asíncronamente
+      (async () => {
+        try { await window.storage.set(STORAGE_KEY, JSON.stringify(newMatches), true); }
+        catch (e) {}
+        setLastSync(Date.now());
+      })();
+      return newMatches;
     });
   };
 
@@ -1092,24 +1152,21 @@ const S = {
 };
 
 
-// ── Pantalla de acceso con código desde Firebase ──
 function Acceso({ ok }) {
   const [c, setC] = useState("");
   const [err, setErr] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const go = async () => {
+    if (!c.trim()) return;
     setLoading(true);
-    try {
-      const snap = await db.collection("config").doc("acceso").get();
-      const codigo = snap.exists ? snap.data().codigo : null;
-      if (codigo && c.trim() === codigo) {
-        localStorage.setItem("bg_ts", Date.now().toString());
-        ok();
-      } else {
-        setErr(true); setTimeout(() => setErr(false), 2000);
-      }
-    } catch(e) { setErr(true); setTimeout(() => setErr(false), 2000); }
+    const valid = await window._checkCodigo(c);
+    if (valid) {
+      localStorage.setItem("bg_ts","1");
+      ok();
+    } else {
+      setErr(true); setTimeout(() => setErr(false), 2000);
+    }
     setLoading(false);
   };
 
@@ -1132,7 +1189,7 @@ function Acceso({ ok }) {
           style={{width:"100%",padding:"13px 16px",borderRadius:12,background:err?"rgba(255,80,80,0.1)":"rgba(255,255,255,0.07)",border:err?"1px solid rgba(255,80,80,0.5)":"1px solid rgba(255,255,255,0.15)",color:"#fff",fontFamily:"inherit",fontSize:16,outline:"none",textAlign:"center",letterSpacing:4,boxSizing:"border-box"}}/>
         {err && <div style={{color:"#f87171",fontSize:12,textAlign:"center",marginTop:6}}>Código incorrecto</div>}
         <button onClick={go} disabled={loading} style={{marginTop:12,width:"100%",padding:"13px 0",borderRadius:12,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer",opacity:loading?0.7:1}}>
-          {loading ? "Verificando..." : "Entrar"}
+          {loading?"Verificando...":"Entrar"}
         </button>
       </div>
     </div>
@@ -1140,8 +1197,8 @@ function Acceso({ ok }) {
 }
 
 function App() {
-  const [ok, setOk] = useState(() => !!localStorage.getItem("bg_ts"));
-  if (!ok) return <Acceso ok={() => setOk(true)}/>;
+  const [ok, setOk] = useState(()=>!!localStorage.getItem("bg_ts"));
+  if (!ok) return <Acceso ok={()=>setOk(true)}/>;
   return <BillarApp/>;
 }
 
