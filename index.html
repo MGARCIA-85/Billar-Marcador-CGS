@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Billares García</title>
+  <style>* { margin:0; padding:0; box-sizing:border-box; } body { background:#0a1f0a; }</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- React 18 -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<!-- Firebase compat -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+<!-- Babel para JSX en el navegador -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script>
+  // Inicializar Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyBvIZaGoMLL7YmLdz0j7dKxvwoxWj-Yw7s",
+    authDomain: "billar-marcadorcgs.firebaseapp.com",
+    projectId: "billar-marcadorcgs",
+    storageBucket: "billar-marcadorcgs.firebasestorage.app",
+    messagingSenderId: "390194364006",
+    appId: "1:390194364006:web:4c1ee811253423f77437a7"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const CODIGO_ACCESO = "garcia2024";
+
+
+const { useState, useEffect } = React;
+const CODIGO_ACCESO = "garcia2024";
+
+
+const uid = () => Math.random().toString(36).slice(2, 8);
+const MODALIDADES = ["Bola 7", "Bola 8", "Bola 9", "Bola 10"];
+const CARRERAS = [3, 5, 7, 9, 11, 15];
+
+const BALL_COLORS = {
+  "Bola 7":  { bg: "#a8230a", stripe: false, num: "7" },
+  "Bola 8":  { bg: "#1a1a1a", stripe: false, num: "8" },
+  "Bola 9":  { bg: "#f5c400", stripe: false, num: "9" },
+  "Bola 10": { bg: "#1a6ec7", stripe: false, num: "10" },
+};
+
+// Bola blanca de saque
+function CueBall({ size = 16 }) {
+  const r = size / 2;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
+      <circle cx={r} cy={r + 1} r={r - 1} fill="rgba(0,0,0,0.3)" />
+      <circle cx={r} cy={r} r={r - 1} fill="#f0f0e8" />
+      <ellipse cx={r * 0.6} cy={r * 0.55} rx={r * 0.3} ry={r * 0.2} fill="rgba(255,255,255,0.6)" />
+    </svg>
+  );
+}
+
+function BallIcon({ modalidad, size = 38 }) {
+  const b = BALL_COLORS[modalidad]; if (!b) return null;
+  const r = size / 2;
+  const fs = size < 32 ? 9 : size < 44 ? 11 : 13;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
+      <circle cx={r} cy={r + 1.5} r={r - 1} fill="rgba(0,0,0,0.35)" />
+      <circle cx={r} cy={r} r={r - 1} fill={b.bg} />
+
+      <ellipse cx={r * 0.65} cy={r * 0.52} rx={r * 0.28} ry={r * 0.18} fill="rgba(255,255,255,0.35)" />
+      <circle cx={r} cy={r} r={r * 0.38} fill="white" />
+      <text x={r} y={r + fs * 0.38} textAnchor="middle" fontSize={fs} fontWeight="bold" fill="#222" fontFamily="Arial,sans-serif">{b.num}</text>
+    </svg>
+  );
+}
+
+function createMatch(p1, p2, firstServe, carrera, modalidad) {
+  return {
+    id: uid(), p1Name: p1, p2Name: p2, firstServe,
+    carrera, modalidad,
+    games: [], currentServe: firstServe,
+    wins: { p1: 0, p2: 0 },
+    seriesFinished: false, seriesWinner: null,
+    seriesHistory: [], seriesWins: { p1: 0, p2: 0 }, seriesCount: 1,
+    matchClosed: false,   // partida terminada definitivamente
+    closedAt: null,
+  };
+}
+
+function PantallaAcceso({ onAcceso }) {
+  const [codigo, setCodigo] = useState("");
+  const [error, setError] = useState(false);
+  const intentar = () => {
+    if (codigo.trim() === CODIGO_ACCESO) {
+      localStorage.setItem("billar_acceso","ok");
+      onAcceso();
+    } else { setError(true); setTimeout(()=>setError(false),2000); }
+  };
+  return (
+    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",padding:24}}>
+      <BillaresGarciaLogo size={100}/>
+      <div style={{marginTop:16,fontSize:12,color:"#c9a227",letterSpacing:4,textTransform:"uppercase"}}>Billares</div>
+      <div style={{fontSize:36,fontWeight:900,color:"#fff",letterSpacing:2,lineHeight:1,marginBottom:8}}>García</div>
+      <div style={{fontSize:11,color:"#3a6a3a",letterSpacing:2,marginBottom:40}}>Control de partidas</div>
+      <div style={{width:"100%",maxWidth:300}}>
+        <div style={{fontSize:12,color:"#666",letterSpacing:1,textTransform:"uppercase",marginBottom:8,textAlign:"center"}}>Código de acceso</div>
+        <input type="password" value={codigo} onChange={e=>setCodigo(e.target.value)} onKeyDown={e=>e.key==="Enter"&&intentar()} placeholder="Ingresa el código"
+          style={{width:"100%",padding:"14px 16px",borderRadius:12,background:error?"rgba(255,80,80,0.1)":"rgba(255,255,255,0.07)",border:error?"1px solid rgba(255,80,80,0.5)":"1px solid rgba(255,255,255,0.15)",color:"#fff",fontFamily:"inherit",fontSize:16,outline:"none",textAlign:"center",letterSpacing:4,boxSizing:"border-box"}} autoFocus/>
+        {error&&<div style={{color:"#f87171",fontSize:12,textAlign:"center",marginTop:8}}>Código incorrecto</div>}
+        <button onClick={intentar} style={{marginTop:14,width:"100%",padding:"14px 0",borderRadius:12,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer"}}>Entrar</button>
+      </div>
+    </div>
+  );
+}
+
+function BillarApp() {
+  const [acceso, setAcceso] = useState(()=>localStorage.getItem("billar_acceso")==="ok");
+  if (!acceso) return <PantallaAcceso onAcceso={()=>setAcceso(true)}/>;
+  return <AppInterna/>;
+}
+
+function AppInterna() {
+  const [matches, setMatches] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+  const [screen, setScreen] = useState("lobby");
+  const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState(null);
+
+  useEffect(() => {
+    const unsub = db.collection("billar").doc("partidas").onSnapshot((snap) => {
+      if (snap.exists) { const d = snap.data(); if (d && d.matches) setMatches(d.matches); }
+    });
+    return () => unsub();
+  }, []);
+
+  const [wP1, setWP1] = useState("");
+  const [wP2, setWP2] = useState("");
+  const [wServe, setWServe] = useState(null);
+  const [wCarrera, setWCarrera] = useState(5);
+  const [wModalidad, setWModalidad] = useState("Bola 8");
+
+  const [confirmWinner, setConfirmWinner] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showSeriesEnd, setShowSeriesEnd] = useState(false);
+  const [showCloseMatch, setShowCloseMatch] = useState(false);
+  const [lobbyTab, setLobbyTab] = useState("active");
+  const [showUndo, setShowUndo] = useState(false);
+
+  // ── Sincronización con storage compartido ──────────────────
+  const saveMatches = async (newMatches) => {
+    setMatches(newMatches);
+    setSyncing(true);
+    try {
+      await db.collection("billar").doc("partidas").set({ matches: newMatches });
+      setLastSync(Date.now());
+    } catch(e) { console.error(e); }
+    setSyncing(false);
+  };
+
+  const updateMatch = (id, fn) => {
+    setMatches((prev) => {
+      const newMatches = prev.map((m) => m.id === id ? fn(m) : m);
+      (async () => {
+        setSyncing(true);
+        try { await db.collection("billar").doc("partidas").set({ matches: newMatches }); setLastSync(Date.now()); }
+        catch(e) { console.error(e); }
+        setSyncing(false);
+      })();
+      return newMatches;
+    });
+  };
+
+  const activeMatch = matches.find((m) => m.id === activeId);
+
+  const startNewMatch = () => {
+    if (!wP1.trim() || !wP2.trim() || !wServe) return;
+    const m = createMatch(wP1.trim(), wP2.trim(), wServe, wCarrera, wModalidad);
+    const newMatches = [...matches, m];
+    saveMatches(newMatches);
+    setActiveId(m.id); setScreen("match");
+    setWP1(""); setWP2(""); setWServe(null); setWCarrera(5); setWModalidad("Bola 8");
+  };
+
+  const confirmGame = () => {
+    const who = confirmWinner; setConfirmWinner(null);
+    let willFinish = false;
+    updateMatch(activeId, (m) => {
+      const newWins = { ...m.wins, [who]: m.wins[who] + 1 };
+      const nextServe = m.currentServe === "p1" ? "p2" : "p1";
+      willFinish = newWins[who] >= m.carrera;
+      return { ...m, wins: newWins, games: [...m.games, { winner: who, serve: m.currentServe }], currentServe: nextServe, seriesFinished: willFinish, seriesWinner: willFinish ? who : null };
+    });
+    // No avanzar automáticamente — usuario presiona "Siguiente serie"
+  };
+
+  // ── Deshacer último juego ──
+  const undoGame = () => {
+    setShowUndo(false);
+    updateMatch(activeId, (m) => {
+      if (m.games.length === 0) return m;
+      const lastGame = m.games[m.games.length - 1];
+      const newGames = m.games.slice(0, -1);
+      // Restaurar el saque al que tenía ese juego
+      const restoredServe = lastGame.serve;
+      // Quitar el win del ganador
+      const newWins = { ...m.wins, [lastGame.winner]: m.wins[lastGame.winner] - 1 };
+      return {
+        ...m,
+        games: newGames,
+        wins: newWins,
+        currentServe: restoredServe,
+        seriesFinished: false,
+        seriesWinner: null,
+      };
+    });
+  };
+
+  const startNewSeries = () => {
+    setShowSeriesEnd(false);
+    updateMatch(activeId, (m) => {
+      const sw = m.seriesWinner;
+      return {
+        ...m,
+        seriesHistory: [...m.seriesHistory, { winner: sw, p1wins: m.wins.p1, p2wins: m.wins.p2, seriesNum: m.seriesCount, games: [...m.games] }],
+        seriesWins: { ...m.seriesWins, [sw]: m.seriesWins[sw] + 1 },
+        seriesCount: m.seriesCount + 1,
+        games: [], wins: { p1: 0, p2: 0 },
+        seriesFinished: false, seriesWinner: null,
+      };
+    });
+  };
+
+  // Versión automática (sin modal) — se llama al terminar un juego ganador
+  const autoStartNewSeries = () => {
+    updateMatch(activeId, (m) => {
+      if (!m.seriesFinished) return m;
+      const sw = m.seriesWinner;
+      return {
+        ...m,
+        seriesHistory: [...m.seriesHistory, { winner: sw, p1wins: m.wins.p1, p2wins: m.wins.p2, seriesNum: m.seriesCount, games: [...m.games] }],
+        seriesWins: { ...m.seriesWins, [sw]: m.seriesWins[sw] + 1 },
+        seriesCount: m.seriesCount + 1,
+        games: [], wins: { p1: 0, p2: 0 },
+        seriesFinished: false, seriesWinner: null,
+      };
+    });
+  };
+
+  // ── Terminar partida definitivamente ──
+  const closeMatch = () => {
+    setShowCloseMatch(false);
+    updateMatch(activeId, (m) => {
+      // Si hay una serie en curso (no terminada) la guardamos como parcial
+      const gamesPlayed = m.games.length > 0;
+      const newSeriesHistory = gamesPlayed && !m.seriesFinished
+        ? [...m.seriesHistory, { winner: m.wins.p1 > m.wins.p2 ? "p1" : m.wins.p2 > m.wins.p1 ? "p2" : null, p1wins: m.wins.p1, p2wins: m.wins.p2, seriesNum: m.seriesCount, partial: true }]
+        : m.seriesHistory;
+      const newSeriesWins = gamesPlayed && !m.seriesFinished && (m.wins.p1 > m.wins.p2 || m.wins.p2 > m.wins.p1)
+        ? { ...m.seriesWins } // no se cuenta como ganada si está incompleta
+        : m.seriesWins;
+      // Si la serie actual estaba terminada, contarla
+      const finalSeriesWins = m.seriesFinished
+        ? { ...m.seriesWins, [m.seriesWinner]: m.seriesWins[m.seriesWinner] + 1 }
+        : newSeriesWins;
+      return { ...m, matchClosed: true, closedAt: Date.now(), seriesHistory: newSeriesHistory, seriesWins: finalSeriesWins };
+    });
+    setScreen("lobby");
+  };
+
+  const deleteMatch = (id) => {
+    const newMatches = matches.filter((m) => m.id !== id);
+    saveMatches(newMatches);
+    if (activeId === id) { setActiveId(null); setScreen("lobby"); }
+  };
+
+  // ── Volver a jugar (nueva partida desde cero con mismos jugadores) ──
+  const replayMatch = (m) => {
+    setWP1(m.p1Name);
+    setWP2(m.p2Name);
+    setWCarrera(m.carrera);
+    setWModalidad(m.modalidad);
+    setWServe(null); // que elijan el saque
+    setScreen("newMatch");
+  };
+
+  const activeMatches = matches.filter((m) => !m.matchClosed);
+  const closedMatches = matches.filter((m) => m.matchClosed);
+
+  // ══════════════ LOBBY ══════════════
+  if (screen === "lobby") {
+    const list = lobbyTab === "active" ? activeMatches : closedMatches;
+    return (
+      <div style={S.root}><div style={S.feltBg} />
+        {/* Header lobby */}
+        <div style={{ position: "relative", zIndex: 10, padding: "24px 20px 0" }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "#4ade80", letterSpacing: 1 }}>🎱 Billar GT</div>
+          <div style={{ fontSize: 11, color: "#555", marginTop: 1 }}>Control de partidas</div>
+        </div>
+
+        {/* Tabs */}
+        <div style={S.tabs}>
+          <button style={{ ...S.tab, ...(lobbyTab === "active" ? S.tabActive : {}) }} onClick={() => setLobbyTab("active")}>
+            En juego {activeMatches.length > 0 && <span style={S.badge}>{activeMatches.length}</span>}
+          </button>
+          <button style={{ ...S.tab, ...(lobbyTab === "closed" ? S.tabActive : {}) }} onClick={() => setLobbyTab("closed")}>
+            Terminadas {closedMatches.length > 0 && <span style={{ ...S.badge, background: "#555" }}>{closedMatches.length}</span>}
+          </button>
+        </div>
+
+        {/* Lista */}
+        <div style={{ position: "relative", zIndex: 10, flex: 1, padding: "0 14px", overflowY: "auto" }}>
+          {list.length === 0 && (
+            <div style={{ color: "#444", textAlign: "center", marginTop: 60, fontSize: 14 }}>
+              {lobbyTab === "active" ? "No hay partidas en juego.\n¡Crea una nueva!" : "No hay partidas terminadas."}
+            </div>
+          )}
+          {list.map((m) => <LobbyCard key={m.id} m={m} onOpen={() => { if (!m.matchClosed) { setActiveId(m.id); setScreen("match"); } }} onDelete={() => deleteMatch(m.id)} onReplay={replayMatch} />)}
+        </div>
+
+        {/* Botón nueva partida */}
+        <div style={{ position: "relative", zIndex: 10, padding: "14px 18px" }}>
+          <button style={S.newMatchBtn} onClick={() => setScreen("newMatch")}>+ Nueva Partida</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════ WIZARD ══════════════
+  if (screen === "newMatch") {
+    const ready = wP1.trim() && wP2.trim() && wServe;
+    return (
+      <div style={S.root}><div style={S.feltBg} />
+        <div style={{ position: "relative", zIndex: 10, padding: "24px 22px", overflowY: "auto", flex: 1 }}>
+          <button style={{ ...S.ghostBtn, marginBottom: 16 }} onClick={() => setScreen("lobby")}>← Volver</button>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#4ade80", marginBottom: 18 }}>🎱 Nueva Partida</div>
+
+          <div style={S.label}>Jugador 1</div>
+          <input style={S.input} value={wP1} onChange={(e) => setWP1(e.target.value)} placeholder="Ej: César" />
+          <div style={{ ...S.label, marginTop: 14 }}>Jugador 2</div>
+          <input style={{ ...S.input, marginTop: 6 }} value={wP2} onChange={(e) => setWP2(e.target.value)} placeholder="Ej: Walker" />
+
+          <div style={{ ...S.label, marginTop: 18 }}>Modalidad</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            {MODALIDADES.map((mod) => {
+              const sel = wModalidad === mod;
+              return (
+                <button key={mod} onClick={() => setWModalidad(mod)} style={{ flex: 1, padding: "10px 4px", borderRadius: 14, fontFamily: "inherit", fontSize: 10, fontWeight: 700, cursor: "pointer", background: sel ? "linear-gradient(160deg,#1a3a1a,#2d6a2d)" : "rgba(255,255,255,0.05)", border: sel ? "1px solid rgba(74,222,128,0.5)" : "1px solid rgba(255,255,255,0.09)", color: sel ? "#fff" : "#888", display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+                  <BallIcon modalidad={mod} size={30} />{mod}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ ...S.label, marginTop: 18 }}>Carrera</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            {CARRERAS.map((c) => <button key={c} onClick={() => setWCarrera(c)} style={chip(wCarrera === c)}>{c}</button>)}
+          </div>
+
+          <div style={{ ...S.label, marginTop: 18 }}>Primer saque</div>
+          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+            {["p1", "p2"].map((k) => {
+              const name = k === "p1" ? (wP1 || "Jugador 1") : (wP2 || "Jugador 2");
+              const sel = wServe === k;
+              return <button key={k} onClick={() => setWServe(k)} style={{ flex: 1, padding: "13px 8px", borderRadius: 12, fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer", background: sel ? "linear-gradient(135deg,#166534,#4ade80)" : "rgba(255,255,255,0.06)", border: sel ? "none" : "1px solid rgba(255,255,255,0.11)", color: sel ? "#fff" : "#999", boxShadow: sel ? "0 4px 14px rgba(74,222,128,0.3)" : "none" }}>{sel ? "🎱 " : ""}{name}</button>;
+            })}
+          </div>
+
+          {ready && <div style={S.summaryBox}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <BallIcon modalidad={wModalidad} size={28} />
+              <div>
+                <div style={{ color: "#4ade80", fontWeight: 700, fontSize: 14 }}>{wP1} vs {wP2}</div>
+                <div style={{ color: "#888", fontSize: 11, marginTop: 1 }}>{wModalidad} · Carrera a {wCarrera} · Primer saque: {wServe === "p1" ? wP1 : wP2}</div>
+              </div>
+            </div>
+          </div>}
+
+          <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
+            <button style={{ ...S.confirmBtn, flex: 1, padding: "14px 0", fontSize: 15, opacity: ready ? 1 : 0.4 }} onClick={startNewMatch} disabled={!ready}>Iniciar</button>
+            <button style={{ ...S.cancelBtn, padding: "14px 16px" }} onClick={() => setScreen("lobby")}>Cancelar</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════ PARTIDA ══════════════
+  if (!activeMatch) { setScreen("lobby"); return null; }
+  const { p1Name, p2Name, currentServe, wins, carrera, modalidad, games, seriesFinished, seriesWinner, seriesWins, seriesCount, seriesHistory } = activeMatch;
+  const pct1 = Math.min((wins.p1 / carrera) * 100, 100);
+  const pct2 = Math.min((wins.p2 / carrera) * 100, 100);
+  const nextServeLabel = currentServe === "p1" ? p1Name : p2Name;
+
+  return (
+    <div style={S.root}><div style={S.feltBg} />
+
+      {/* HEADER */}
+      <div style={S.header}>
+        <button style={S.ghostBtn} onClick={() => setScreen("lobby")}>🏠 Inicio</button>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+          <BallIcon modalidad={modalidad} size={26} />
+          <div style={{ fontSize: 9, color: "#777", letterSpacing: 1, textTransform: "uppercase" }}>{modalidad} · C{carrera} · S#{seriesCount}</div>
+        </div>
+        <button style={S.ghostBtn} onClick={() => setShowHistory(true)}>📋 Hist.</button>
+      </div>
+
+      {/* BARRA SERIES — incluye serie actual si ya terminó */}
+      {(() => {
+        const d1 = seriesWins.p1 + (seriesFinished && seriesWinner === "p1" ? 1 : 0);
+        const d2 = seriesWins.p2 + (seriesFinished && seriesWinner === "p2" ? 1 : 0);
+        return (
+          <div style={{ ...S.seriesBar, cursor: "pointer" }} onClick={() => setShowHistory(true)}>
+            <div style={S.seriesBlock}>
+              <span style={S.seriesName}>{p1Name}</span>
+              <span style={{ ...S.seriesNum, color: d1 > d2 ? "#f9e04b" : "#fff" }}>{d1}</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div style={{ fontSize: 8, letterSpacing: 2, color: "#4ade80", textTransform: "uppercase" }}>
+                SERIES ✎ {syncing ? <span style={{ color: "#f9e04b" }}>●</span> : <span style={{ color: "#2d5a2d" }}>●</span>}
+              </div>
+              <div style={{ fontSize: 18, color: "#333", fontWeight: 700 }}>–</div>
+            </div>
+            <div style={{ ...S.seriesBlock, flexDirection: "row-reverse" }}>
+              <span style={S.seriesName}>{p2Name}</span>
+              <span style={{ ...S.seriesNum, color: d2 > d1 ? "#f9e04b" : "#fff" }}>{d2}</span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* BANNER saque / ganador */}
+      {seriesFinished
+        ? <div style={S.winnerBanner}>🏆 Serie #{seriesCount} — Ganó: <strong style={{ color: "#f9e04b" }}>{seriesWinner === "p1" ? p1Name : p2Name}</strong></div>
+        : <div style={S.serveBanner}>🎱 Saque: <strong style={{ color: "#f9e04b" }}>{currentServe === "p1" ? p1Name : p2Name}</strong></div>
+      }
+
+      {/* CUADRÍCULA PIZARRÓN */}
+      {(() => {
+        const sw1 = seriesWins.p1 + (seriesFinished && seriesWinner === "p1" ? 1 : 0);
+        const sw2 = seriesWins.p2 + (seriesFinished && seriesWinner === "p2" ? 1 : 0);
+
+        // Celdas compactas para que quepan más juegos en pantalla
+        const CELL_W = 44;
+        const CELL_H = 100;
+        const NAM_W  = 155; // ancho suficiente para nombres largos
+        const HDR_H  = 18; // alto fila de números
+        const BORDER      = "2px solid rgba(255,255,255,0.22)";
+        const BORDER_THIN = "1px solid rgba(255,255,255,0.11)";
+
+        // Juegos posibles en la serie = carrera * 2 - 1
+        const totalJuegos = carrera * 2 - 1;
+
+        // Tamaño de trofeo adaptativo según cuántos trofeos hay que mostrar
+        // La celda mide CELL_H px de alto con NAM_W de ancho
+        // Calculamos cuántos caben por fila y ajustamos el tamaño
+        const maxSW = Math.max(sw1, sw2, 1);
+        // cuántos trofeos caben por fila según tamaño
+        const trophyFS = 14; // fijo: con NAM_W=80 y gap=2 caben 5 por fila (5×14 + 4×2 = 78px)
+
+        // Bola blanca con puntos rojos
+        const CueBallSaque = ({ size }) => {
+          const r = size / 2;
+          return (
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+              <circle cx={r} cy={r} r={r - 0.5} fill="#f0ede0" />
+              <ellipse cx={r*0.6} cy={r*0.5} rx={r*0.26} ry={r*0.16} fill="rgba(255,255,255,0.65)" />
+              <circle cx={r*0.65} cy={r*0.78} r={r*0.13} fill="#bb1f00" />
+              <circle cx={r*1.12} cy={r*0.62} r={r*0.11} fill="#bb1f00" />
+              <circle cx={r*0.88} cy={r*1.15} r={r*0.12} fill="#bb1f00" />
+            </svg>
+          );
+        };
+
+        return (
+          <div style={{ position: "relative", zIndex: 10, flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "6px 0" }}>
+            <div style={{ display: "flex", overflow: "hidden" }}>
+
+              {/* COLUMNA FIJA: nombre + trofeos */}
+              <div style={{ flexShrink: 0, borderRight: BORDER }}>
+                {/* Header vacío */}
+                <div style={{ height: HDR_H }} />
+                {["p1","p2"].map((k, ri) => {
+                  const sw   = k === "p1" ? sw1 : sw2;
+                  const name = k === "p1" ? p1Name : p2Name;
+                  // Tamaño trofeo adaptativo: que quepan hasta 10 en 2 filas de 5
+                  const tFS = sw <= 5 ? 16 : sw <= 10 ? 15 : sw <= 15 ? 13 : 11;
+                  return (
+                    <div key={k} style={{
+                      width: NAM_W, height: CELL_H,
+                      borderBottom: ri === 0 ? BORDER : "none",
+                      background: "rgba(0,0,0,0.25)",
+                      display: "flex", flexDirection: "column",
+                      alignItems: "flex-start", justifyContent: "flex-start",
+                      padding: "8px 8px 6px",
+                      overflow: "hidden", boxSizing: "border-box",
+                    }}>
+                      {/* Nombre — dos líneas máximo, sin truncar */}
+                      <div style={{
+                        fontSize: 18, fontWeight: 800, color: "#e0e0e0",
+                        lineHeight: 1.15, width: "100%",
+                        wordBreak: "break-word", flexShrink: 0,
+                        marginBottom: 5,
+                      }}>{name}</div>
+                      {/* Trofeos — exactamente 5 por fila */}
+                      <div style={{
+                        display: "flex", flexWrap: "wrap",
+                        justifyContent: "flex-start", alignContent: "flex-start",
+                        gap: 1,
+                        width: "100%",
+                        overflow: "hidden",
+                      }}>
+                        {Array.from({ length: sw }, (_, i) => (
+                          <span key={i} style={{ fontSize: tFS, lineHeight: 1.1 }}>🏆</span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* SCROLL: números + celdas de juegos */}
+              <div style={{ flex: 1, overflowX: "auto" }}>
+                <div style={{ minWidth: "max-content" }}>
+
+                  {/* Fila de números ARRIBA */}
+                  <div style={{ display: "flex", height: HDR_H }}>
+                    {Array.from({ length: totalJuegos }, (_, ji) => (
+                      <div key={ji} style={{
+                        width: CELL_W, textAlign: "center",
+                        fontSize: 10, color: "#666", fontWeight: 700,
+                        lineHeight: HDR_H + "px",
+                      }}>
+                        {ji + 1}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Filas de jugadores — click en celda activa = asignar victoria, click en última ganada = deshacer */}
+                  {["p1","p2"].map((k, ri) => (
+                    <div key={k} style={{ display: "flex", borderBottom: ri === 0 ? BORDER : "none" }}>
+                      {Array.from({ length: totalJuegos }, (_, ji) => {
+                        const gameRecord = games[ji];
+                        const hasWon = gameRecord && gameRecord.winner === k;
+                        const isLastGame = ji === games.length - 1; // último juego registrado
+                        const isNext = !seriesFinished && ji === games.length; // siguiente a jugar
+                        const isSaque = isNext && currentServe === k;
+
+                        // Clickeable:
+                        // - celda del siguiente juego (asignar victoria)
+                        // - último juego ganado, incluso si la serie terminó (deshacer)
+                        const isClickable = isNext || (hasWon && isLastGame && gameRecord.winner === k);
+
+                        const handleClick = () => {
+                          if (!isClickable) return;
+                          if (isNext) {
+                            // Asignar victoria a este jugador
+                            const newWins = { ...wins, [k]: wins[k] + 1 };
+                            const nextServe = currentServe === "p1" ? "p2" : "p1";
+                            const willFinish = newWins[k] >= carrera;
+                            updateMatch(activeId, (m) => ({
+                              ...m,
+                              wins: newWins,
+                              games: [...m.games, { winner: k, serve: currentServe }],
+                              currentServe: nextServe,
+                              seriesFinished: willFinish,
+                              seriesWinner: willFinish ? k : null,
+                            }));
+                            // No avanzar automáticamente — el usuario confirma con "Siguiente serie"
+                            // para poder deshacer si se equivocó
+                          } else if (hasWon && isLastGame) {
+                            // Deshacer: quitar el último juego — funciona aunque la serie haya terminado
+                            updateMatch(activeId, (m) => {
+                              if (m.games.length === 0) return m;
+                              const lastGame = m.games[m.games.length - 1];
+                              return {
+                                ...m,
+                                games: m.games.slice(0, -1),
+                                wins: { ...m.wins, [lastGame.winner]: m.wins[lastGame.winner] - 1 },
+                                currentServe: lastGame.serve,
+                                seriesFinished: false,
+                                seriesWinner: null,
+                              };
+                            });
+                          }
+                        };
+
+                        return (
+                          <div key={ji}
+                            onClick={handleClick}
+                            style={{
+                              width: CELL_W, height: CELL_H,
+                              borderRight: BORDER_THIN,
+                              display: "flex",
+                              alignItems: "center", justifyContent: "center",
+                              background: isNext ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)",
+                              position: "relative",
+                              cursor: isClickable ? "pointer" : "default",
+                              // Resaltar la última casilla si la serie terminó (indica que se puede deshacer)
+                              boxShadow: (seriesFinished && hasWon && isLastGame) ? "inset 0 0 0 2px rgba(249,115,22,0.5)" : "none",
+                              transition: "background 0.15s",
+                            }}>
+                            {/* Bola ganó juego */}
+                            {hasWon && <BallIcon modalidad={modalidad} size={28} />}
+                            {/* Bola blanca saque — solo juego activo */}
+                            {isSaque && (
+                              <div style={{ position: "absolute", top: 4, left: 4 }}>
+                                <CueBallSaque size={16} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "8px 0 8px" }} />
+            {/* Instrucción */}
+            <div style={{ fontSize: 10, color: seriesFinished ? "#f97316" : "#555", textAlign: "center", paddingBottom: 2 }}>
+              {seriesFinished
+                ? "Toca la última bola para deshacer  ·  o presiona ▶ Siguiente serie"
+                : "Toca una casilla para asignar o quitar victoria"}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* FOOTER */}
+      <div style={S.footer}>
+        {seriesFinished ? (
+          <button style={{ ...S.newMatchBtn, flex: 2, fontSize: 13, padding: "12px 0" }} onClick={startNewSeries}>▶ Siguiente serie</button>
+        ) : (
+          <div style={{ flex: 2 }} />
+        )}
+        <button style={S.endMatchBtn} onClick={() => setShowCloseMatch(true)}>🏁 Terminar</button>
+      </div>
+
+      {/* Modal de confirmación eliminado — click directo en casilla */}
+
+      {/* fin de serie: no hay modal, avanza automáticamente */}
+
+      {/* Modal deshacer eliminado — click en casilla ganada lo deshace directamente */}
+
+      {/* MODAL: confirmar terminar partida */}
+      {showCloseMatch && (
+        <div style={S.overlay}><div style={{ ...S.modal, width: 320 }}>
+          <div style={{ fontSize: 30, marginBottom: 8 }}>🏁</div>
+          <div style={S.modalTitle}>¿Terminar esta partida?</div>
+          <div style={{ fontSize: 13, color: "#aaa", marginBottom: 14 }}>
+            {p1Name} vs {p2Name} · {modalidad}<br />
+            Se guardará el marcador final.
+          </div>
+          {/* Resumen actual — si la última serie está terminada, contarla */}
+          {(() => {
+            const finalW1 = seriesWins.p1 + (seriesFinished && seriesWinner === "p1" ? 1 : 0);
+            const finalW2 = seriesWins.p2 + (seriesFinished && seriesWinner === "p2" ? 1 : 0);
+            return (
+              <div style={S.resultBox}>
+                <div style={{ fontSize: 10, color: "#555", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Series ganadas</div>
+                <div style={{ fontSize: 22, fontWeight: 800 }}>
+                  <span style={{ color: finalW1 > finalW2 ? "#4ade80" : "#aaa" }}>{finalW1}</span>
+                  <span style={{ color: "#333", margin: "0 8px" }}>–</span>
+                  <span style={{ color: finalW2 > finalW1 ? "#4ade80" : "#aaa" }}>{finalW2}</span>
+                </div>
+                <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>{p1Name} vs {p2Name}</div>
+                {seriesFinished && (
+                  <div style={{ fontSize: 10, color: "#4ade80", marginTop: 4 }}>
+                    ✓ Incluye la serie #{seriesCount} recién terminada
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button style={{ ...S.endMatchBtn, padding: "11px 20px", fontSize: 14 }} onClick={closeMatch}>🏁 Confirmar</button>
+            <button style={S.cancelBtn} onClick={() => setShowCloseMatch(false)}>Cancelar</button>
+          </div>
+        </div></div>
+      )}
+
+      {/* MODAL: historial */}
+      {showHistory && (
+        <HistorialEditable
+          p1Name={p1Name} p2Name={p2Name}
+          modalidad={modalidad} carrera={carrera}
+          seriesHistory={seriesHistory} seriesWins={seriesWins}
+          games={games} seriesCount={seriesCount}
+          seriesFinished={seriesFinished} seriesWinner={seriesWinner}
+          currentServe={currentServe}
+          onClose={() => setShowHistory(false)}
+          onEditSeriesWinner={(idx, newWinner) => {
+            // Cambiar ganador de una serie anterior
+            updateMatch(activeId, (m) => {
+              const newHistory = m.seriesHistory.map((s, i) => {
+                if (i !== idx) return s;
+                return { ...s, winner: newWinner };
+              });
+              // Recalcular seriesWins desde el historial corregido
+              const newSW = { p1: 0, p2: 0 };
+              newHistory.forEach(s => { if (s.winner && !s.partial) newSW[s.winner]++; });
+              return { ...m, seriesHistory: newHistory, seriesWins: newSW };
+            });
+          }}
+          onEditCurrentGame={(gameIdx, newWinner) => {
+            // Cambiar ganador de un juego de la serie actual
+            updateMatch(activeId, (m) => {
+              const newGames = m.games.map((g, i) => i === gameIdx ? { ...g, winner: newWinner } : g);
+              const newWins = { p1: 0, p2: 0 };
+              newGames.forEach(g => { newWins[g.winner]++; });
+              const sf = newWins.p1 >= m.carrera || newWins.p2 >= m.carrera;
+              const sw = newWins.p1 >= m.carrera ? "p1" : newWins.p2 >= m.carrera ? "p2" : null;
+              return { ...m, games: newGames, wins: newWins, seriesFinished: sf, seriesWinner: sw };
+            });
+          }}
+          onDeleteLastSeries={() => {
+            // Eliminar la última serie del historial y volver a ella
+            updateMatch(activeId, (m) => {
+              if (m.seriesHistory.length === 0) return m;
+              const last = m.seriesHistory[m.seriesHistory.length - 1];
+              const newHistory = m.seriesHistory.slice(0, -1);
+              const newSW = { p1: 0, p2: 0 };
+              newHistory.forEach(s => { if (s.winner && !s.partial) newSW[s.winner]++; });
+              return {
+                ...m,
+                seriesHistory: newHistory,
+                seriesWins: newSW,
+                seriesCount: last.seriesNum,
+                games: Array.from({ length: last.p1wins + last.p2wins }, (_, i) => {
+                  // Reconstruir juegos aproximados (solo sabemos quién ganó cada serie, no cada juego)
+                  return { winner: "p1", serve: m.firstServe }; // placeholder
+                }),
+                // Restaurar games reales si los tenemos guardados
+                games: last.games || Array.from({ length: last.p1wins + last.p2wins }, () => ({ winner: "p1", serve: m.firstServe })),
+                wins: { p1: last.p1wins, p2: last.p2wins },
+                seriesFinished: true,
+                seriesWinner: last.winner,
+              };
+            });
+          }}
+          onEditHistoryGame={(seriesIdx, gameIdx, newWinner, fallbackGames) => {
+            updateMatch(activeId, (m) => {
+              const newHistory = m.seriesHistory.map((ser, idx) => {
+                if (idx !== seriesIdx) return ser;
+                const baseGames = ser.games || fallbackGames;
+                const newGames = baseGames.map((g, gi) => gi === gameIdx ? { ...g, winner: newWinner } : g);
+                const newP1 = newGames.filter(g => g.winner === "p1").length;
+                const newP2 = newGames.filter(g => g.winner === "p2").length;
+                const newWin = newP1 >= m.carrera ? "p1" : newP2 >= m.carrera ? "p2" : ser.winner;
+                return { ...ser, games: newGames, p1wins: newP1, p2wins: newP2, winner: newWin };
+              });
+              const newSW = { p1: 0, p2: 0 };
+              newHistory.forEach(s => { if (s.winner && !s.partial) newSW[s.winner]++; });
+              return { ...m, seriesHistory: newHistory, seriesWins: newSW };
+            });
+          }}
+          onRestoreLastSeries={(lastSerie, lastGames) => {
+            // Sacar la última serie del historial y volver a jugarla desde donde quedó
+            updateMatch(activeId, (m) => {
+              const newHistory = m.seriesHistory.slice(0, -1);
+              const newSW = { p1: 0, p2: 0 };
+              newHistory.forEach(s => { if (s.winner && !s.partial) newSW[s.winner]++; });
+              const restoredGames = lastSerie.games || lastGames;
+              const restoredWins = {
+                p1: restoredGames.filter(g => g.winner === "p1").length,
+                p2: restoredGames.filter(g => g.winner === "p2").length,
+              };
+              // El saque del próximo juego: contrario al último juego jugado
+              const lastGame = restoredGames[restoredGames.length - 1];
+              const nextServe = lastGame ? (lastGame.serve === "p1" ? "p2" : "p1") : m.firstServe;
+              return {
+                ...m,
+                seriesHistory: newHistory,
+                seriesWins: newSW,
+                seriesCount: lastSerie.seriesNum,
+                games: restoredGames,
+                wins: restoredWins,
+                currentServe: nextServe,
+                seriesFinished: false,
+                seriesWinner: null,
+              };
+            });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Tarjeta del lobby ────────────────────────────────────────
+// ── Historial editable ─────────────────────────────────────────
+function HistorialEditable({ p1Name, p2Name, modalidad, carrera, seriesHistory, seriesWins,
+  games, seriesCount, seriesFinished, seriesWinner, currentServe,
+  onClose, onEditSeriesWinner, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries }) {
+
+  const [editingIdx, setEditingIdx] = useState(null); // null=lista, number=serie, "current"=actual
+
+  const d1 = seriesWins.p1 + (seriesFinished && seriesWinner === "p1" ? 1 : 0);
+  const d2 = seriesWins.p2 + (seriesFinished && seriesWinner === "p2" ? 1 : 0);
+
+  const CELL_W = 38; const CELL_H = 60; const NAM_W = 90;
+  const BORDER = "1px solid rgba(255,255,255,0.15)";
+  const BORDER_THIN = "1px solid rgba(255,255,255,0.08)";
+
+  // Mini cuadrícula editable para una serie
+  const MiniGrid = ({ gamesData, seriesLabel, isEditable, onToggle, p1wins, p2wins }) => {
+    const totalJuegos = carrera * 2 - 1;
+    return (
+      <div style={{ overflowX: "auto", marginTop: 6 }}>
+        <div style={{ display: "flex", minWidth: "max-content" }}>
+          {/* Columna nombres */}
+          <div style={{ flexShrink: 0, borderRight: BORDER }}>
+            <div style={{ height: 16 }} />
+            {["p1","p2"].map((k, ri) => {
+              const sw = k === "p1" ? p1wins : p2wins;
+              const tFS = 12;
+              return (
+                <div key={k} style={{ width: NAM_W, height: CELL_H, borderBottom: ri === 0 ? BORDER : "none", background: "rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "flex-start", padding: "5px 5px 3px", overflow: "hidden", boxSizing: "border-box" }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#e0e0e0", lineHeight: 1.2, wordBreak: "break-word", flexShrink: 0, marginBottom: 3 }}>{k === "p1" ? p1Name : p2Name}</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                    {Array.from({ length: sw }, (_, i) => <span key={i} style={{ fontSize: tFS, lineHeight: 1 }}>🏆</span>)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {/* Columnas de juegos */}
+          <div style={{ flex: 1, overflowX: "auto" }}>
+            <div style={{ minWidth: "max-content" }}>
+              {/* Números */}
+              <div style={{ display: "flex", height: 16 }}>
+                {Array.from({ length: totalJuegos }, (_, ji) => (
+                  <div key={ji} style={{ width: CELL_W, textAlign: "center", fontSize: 9, color: "#555", fontWeight: 700, lineHeight: "16px" }}>{ji + 1}</div>
+                ))}
+              </div>
+              {/* Filas jugadores */}
+              {["p1","p2"].map((k, ri) => (
+                <div key={k} style={{ display: "flex", borderBottom: ri === 0 ? BORDER : "none" }}>
+                  {Array.from({ length: totalJuegos }, (_, ji) => {
+                    const g = gamesData ? gamesData[ji] : null;
+                    const hasWon = g && g.winner === k;
+                    const clickable = isEditable && g; // solo juegos ya registrados
+                    return (
+                      <div key={ji}
+                        onClick={() => clickable && onToggle(ji, k)}
+                        style={{ width: CELL_W, height: CELL_H, borderRight: BORDER_THIN, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.01)", cursor: clickable ? "pointer" : "default", position: "relative" }}>
+                        {hasWon && <BallIcon modalidad={modalidad} size={22} />}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {isEditable && <div style={{ fontSize: 9, color: "#555", marginTop: 4, textAlign: "center" }}>Toca una bola para cambiar el ganador</div>}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", backdropFilter: "blur(5px)", overflowY: "auto", padding: "20px 10px" }}>
+      <div style={{ background: "#0f2010", border: "1px solid rgba(74,222,128,0.18)", borderRadius: 20, padding: "20px 16px", color: "#fff", width: "100%", maxWidth: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.88)" }}>
+
+        {/* Título */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#e0e0e0" }}>✎ Historial editable</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#4ade80" }}>{d1} – {d2}</div>
+        </div>
+        <div style={{ fontSize: 10, color: "#555", marginBottom: 14 }}>Toca una bola en la tabla para cambiar el ganador</div>
+
+        {/* Serie actual */}
+        <div style={{ fontSize: 10, color: "#f9e04b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+          Serie actual #{seriesCount} {seriesFinished ? "— terminada" : "— en juego"}
+        </div>
+        {games.length === 0
+          ? <div style={{ color: "#555", fontSize: 12, marginBottom: 12 }}>Sin juegos registrados</div>
+          : <MiniGrid
+              gamesData={games}
+              seriesLabel={seriesCount}
+              isEditable={true}
+              p1wins={0} p2wins={0}
+              onToggle={(ji, k) => onEditCurrentGame(ji, k)}
+            />
+        }
+
+        {/* Series completadas */}
+        {seriesHistory.length > 0 && (
+          <>
+            <div style={{ fontSize: 10, color: "#4ade80", letterSpacing: 1, textTransform: "uppercase", margin: "14px 0 8px" }}>Series completadas</div>
+            {seriesHistory.map((s, i) => {
+              const isLast = i === seriesHistory.length - 1;
+              const fakeGames = s.games
+                ? s.games
+                : [
+                    ...Array.from({ length: s.p1wins }, () => ({ winner: "p1" })),
+                    ...Array.from({ length: s.p2wins }, () => ({ winner: "p2" })),
+                  ];
+              return (
+                <div key={i} style={{ background: isLast ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)", border: isLast ? "1px solid rgba(74,222,128,0.15)" : "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: "10px 10px 6px", marginBottom: 8 }}>
+                  {/* Cabecera siempre visible */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: isLast ? "#aaa" : "#555", fontSize: 12 }}>Serie #{s.seriesNum}{s.partial ? " *" : ""}</span>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700 }}>
+                        <span style={{ color: s.p1wins > s.p2wins ? "#4ade80" : "#aaa" }}>{s.p1wins}</span>
+                        <span style={{ color: "#333", margin: "0 5px" }}>–</span>
+                        <span style={{ color: s.p2wins > s.p1wins ? "#4ade80" : "#aaa" }}>{s.p2wins}</span>
+                      </span>
+                      <span style={{ fontSize: 12, color: "#f9e04b" }}>🏆 {s.winner === "p1" ? p1Name : s.winner === "p2" ? p2Name : "—"}</span>
+                    </div>
+                  </div>
+
+                  {/* Solo la ÚLTIMA serie es editable */}
+                  {isLast && (
+                    <>
+
+                      {/* Mini tabla editable */}
+                      <MiniGrid
+                        gamesData={fakeGames}
+                        seriesLabel={s.seriesNum}
+                        isEditable={true}
+                        p1wins={s.winner === "p1" ? 1 : 0}
+                        p2wins={s.winner === "p2" ? 1 : 0}
+                        onToggle={(ji, k) => onEditHistoryGame(i, ji, k, fakeGames)}
+                      />
+                      {/* Si ninguno ha llegado a la carrera → la serie quedó incompleta → ofrecer continuar */}
+                      {(() => {
+                        const p1done = s.p1wins >= carrera;
+                        const p2done = s.p2wins >= carrera;
+                        const serieIncompleta = !p1done && !p2done;
+                        return serieIncompleta ? (
+                          <button onClick={() => { onRestoreLastSeries(s, fakeGames); onClose(); }} style={{ marginTop: 8, width: "100%", padding: "8px 0", borderRadius: 8, background: "linear-gradient(135deg,#166534,#4ade80)", border: "none", color: "#fff", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", boxShadow: "0 3px 10px rgba(74,222,128,0.3)" }}>
+                            ▶ Continuar esta serie
+                          </button>
+                        ) : null;
+                      })()}
+                      <button onClick={onDeleteLastSeries} style={{ marginTop: 6, width: "100%", padding: "6px 0", borderRadius: 8, background: "rgba(255,80,80,0.1)", border: "1px solid rgba(255,80,80,0.22)", color: "#f87171", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>
+                        ✕ Eliminar esta serie del historial
+                      </button>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        <button style={{ marginTop: 12, width: "100%", padding: "12px 0", borderRadius: 12, background: "linear-gradient(135deg,#166534,#4ade80)", border: "none", color: "#fff", fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+          onClick={onClose}>Cerrar</button>
+      </div>
+    </div>
+  );
+}
+
+function LobbyCard({ m, onOpen, onDelete, onReplay }) {
+  const isOpen = !m.matchClosed;
+  const sw1 = m.seriesWins.p1 + (m.seriesFinished && m.seriesWinner === "p1" ? 1 : 0);
+  const sw2 = m.seriesWins.p2 + (m.seriesFinished && m.seriesWinner === "p2" ? 1 : 0);
+
+  // Mismas constantes que la pantalla de partida
+  const CELL_W = 40;
+  const CELL_H = 72;
+  const NAM_W  = 110;
+  const HDR_H  = 16;
+  const BORDER      = "1px solid rgba(255,255,255,0.2)";
+  const BORDER_THIN = "1px solid rgba(255,255,255,0.1)";
+  const totalJuegos = m.carrera * 2 - 1;
+  const maxSW = Math.max(sw1, sw2, 1);
+  const tFS = maxSW <= 5 ? 14 : maxSW <= 10 ? 12 : 10;
+
+  const CueBallLobby = ({ size }) => {
+    const r = size / 2;
+    return (
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={r} cy={r} r={r - 0.5} fill="#f0ede0" />
+        <circle cx={r*0.65} cy={r*0.78} r={r*0.13} fill="#bb1f00" />
+        <circle cx={r*1.12} cy={r*0.62} r={r*0.11} fill="#bb1f00" />
+        <circle cx={r*0.88} cy={r*1.15} r={r*0.12} fill="#bb1f00" />
+      </svg>
+    );
+  };
+
+  return (
+    <div style={{ ...S.matchCard, ...(isOpen ? {} : { opacity: 0.82 }) }} onClick={isOpen ? onOpen : undefined}>
+
+      {/* Cabecera tarjeta */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <BallIcon modalidad={m.modalidad} size={22} />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#e8e8e8" }}>{m.p1Name} vs {m.p2Name}</div>
+            <div style={{ fontSize: 10, color: "#555", marginTop: 1 }}>{m.modalidad} · C{m.carrera} · S#{m.seriesCount}{m.matchClosed ? " · Terminada" : ""}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+          {isOpen
+            ? <div style={{ fontSize: 9, color: "#4ade80", fontWeight: 700, background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.22)", borderRadius: 20, padding: "2px 7px" }}>▶ EN JUEGO</div>
+            : <div style={{ fontSize: 9, color: "#888", background: "rgba(255,255,255,0.05)", borderRadius: 20, padding: "2px 7px" }}>🏁 FIN</div>
+          }
+          <button style={S.deleteBtn} onClick={(e) => { e.stopPropagation(); onDelete(); }}>✕</button>
+        </div>
+      </div>
+
+      {/* CUADRÍCULA igual que pantalla de partida */}
+      <div style={{ display: "flex", overflow: "hidden" }}>
+
+        {/* Columna nombre + trofeos — fija */}
+        <div style={{ flexShrink: 0, borderRight: BORDER }}>
+          <div style={{ height: HDR_H }} />
+          {["p1","p2"].map((k, ri) => {
+            const sw   = k === "p1" ? sw1 : sw2;
+            const name = k === "p1" ? m.p1Name : m.p2Name;
+            return (
+              <div key={k} style={{
+                width: NAM_W, height: CELL_H,
+                borderBottom: ri === 0 ? BORDER : "none",
+                background: "rgba(0,0,0,0.2)",
+                display: "flex", flexDirection: "column",
+                alignItems: "flex-start", justifyContent: "flex-start",
+                padding: "6px 6px 4px", overflow: "hidden", boxSizing: "border-box",
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#e0e0e0", lineHeight: 1.2, wordBreak: "break-word", flexShrink: 0, marginBottom: 4 }}>{name}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-start", gap: 1, overflow: "hidden" }}>
+                  {Array.from({ length: sw }, (_, i) => (
+                    <span key={i} style={{ fontSize: tFS, lineHeight: 1.1 }}>🏆</span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Scroll: números + celdas de juegos */}
+        <div style={{ flex: 1, overflowX: "auto" }}>
+          <div style={{ minWidth: "max-content" }}>
+            {/* Números */}
+            <div style={{ display: "flex", height: HDR_H }}>
+              {Array.from({ length: totalJuegos }, (_, ji) => (
+                <div key={ji} style={{ width: CELL_W, textAlign: "center", fontSize: 9, color: "#555", fontWeight: 700, lineHeight: HDR_H + "px" }}>{ji + 1}</div>
+              ))}
+            </div>
+            {/* Filas de jugadores */}
+            {["p1","p2"].map((k, ri) => (
+              <div key={k} style={{ display: "flex", borderBottom: ri === 0 ? BORDER : "none" }}>
+                {Array.from({ length: totalJuegos }, (_, ji) => {
+                  const gameRecord = m.games[ji];
+                  const hasWon = gameRecord && gameRecord.winner === k;
+                  const isNext = isOpen && !m.seriesFinished && ji === m.games.length;
+                  const isSaque = isNext && m.currentServe === k;
+                  return (
+                    <div key={ji} style={{
+                      width: CELL_W, height: CELL_H,
+                      borderRight: BORDER_THIN,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(255,255,255,0.01)", position: "relative",
+                    }}>
+                      {hasWon && <BallIcon modalidad={m.modalidad} size={24} />}
+                      {isSaque && (
+                        <div style={{ position: "absolute", top: 3, left: 3 }}>
+                          <CueBallLobby size={14} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Pie: volver a jugar */}
+      {!isOpen && (
+        <div style={{ marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 8 }}>
+          <button
+            style={{ width: "100%", padding: "8px 0", borderRadius: 10, background: "linear-gradient(135deg,#166534,#4ade80)", border: "none", color: "#fff", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+            onClick={(e) => { e.stopPropagation(); onReplay(m); }}
+          >🔄 Volver a jugar</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DotsProgress({ wins, carrera, align }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: align === "right" ? "flex-end" : "flex-start", flex: 1, maxWidth: "45%" }}>
+      {Array.from({ length: carrera }, (_, i) => (
+        <div key={i} style={{ width: 9, height: 9, borderRadius: "50%", background: i < wins ? "#4ade80" : "rgba(255,255,255,0.08)", boxShadow: i < wins ? "0 0 5px rgba(74,222,128,0.5)" : "none", transition: "all 0.3s" }} />
+      ))}
+    </div>
+  );
+}
+
+function chip(sel) {
+  return { padding: "8px 14px", borderRadius: 20, fontFamily: "inherit", fontSize: 13, fontWeight: 600, cursor: "pointer", background: sel ? "linear-gradient(135deg,#166534,#4ade80)" : "rgba(255,255,255,0.05)", border: sel ? "none" : "1px solid rgba(255,255,255,0.1)", color: sel ? "#fff" : "#999", boxShadow: sel ? "0 3px 10px rgba(74,222,128,0.28)" : "none" };
+}
+
+const S = {
+  root: { minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Georgia','Times New Roman',serif", position: "relative", overflow: "hidden", backgroundColor: "#0a1f0a" },
+  feltBg: { position: "fixed", inset: 0, background: "radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)", zIndex: 0 },
+  tabs: { position: "relative", zIndex: 10, display: "flex", padding: "12px 16px 0", gap: 8 },
+  tab: { flex: 1, padding: "9px 0", borderRadius: "10px 10px 0 0", border: "1px solid rgba(255,255,255,0.07)", borderBottom: "none", background: "rgba(255,255,255,0.04)", color: "#777", fontFamily: "inherit", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 },
+  tabActive: { background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.25)", borderBottom: "none", color: "#4ade80" },
+  badge: { background: "#4ade80", color: "#0a1f0a", borderRadius: 20, padding: "1px 7px", fontSize: 11, fontWeight: 800 },
+  header: { position: "relative", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)" },
+  ghostBtn: { background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.11)", color: "#bbb", borderRadius: 8, padding: "6px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" },
+  seriesBar: { position: "relative", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "rgba(0,0,0,0.45)", borderBottom: "1px solid rgba(255,255,255,0.05)" },
+  seriesBlock: { display: "flex", alignItems: "center", gap: 10, flex: 1 },
+  seriesName: { fontSize: 11, color: "#888", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, maxWidth: 85, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  seriesNum: { fontSize: 30, fontWeight: 900, lineHeight: 1 },
+  serveBanner: { position: "relative", zIndex: 10, textAlign: "center", padding: "6px 0", background: "rgba(249,224,75,0.04)", borderBottom: "1px solid rgba(249,224,75,0.08)", color: "#bbb", fontSize: 13 },
+  winnerBanner: { position: "relative", zIndex: 10, textAlign: "center", padding: "7px 0", background: "rgba(249,224,75,0.08)", borderBottom: "1px solid rgba(249,224,75,0.18)", color: "#ddd", fontSize: 13, fontWeight: 600 },
+  court: { position: "relative", zIndex: 10, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 4px 4px" },
+  playerSide: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "15px 8px 12px", borderRadius: 18, margin: "0 4px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", transition: "all 0.3s", position: "relative" },
+  servingBorder: { border: "1px solid rgba(249,224,75,0.38)", background: "rgba(249,224,75,0.04)" },
+  winnerBorder: { border: "1px solid rgba(249,224,75,0.55)", background: "rgba(249,224,75,0.07)", boxShadow: "0 0 26px rgba(249,224,75,0.12)" },
+  serveTag: { position: "absolute", top: 6, fontSize: 9, color: "#f9e04b", letterSpacing: 0.5 },
+  playerName: { fontSize: 13, fontWeight: 700, color: "#e0e0e0", letterSpacing: 1, textTransform: "uppercase", textAlign: "center", marginTop: 6 },
+  scoreNum: { fontSize: 70, fontWeight: 900, color: "#fff", lineHeight: 1, textShadow: "0 4px 26px rgba(74,222,128,0.32)" },
+  progressTrack: { width: "88%", height: 5, background: "rgba(255,255,255,0.07)", borderRadius: 5, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 5, transition: "width 0.4s ease", boxShadow: "0 0 6px rgba(74,222,128,0.45)" },
+  progressLabel2: { fontSize: 10, color: "#555", marginTop: 2 },
+  wonBtn: { marginTop: 8, padding: "9px 14px", borderRadius: 10, background: "linear-gradient(135deg,#166534,#4ade80)", border: "none", color: "#fff", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", boxShadow: "0 3px 10px rgba(74,222,128,0.3)", width: "92%" },
+  dotsRow: { position: "relative", zIndex: 10, display: "flex", padding: "4px 18px 6px", alignItems: "center" },
+  footer: { position: "relative", zIndex: 10, display: "flex", gap: 8, padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.32)", alignItems: "center" },
+  endMatchBtn: { padding: "11px 14px", borderRadius: 12, background: "rgba(255,80,80,0.12)", border: "1px solid rgba(255,80,80,0.28)", color: "#f87171", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.82)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(5px)" },
+  modal: { background: "#0f2010", border: "1px solid rgba(74,222,128,0.16)", borderRadius: 20, padding: "22px 20px", textAlign: "center", color: "#fff", width: 300, boxShadow: "0 20px 60px rgba(0,0,0,0.88)" },
+  modalTitle: { fontSize: 16, fontWeight: 700, marginBottom: 10, color: "#e0e0e0" },
+  confirmBtn: { padding: "10px 20px", borderRadius: 10, background: "linear-gradient(135deg,#166534,#4ade80)", border: "none", color: "#fff", fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" },
+  cancelBtn: { padding: "10px 20px", borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.11)", color: "#aaa", fontFamily: "inherit", fontSize: 14, cursor: "pointer" },
+  resultBox: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "10px 14px", marginBottom: 10 },
+  matchCard: { display: "flex", flexDirection: "column", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "12px 14px", marginBottom: 10, cursor: "pointer" },
+  deleteBtn: { background: "rgba(255,80,80,0.1)", border: "1px solid rgba(255,80,80,0.2)", color: "#f87171", borderRadius: 8, padding: "4px 7px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" },
+  newMatchBtn: { width: "100%", padding: "14px 0", borderRadius: 14, background: "linear-gradient(135deg,#166534,#4ade80)", border: "none", color: "#fff", fontFamily: "inherit", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 18px rgba(74,222,128,0.32)" },
+  summaryBox: { marginTop: 16, padding: "12px 14px", borderRadius: 12, background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.16)" },
+  label: { color: "#666", fontSize: 11, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 },
+  input: { width: "100%", padding: "11px 14px", borderRadius: 10, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", fontFamily: "inherit", fontSize: 15, outline: "none", boxSizing: "border-box" },
+};
+
+
+
+window.addEventListener("load", () => { ReactDOM.createRoot(document.getElementById("root")).render(<BillarApp/>); });
+</script>
+</body>
+</html>
