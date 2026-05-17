@@ -5,49 +5,28 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Billares García</title>
   <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a1f0a}</style>
-  <!-- Firebase PRIMERO, antes de todo -->
+  <!-- 1. Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script>
-    firebase.initializeApp({
-      apiKey:"AIzaSyBvIZaGoMLL7YmLdz0j7dKxvwoxWj-Yw7s",
-      authDomain:"billar-marcadorcgs.firebaseapp.com",
-      projectId:"billar-marcadorcgs",
-      storageBucket:"billar-marcadorcgs.firebasestorage.app",
-      messagingSenderId:"390194364006",
-      appId:"1:390194364006:web:4c1ee811253423f77437a7"
-    });
-    var db = firebase.firestore();
-
-    // Guardar partidas en Firebase
-    window._saveMatches = function(nm) {
-      db.collection("billar").doc("partidas").set({ matches: nm }).catch(function(){});
-    };
-
-    // Escuchar cambios en tiempo real
-    db.collection("billar").doc("partidas").onSnapshot(function(snap) {
-      if (snap.exists && snap.data() && snap.data().matches) {
-        if (window._setMatches) window._setMatches(snap.data().matches);
-      }
-    });
-
-    // Verificar código de acceso
-    window._checkCodigo = async function(c) {
-      try {
-        var snap = await db.collection("config").doc("acceso").get();
-        return snap.exists && snap.data().codigo === c.trim();
-      } catch(e) { return false; }
-    };
+    firebase.initializeApp({apiKey:"AIzaSyBvIZaGoMLL7YmLdz0j7dKxvwoxWj-Yw7s",authDomain:"billar-marcadorcgs.firebaseapp.com",projectId:"billar-marcadorcgs",storageBucket:"billar-marcadorcgs.firebasestorage.app",messagingSenderId:"390194364006",appId:"1:390194364006:web:4c1ee811253423f77437a7"});
+    var _db = firebase.firestore();
+    function _save(nm) { _db.collection("billar").doc("partidas").set({matches:nm}).catch(function(){}); }
+    async function _checkCodigo(c) {
+      try { var s = await _db.collection("config").doc("acceso").get(); return s.exists && s.data().codigo === c.trim(); } catch(e) { return false; }
+    }
   </script>
-  <!-- React y Babel DESPUÉS de Firebase -->
+  <!-- 2. React -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- 3. Babel - después de todo -->
+  <script src="https://unpkg.com/@babel/standalone@7.23.0/babel.min.js"></script>
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel" data-presets="react">
-const { useState, useEffect } = React;
+<script type="text/babel" data-type="module">
+/* globals React, ReactDOM, _db, _save, _checkCodigo */
+const {useState, useEffect} = React;
 
 
 const uid = () => Math.random().toString(36).slice(2, 8);
@@ -138,12 +117,13 @@ function BillarApp() {
   });
 
   // Guardar en storage compartido y actualizar estado local
-
   useEffect(() => {
-    // Recibir datos de Firebase (inicializados desde script separado)
-    window._setMatches = setMatches;
-    return () => { window._setMatches = null; };
+    const unsub = _db.collection("billar").doc("partidas").onSnapshot(snap => {
+      if (snap.exists) { const d = snap.data(); if (d && d.matches) setMatches(d.matches); }
+    });
+    return () => unsub();
   }, []);
+
   const saveMatches = async (newMatches) => {
     setMatches(newMatches);
     try {
@@ -1152,53 +1132,34 @@ const S = {
 };
 
 
-function Acceso({ ok }) {
-  const [c, setC] = useState("");
-  const [err, setErr] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const go = async () => {
-    if (!c.trim()) return;
-    setLoading(true);
-    const valid = await window._checkCodigo(c);
-    if (valid) {
-      localStorage.setItem("bg_ts","1");
-      ok();
-    } else {
-      setErr(true); setTimeout(() => setErr(false), 2000);
-    }
+function Acceso({ok}) {
+  const [c,setC]=useState(""), [err,setErr]=useState(false), [loading,setLoading]=useState(false);
+  const go=async()=>{
+    if(!c.trim())return; setLoading(true);
+    const v=await _checkCodigo(c);
+    if(v){localStorage.setItem("bg","1");ok();}
+    else{setErr(true);setTimeout(()=>setErr(false),2000);}
     setLoading(false);
   };
-
-  return (
-    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 50% 35%,#1a4a1a,#0a1f0a)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",padding:24}}>
-      <svg width="100" height="100" viewBox="0 0 100 100">
-        <defs><radialGradient id="g1" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#1a4a1a"/><stop offset="100%" stopColor="#0a200a"/></radialGradient></defs>
-        <circle cx="50" cy="50" r="50" fill="url(#g1)"/><circle cx="50" cy="50" r="47.5" fill="none" stroke="#c9a227" strokeWidth="2.5"/>
-        <line x1="16" y1="76" x2="72" y2="20" stroke="#5c3d0a" strokeWidth="2.5" strokeLinecap="round"/>
-        <ellipse cx="16.5" cy="75.5" rx="3.2" ry="1.6" fill="#c9a227" transform="rotate(-45 16.5 75.5)"/>
-        <circle cx="52" cy="50" r="17" fill="#333"/><ellipse cx="46" cy="43" rx="5" ry="3.5" fill="rgba(255,255,255,0.2)"/><circle cx="52" cy="50" r="7.5" fill="white"/><text x="52" y="53.5" textAnchor="middle" fontSize="8.5" fontWeight="bold" fill="#111" fontFamily="Georgia,serif">8</text>
-        <circle cx="26" cy="27" r="10.5" fill="#cc2200"/><circle cx="26" cy="27" r="4.5" fill="white"/><text x="26" y="29.8" textAnchor="middle" fontSize="5.5" fontWeight="bold" fill="#7a0f00" fontFamily="Georgia,serif">7</text>
-        <circle cx="76" cy="74" r="10.5" fill="#f5c400"/><circle cx="76" cy="74" r="4.5" fill="white"/><text x="76" y="76.8" textAnchor="middle" fontSize="5.5" fontWeight="bold" fill="#b08800" fontFamily="Georgia,serif">9</text>
-      </svg>
-      <div style={{marginTop:12,fontSize:11,color:"#c9a227",letterSpacing:4,textTransform:"uppercase"}}>Billares</div>
-      <div style={{fontSize:34,fontWeight:900,color:"#fff",letterSpacing:2,lineHeight:1,marginBottom:6}}>García</div>
-      <div style={{fontSize:10,color:"#3a6a3a",letterSpacing:2,marginBottom:36}}>Control de partidas</div>
-      <div style={{width:"100%",maxWidth:300}}>
-        <input type="password" value={c} onChange={e=>setC(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!loading&&go()} placeholder="Código de acceso" autoFocus
-          style={{width:"100%",padding:"13px 16px",borderRadius:12,background:err?"rgba(255,80,80,0.1)":"rgba(255,255,255,0.07)",border:err?"1px solid rgba(255,80,80,0.5)":"1px solid rgba(255,255,255,0.15)",color:"#fff",fontFamily:"inherit",fontSize:16,outline:"none",textAlign:"center",letterSpacing:4,boxSizing:"border-box"}}/>
-        {err && <div style={{color:"#f87171",fontSize:12,textAlign:"center",marginTop:6}}>Código incorrecto</div>}
-        <button onClick={go} disabled={loading} style={{marginTop:12,width:"100%",padding:"13px 0",borderRadius:12,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer",opacity:loading?0.7:1}}>
-          {loading?"Verificando...":"Entrar"}
-        </button>
-      </div>
+  return(<div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 50% 35%,#1a4a1a,#0a1f0a)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",padding:24}}>
+    <svg width="100" height="100" viewBox="0 0 100 100"><defs><radialGradient id="g1" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#1a4a1a"/><stop offset="100%" stopColor="#0a200a"/></radialGradient></defs><circle cx="50" cy="50" r="50" fill="url(#g1)"/><circle cx="50" cy="50" r="47.5" fill="none" stroke="#c9a227" strokeWidth="2.5"/><line x1="16" y1="76" x2="72" y2="20" stroke="#5c3d0a" strokeWidth="2.5" strokeLinecap="round"/><ellipse cx="16.5" cy="75.5" rx="3.2" ry="1.6" fill="#c9a227" transform="rotate(-45 16.5 75.5)"/><circle cx="52" cy="50" r="17" fill="#333"/><ellipse cx="46" cy="43" rx="5" ry="3.5" fill="rgba(255,255,255,0.2)"/><circle cx="52" cy="50" r="7.5" fill="white"/><text x="52" y="53.5" textAnchor="middle" fontSize="8.5" fontWeight="bold" fill="#111" fontFamily="Georgia,serif">8</text><circle cx="26" cy="27" r="10.5" fill="#cc2200"/><circle cx="26" cy="27" r="4.5" fill="white"/><text x="26" y="29.8" textAnchor="middle" fontSize="5.5" fontWeight="bold" fill="#7a0f00" fontFamily="Georgia,serif">7</text><circle cx="76" cy="74" r="10.5" fill="#f5c400"/><circle cx="76" cy="74" r="4.5" fill="white"/><text x="76" y="76.8" textAnchor="middle" fontSize="5.5" fontWeight="bold" fill="#b08800" fontFamily="Georgia,serif">9</text></svg>
+    <div style={{marginTop:12,fontSize:11,color:"#c9a227",letterSpacing:4,textTransform:"uppercase"}}>Billares</div>
+    <div style={{fontSize:34,fontWeight:900,color:"#fff",letterSpacing:2,lineHeight:1,marginBottom:6}}>García</div>
+    <div style={{fontSize:10,color:"#3a6a3a",letterSpacing:2,marginBottom:36}}>Control de partidas</div>
+    <div style={{width:"100%",maxWidth:300}}>
+      <input type="password" value={c} onChange={e=>setC(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!loading&&go()} placeholder="Código de acceso" autoFocus
+        style={{width:"100%",padding:"13px 16px",borderRadius:12,background:err?"rgba(255,80,80,0.1)":"rgba(255,255,255,0.07)",border:err?"1px solid rgba(255,80,80,0.5)":"1px solid rgba(255,255,255,0.15)",color:"#fff",fontFamily:"inherit",fontSize:16,outline:"none",textAlign:"center",letterSpacing:4,boxSizing:"border-box"}}/>
+      {err&&<div style={{color:"#f87171",fontSize:12,textAlign:"center",marginTop:6}}>Código incorrecto</div>}
+      <button onClick={go} disabled={loading} style={{marginTop:12,width:"100%",padding:"13px 0",borderRadius:12,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer",opacity:loading?0.7:1}}>
+        {loading?"Verificando...":"Entrar"}
+      </button>
     </div>
-  );
+  </div>);
 }
 
-function App() {
-  const [ok, setOk] = useState(()=>!!localStorage.getItem("bg_ts"));
-  if (!ok) return <Acceso ok={()=>setOk(true)}/>;
+function App(){
+  const [ok,setOk]=useState(()=>!!localStorage.getItem("bg"));
+  if(!ok)return <Acceso ok={()=>setOk(true)}/>;
   return <BillarApp/>;
 }
 
