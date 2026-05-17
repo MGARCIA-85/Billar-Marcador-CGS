@@ -2,46 +2,17 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Billares García</title>
-  <style>* { margin:0; padding:0; box-sizing:border-box; } body { background:#0a1f0a; }</style>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a1f0a}</style>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
 <div id="root"></div>
-
-<!-- React 18 -->
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-<!-- Firebase compat -->
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-
-<!-- Babel para JSX en el navegador -->
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-<script>
-  // Inicializar Firebase
-  const firebaseConfig = {
-    apiKey: "AIzaSyBvIZaGoMLL7YmLdz0j7dKxvwoxWj-Yw7s",
-    authDomain: "billar-marcadorcgs.firebaseapp.com",
-    projectId: "billar-marcadorcgs",
-    storageBucket: "billar-marcadorcgs.firebasestorage.app",
-    messagingSenderId: "390194364006",
-    appId: "1:390194364006:web:4c1ee811253423f77437a7"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-</script>
-
-<script type="text/babel">
+<script type="text/babel" data-presets="react">
 const { useState, useEffect } = React;
-const CODIGO_ACCESO = "garcia2024";
-
-
-const { useState, useEffect } = React;
-const CODIGO_ACCESO = "garcia2024";
-
 
 const uid = () => Math.random().toString(36).slice(2, 8);
 const MODALIDADES = ["Bola 7", "Bola 8", "Bola 9", "Bola 10"];
@@ -95,51 +66,10 @@ function createMatch(p1, p2, firstServe, carrera, modalidad) {
   };
 }
 
-function PantallaAcceso({ onAcceso }) {
-  const [codigo, setCodigo] = useState("");
-  const [error, setError] = useState(false);
-  const intentar = () => {
-    if (codigo.trim() === CODIGO_ACCESO) {
-      localStorage.setItem("billar_acceso","ok");
-      onAcceso();
-    } else { setError(true); setTimeout(()=>setError(false),2000); }
-  };
-  return (
-    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",padding:24}}>
-      <BillaresGarciaLogo size={100}/>
-      <div style={{marginTop:16,fontSize:12,color:"#c9a227",letterSpacing:4,textTransform:"uppercase"}}>Billares</div>
-      <div style={{fontSize:36,fontWeight:900,color:"#fff",letterSpacing:2,lineHeight:1,marginBottom:8}}>García</div>
-      <div style={{fontSize:11,color:"#3a6a3a",letterSpacing:2,marginBottom:40}}>Control de partidas</div>
-      <div style={{width:"100%",maxWidth:300}}>
-        <div style={{fontSize:12,color:"#666",letterSpacing:1,textTransform:"uppercase",marginBottom:8,textAlign:"center"}}>Código de acceso</div>
-        <input type="password" value={codigo} onChange={e=>setCodigo(e.target.value)} onKeyDown={e=>e.key==="Enter"&&intentar()} placeholder="Ingresa el código"
-          style={{width:"100%",padding:"14px 16px",borderRadius:12,background:error?"rgba(255,80,80,0.1)":"rgba(255,255,255,0.07)",border:error?"1px solid rgba(255,80,80,0.5)":"1px solid rgba(255,255,255,0.15)",color:"#fff",fontFamily:"inherit",fontSize:16,outline:"none",textAlign:"center",letterSpacing:4,boxSizing:"border-box"}} autoFocus/>
-        {error&&<div style={{color:"#f87171",fontSize:12,textAlign:"center",marginTop:8}}>Código incorrecto</div>}
-        <button onClick={intentar} style={{marginTop:14,width:"100%",padding:"14px 0",borderRadius:12,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer"}}>Entrar</button>
-      </div>
-    </div>
-  );
-}
-
 function BillarApp() {
-  const [acceso, setAcceso] = useState(()=>localStorage.getItem("billar_acceso")==="ok");
-  if (!acceso) return <PantallaAcceso onAcceso={()=>setAcceso(true)}/>;
-  return <AppInterna/>;
-}
-
-function AppInterna() {
   const [matches, setMatches] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [screen, setScreen] = useState("lobby");
-  const [syncing, setSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState(null);
-
-  useEffect(() => {
-    const unsub = db.collection("billar").doc("partidas").onSnapshot((snap) => {
-      if (snap.exists) { const d = snap.data(); if (d && d.matches) setMatches(d.matches); }
-    });
-    return () => unsub();
-  }, []);
 
   const [wP1, setWP1] = useState("");
   const [wP2, setWP2] = useState("");
@@ -155,25 +85,53 @@ function AppInterna() {
   const [showUndo, setShowUndo] = useState(false);
 
   // ── Sincronización con storage compartido ──────────────────
+  const STORAGE_KEY = "billar-gt-matches";
+
+  // Cargar desde storage al iniciar
+  useState(() => {
+    const load = async () => {
+      try {
+        const res = await window.storage.get(STORAGE_KEY, true);
+        if (res && res.value) {
+          const data = JSON.parse(res.value);
+          setMatches(data);
+        }
+      } catch (e) { /* sin datos previos */ }
+    };
+    load();
+  });
+
+  // Guardar en storage compartido y actualizar estado local
   const saveMatches = async (newMatches) => {
     setMatches(newMatches);
-    setSyncing(true);
-    try {
-      await db.collection("billar").doc("partidas").set({ matches: newMatches });
-      setLastSync(Date.now());
-    } catch(e) { console.error(e); }
-    setSyncing(false);
-  };
+      try {
+      await window.storage.set(STORAGE_KEY, JSON.stringify(newMatches), true);
+    } catch (e) { console.error("Error al guardar:", e); }
+      };
 
+  // Polling: leer cambios de otros usuarios cada 3 segundos
+  useState(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await window.storage.get(STORAGE_KEY, true);
+        if (res && res.value) {
+          const data = JSON.parse(res.value);
+          setMatches(data);
+        }
+      } catch (e) {}
+    }, 3000);
+    return () => clearInterval(interval);
+  });
+
+  // ── updateMatch guarda en storage compartido ───────────────
   const updateMatch = (id, fn) => {
     setMatches((prev) => {
       const newMatches = prev.map((m) => m.id === id ? fn(m) : m);
+      // Guardar asíncronamente
       (async () => {
-        setSyncing(true);
-        try { await db.collection("billar").doc("partidas").set({ matches: newMatches }); setLastSync(Date.now()); }
-        catch(e) { console.error(e); }
-        setSyncing(false);
-      })();
+              try { await window.storage.set(STORAGE_KEY, JSON.stringify(newMatches), true); }
+        catch (e) {}
+                  })();
       return newMatches;
     });
   };
@@ -424,7 +382,7 @@ function AppInterna() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div style={{ fontSize: 8, letterSpacing: 2, color: "#4ade80", textTransform: "uppercase" }}>
-                SERIES ✎ {syncing ? <span style={{ color: "#f9e04b" }}>●</span> : <span style={{ color: "#2d5a2d" }}>●</span>}
+                SERIES ✎
               </div>
               <div style={{ fontSize: 18, color: "#333", fontWeight: 700 }}>–</div>
             </div>
@@ -1150,8 +1108,39 @@ const S = {
 };
 
 
+const CODIGO = "garcia2024";
 
-window.addEventListener("load", () => { ReactDOM.createRoot(document.getElementById("root")).render(<BillarApp/>); });
+function Acceso({ ok }) {
+  const [c, setC] = React.useState("");
+  const [err, setErr] = React.useState(false);
+  const go = () => {
+    if (c.trim() === CODIGO) { localStorage.setItem("bg_ok","1"); ok(); }
+    else { setErr(true); setTimeout(() => setErr(false), 2000); }
+  };
+  return (
+    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 50% 35%,#1a4a1a,#0a1f0a)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",padding:24}}>
+      <svg width="100" height="100" viewBox="0 0 100 100"><defs><radialGradient id="g1" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#1a4a1a"/><stop offset="100%" stopColor="#0a200a"/></radialGradient></defs><circle cx="50" cy="50" r="50" fill="url(#g1)"/><circle cx="50" cy="50" r="47.5" fill="none" stroke="#c9a227" strokeWidth="2.5"/><line x1="16" y1="76" x2="72" y2="20" stroke="#5c3d0a" strokeWidth="2.5" strokeLinecap="round"/><ellipse cx="16.5" cy="75.5" rx="3.2" ry="1.6" fill="#c9a227" transform="rotate(-45 16.5 75.5)"/><circle cx="52" cy="50" r="17" fill="#333"/><ellipse cx="46" cy="43" rx="5" ry="3.5" fill="rgba(255,255,255,0.2)"/><circle cx="52" cy="50" r="7.5" fill="white"/><text x="52" y="53.5" textAnchor="middle" fontSize="8.5" fontWeight="bold" fill="#111" fontFamily="Georgia,serif">8</text><circle cx="26" cy="27" r="10.5" fill="#cc2200"/><circle cx="26" cy="27" r="4.5" fill="white"/><text x="26" y="29.8" textAnchor="middle" fontSize="5.5" fontWeight="bold" fill="#7a0f00" fontFamily="Georgia,serif">7</text><circle cx="76" cy="74" r="10.5" fill="#f5c400"/><circle cx="76" cy="74" r="4.5" fill="white"/><text x="76" y="76.8" textAnchor="middle" fontSize="5.5" fontWeight="bold" fill="#b08800" fontFamily="Georgia,serif">9</text></svg>
+      <div style={{marginTop:12,fontSize:11,color:"#c9a227",letterSpacing:4,textTransform:"uppercase"}}>Billares</div>
+      <div style={{fontSize:34,fontWeight:900,color:"#fff",letterSpacing:2,lineHeight:1,marginBottom:6}}>García</div>
+      <div style={{fontSize:10,color:"#3a6a3a",letterSpacing:2,marginBottom:36}}>Control de partidas</div>
+      <div style={{width:"100%",maxWidth:300}}>
+        <input type="password" value={c} onChange={e=>setC(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Código de acceso" autoFocus
+          style={{width:"100%",padding:"13px 16px",borderRadius:12,background:err?"rgba(255,80,80,0.1)":"rgba(255,255,255,0.07)",border:err?"1px solid rgba(255,80,80,0.5)":"1px solid rgba(255,255,255,0.15)",color:"#fff",fontFamily:"inherit",fontSize:16,outline:"none",textAlign:"center",letterSpacing:4,boxSizing:"border-box"}}/>
+        {err && <div style={{color:"#f87171",fontSize:12,textAlign:"center",marginTop:6}}>Código incorrecto</div>}
+        <button onClick={go} style={{marginTop:12,width:"100%",padding:"13px 0",borderRadius:12,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer"}}>Entrar</button>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [ok, setOk] = React.useState(localStorage.getItem("bg_ok")==="1");
+  if (!ok) return <Acceso ok={()=>setOk(true)}/>;
+  return <BillarApp/>;
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>
