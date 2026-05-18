@@ -395,13 +395,6 @@ function BillarApp() {
         </div>
       </div>
 
-      {/* Banner terminada */}
-      {isReadOnly && (
-        <div style={{textAlign:"center",padding:"6px 0",background:"rgba(255,80,80,0.1)",borderBottom:"1px solid rgba(255,80,80,0.2)",color:"#f87171",fontSize:12,fontWeight:600}}>
-          Partida terminada — Solo lectura
-        </div>
-      )}
-
       {/* Banner */}
       {seriesFinished
         ? <div style={{textAlign:"center",padding:"7px 0",background:"rgba(249,224,75,0.08)",borderBottom:"1px solid rgba(249,224,75,0.18)",color:"#ddd",fontSize:13,fontWeight:600}}>Serie #{seriesCount} - Ganó: <strong style={{color:"#f9e04b"}}>{seriesWinner==="p1"?p1Name:p2Name}</strong></div>
@@ -455,15 +448,11 @@ function BillarApp() {
 
       {/* Footer */}
       <div style={{display:"flex",gap:8,padding:"10px 14px",borderTop:"1px solid rgba(255,255,255,0.05)",background:"rgba(0,0,0,0.32)",alignItems:"center"}}>
-        {isReadOnly ? (
-          <button style={{flex:1,fontSize:13,padding:"12px 0",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#ccc",fontFamily:"inherit",fontWeight:700,cursor:"pointer"}} onClick={()=>setScreen("lobby")}>← Volver al lobby</button>
-        ) : <>
-          {seriesFinished
-            ? <button style={{flex:2,fontSize:13,padding:"12px 0",borderRadius:14,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontWeight:800,cursor:"pointer"}} onClick={startNewSeries}>Siguiente serie</button>
-            : <div style={{flex:2}} />
-          }
-          <button style={{padding:"11px 14px",borderRadius:12,background:"rgba(255,80,80,0.12)",border:"1px solid rgba(255,80,80,0.28)",color:"#f87171",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}} onClick={()=>setShowCloseMatch(true)}>Terminar</button>
-        </>}
+        {seriesFinished
+          ? <button style={{flex:2,fontSize:13,padding:"12px 0",borderRadius:14,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontWeight:800,cursor:"pointer"}} onClick={startNewSeries}>Siguiente serie</button>
+          : <div style={{flex:2}} />
+        }
+        <button style={{padding:"11px 14px",borderRadius:12,background:"rgba(255,80,80,0.12)",border:"1px solid rgba(255,80,80,0.28)",color:"#f87171",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}} onClick={()=>setShowCloseMatch(true)}>Terminar</button>
       </div>
 
       {/* Modal terminar */}
@@ -488,6 +477,7 @@ function BillarApp() {
           seriesHistory={seriesHistory} seriesWins={seriesWins}
           games={games} seriesCount={seriesCount}
           seriesFinished={seriesFinished} seriesWinner={seriesWinner}
+          matchClosed={activeMatch.matchClosed}
           onClose={()=>setShowHistory(false)}
           onEditCurrentGame={(ji, k) => {
             updateMatch(activeId, m => {
@@ -548,7 +538,7 @@ function BillarApp() {
 }
 
 function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, seriesWins,
-  games, seriesCount, seriesFinished, seriesWinner,
+  games, seriesCount, seriesFinished, seriesWinner, matchClosed,
   onClose, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries}) {
 
   const d1 = seriesWins.p1+(seriesFinished&&seriesWinner==="p1"?1:0);
@@ -612,7 +602,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
         </div>
         {games.length===0
           ? <div style={{color:"#555",fontSize:12,marginBottom:12}}>Sin juegos registrados</div>
-          : <MiniGrid gamesData={games} isEditable={true} p1wins={0} p2wins={0} onToggle={(ji,k)=>onEditCurrentGame(ji,k)}/>
+          : <MiniGrid gamesData={games} isEditable={!activeMatch.matchClosed} p1wins={0} p2wins={0} onToggle={(ji,k)=>onEditCurrentGame(ji,k)}/>
         }
 
         {seriesHistory.length>0&&<>
@@ -637,7 +627,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                   </div>
                 </div>
                 {isLast&&<>
-                  <MiniGrid gamesData={fakeGames} isEditable={true}
+                  <MiniGrid gamesData={fakeGames} isEditable={!matchClosed || (s.p1wins<carrera&&s.p2wins<carrera)}
                     p1wins={s.winner==="p1"?1:0} p2wins={s.winner==="p2"?1:0}
                     onToggle={(ji,k)=>onEditHistoryGame(i,ji,k,fakeGames)}/>
                   {(()=>{
