@@ -683,7 +683,8 @@ function LobbyCard({m, onOpen, onDelete, onReplay}) {
         <div style={{fontSize:14,fontWeight:800,color:"#e8e8e8",flex:1}}>{m.p1Name}</div>
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,padding:"0 8px"}}>
           <BallIcon modalidad={m.modalidad} size={28}/>
-          <div style={{fontSize:9,color:"#555"}}>{m.modalidad} · C{m.carrera}</div>
+          <div style={{fontSize:11,color:"#4ade80",fontWeight:700,marginTop:2}}>{m.modalidad}</div>
+          <div style={{fontSize:9,color:"#666"}}>Carrera {m.carrera}</div>
         </div>
         <div style={{fontSize:14,fontWeight:800,color:"#e8e8e8",flex:1,textAlign:"right"}}>{m.p2Name}</div>
       </div>
@@ -693,7 +694,11 @@ function LobbyCard({m, onOpen, onDelete, onReplay}) {
         <div style={{display:"flex",flexWrap:"wrap",gap:2,flex:1}}>
           {sw1>0 ? Array.from({length:sw1},(_,i)=><span key={i} style={{fontSize:15}}>&#127942;</span>) : <span style={{fontSize:11,color:"#444"}}>—</span>}
         </div>
-        <div style={{fontSize:20,fontWeight:900,color:sw1===sw2?"#666":sw1>sw2?"#4ade80":"#aaa",padding:"0 10px",minWidth:60,textAlign:"center"}}>{sw1} - {sw2}</div>
+        <div style={{fontSize:20,fontWeight:900,padding:"0 10px",minWidth:60,textAlign:"center"}}>
+          <span style={{color:sw1>sw2?"#4ade80":sw1<sw2?"#aaa":"#888"}}>{sw1}</span>
+          <span style={{color:"#444"}}> - </span>
+          <span style={{color:sw2>sw1?"#4ade80":sw2<sw1?"#aaa":"#888"}}>{sw2}</span>
+        </div>
         <div style={{display:"flex",flexWrap:"wrap",gap:2,flex:1,justifyContent:"flex-end"}}>
           {sw2>0 ? Array.from({length:sw2},(_,i)=><span key={i} style={{fontSize:15}}>&#127942;</span>) : <span style={{fontSize:11,color:"#444",textAlign:"right",width:"100%"}}>—</span>}
         </div>
