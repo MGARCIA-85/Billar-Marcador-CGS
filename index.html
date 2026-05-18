@@ -623,21 +623,33 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
             ];
             return (
               <div key={i} style={{background:isLast?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.15)",border:isLast?"1px solid rgba(74,222,128,0.2)":"1px solid rgba(255,255,255,0.06)",borderRadius:10,padding:"8px 10px",marginBottom:6}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
                   <span style={{color:"#556",fontSize:11}}>Serie #{s.seriesNum}{s.partial?" *":""}</span>
+                  {s.p1wins>s.p2wins && <span style={{fontSize:10,color:"#4ade80",fontWeight:700}}>&#127942; {p1Name}</span>}
+                  {s.p2wins>s.p1wins && <span style={{fontSize:10,color:"#4ade80",fontWeight:700}}>&#127942; {p2Name}</span>}
                 </div>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:5}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   {/* Jugador 1 */}
                   <div style={{flex:1}}>
-                    <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":"#888",fontWeight:s.p1wins>s.p2wins?700:400}}>{p1Name} {s.p1wins>s.p2wins?"&#127942;":""}</div>
-                    <div style={{fontSize:18,fontWeight:900,color:s.p1wins>s.p2wins?"#4ade80":"#555",background:s.p1wins>s.p2wins?"rgba(74,222,128,0.1)":"transparent",borderRadius:6,padding:"1px 6px",display:"inline-block",marginTop:2}}>{s.p1wins}</div>
+                    <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":"#666",marginBottom:4}}>{p1Name}</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:2}}>
+                      {Array.from({length:s.p1wins},(_,i)=><BallIcon key={i} modalidad={modalidad} size={20}/>)}
+                      {s.p1wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
+                    </div>
                   </div>
                   {/* Centro */}
-                  <div style={{fontSize:11,color:"#444",padding:"0 8px"}}>-</div>
+                  <div style={{fontSize:14,fontWeight:900,padding:"0 10px",textAlign:"center"}}>
+                    <span style={{color:s.p1wins>s.p2wins?"#4ade80":"#555"}}>{s.p1wins}</span>
+                    <span style={{color:"#333",margin:"0 4px"}}>-</span>
+                    <span style={{color:s.p2wins>s.p1wins?"#4ade80":"#555"}}>{s.p2wins}</span>
+                  </div>
                   {/* Jugador 2 */}
                   <div style={{flex:1,textAlign:"right"}}>
-                    <div style={{fontSize:11,color:s.p2wins>s.p1wins?"#4ade80":"#888",fontWeight:s.p2wins>s.p1wins?700:400}}>{s.p2wins>s.p1wins?"&#127942; ":""}{p2Name}</div>
-                    <div style={{fontSize:18,fontWeight:900,color:s.p2wins>s.p1wins?"#4ade80":"#555",background:s.p2wins>s.p1wins?"rgba(74,222,128,0.1)":"transparent",borderRadius:6,padding:"1px 6px",display:"inline-block",marginTop:2}}>{s.p2wins}</div>
+                    <div style={{fontSize:11,color:s.p2wins>s.p1wins?"#4ade80":"#666",marginBottom:4,textAlign:"right"}}>{p2Name}</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:2,justifyContent:"flex-end"}}>
+                      {Array.from({length:s.p2wins},(_,i)=><BallIcon key={i} modalidad={modalidad} size={20}/>)}
+                      {s.p2wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
+                    </div>
                   </div>
                 </div>
                 {isLast && !matchClosed && (
@@ -648,7 +660,6 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                 )}
               </div>
             );
-          })}
         </>}
 
         {matchClosed && (
