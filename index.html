@@ -61,19 +61,23 @@
   <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS</div>
 </div>
 <script>
+  var _splashStart = Date.now();
+  var _minTime = 2500; // mínimo 2.5 segundos visible
+  function _hideSplash() {
+    var s = document.getElementById('splash');
+    if (s) { s.style.opacity='0'; setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 700); }
+  }
   var _splashCheck = setInterval(function() {
     var root = document.getElementById('root');
     if (root && root.children.length > 0) {
       clearInterval(_splashCheck);
-      var s = document.getElementById('splash');
-      if (s) { s.style.opacity='0'; setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 600); }
+      var elapsed = Date.now() - _splashStart;
+      var wait = Math.max(0, _minTime - elapsed);
+      setTimeout(_hideSplash, wait);
     }
   }, 150);
-  setTimeout(function() {
-    clearInterval(_splashCheck);
-    var s = document.getElementById('splash');
-    if (s) { s.style.opacity='0'; setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 600); }
-  }, 12000);
+  // Máximo 10 segundos
+  setTimeout(function() { clearInterval(_splashCheck); _hideSplash(); }, 10000);
 </script>
 <div id="root"></div>
 <script type="text/babel">
