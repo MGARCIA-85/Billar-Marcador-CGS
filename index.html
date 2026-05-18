@@ -531,6 +531,10 @@ function BillarApp() {
             });
             setShowHistory(false);
           }}
+          onReactivar={() => {
+            updateMatch(activeId, m => ({...m, matchClosed:false, closedAt:null}));
+            setShowHistory(false);
+          }}
         />
       )}
     </div>
@@ -539,7 +543,7 @@ function BillarApp() {
 
 function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, seriesWins,
   games, seriesCount, seriesFinished, seriesWinner, matchClosed,
-  onClose, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries}) {
+  onClose, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries, onReactivar}) {
 
   const sw = seriesWins||{p1:0,p2:0};
   const d1 = sw.p1+(seriesFinished&&seriesWinner==="p1"?1:0);
@@ -603,7 +607,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
         </div>
         {(games||[]).length===0
           ? <div style={{color:"#555",fontSize:12,marginBottom:12}}>Sin juegos registrados</div>
-          : <MiniGrid gamesData={games||[]} isEditable={!matchClosed} p1wins={0} p2wins={0} onToggle={(ji,k)=>onEditCurrentGame(ji,k)}/>
+          : <MiniGrid gamesData={games||[]} isEditable={false} p1wins={0} p2wins={0} onToggle={(ji,k)=>onEditCurrentGame(ji,k)}/>
         }
 
         {(seriesHistory||[]).length>0&&<>
@@ -628,20 +632,21 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                   </div>
                 </div>
                 {isLast&&<>
-                  <MiniGrid gamesData={fakeGames} isEditable={!matchClosed || (s.p1wins<carrera&&s.p2wins<carrera)}
+                  <MiniGrid gamesData={fakeGames} isEditable={false}
                     p1wins={s.winner==="p1"?1:0} p2wins={s.winner==="p2"?1:0}
                     onToggle={(ji,k)=>onEditHistoryGame(i,ji,k,fakeGames)}/>
-                  {(()=>{
-                    const incompleta=s.p1wins<carrera&&s.p2wins<carrera;
-                    return incompleta?<button onClick={()=>onRestoreLastSeries(s,fakeGames)}
-                      style={{marginTop:8,width:"100%",padding:"8px 0",borderRadius:8,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                      Continuar esta serie
-                    </button>:null;
-                  })()}
-                  <button onClick={onDeleteLastSeries}
-                    style={{marginTop:6,width:"100%",padding:"6px 0",borderRadius:8,background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.22)",color:"#f87171",fontFamily:"inherit",fontSize:11,cursor:"pointer"}}>
-                    Eliminar esta serie del historial
-                  </button>
+                  {matchClosed && (
+                    <button onClick={onReactivar}
+                      style={{marginTop:8,width:"100%",padding:"10px 0",borderRadius:8,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>
+                      &#9654; Reactivar partida
+                    </button>
+                  )}
+                  {!matchClosed && (
+                    <button onClick={onDeleteLastSeries}
+                      style={{marginTop:6,width:"100%",padding:"6px 0",borderRadius:8,background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.22)",color:"#f87171",fontFamily:"inherit",fontSize:11,cursor:"pointer"}}>
+                      Eliminar esta serie del historial
+                    </button>
+                  )}
                 </>}
               </div>
             );
