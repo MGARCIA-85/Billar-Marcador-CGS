@@ -477,7 +477,7 @@ function BillarApp() {
           seriesHistory={seriesHistory} seriesWins={seriesWins}
           games={games} seriesCount={seriesCount}
           seriesFinished={seriesFinished} seriesWinner={seriesWinner}
-          matchClosed={!!(activeMatch&&activeMatch.matchClosed)}
+          matchClosed={isReadOnly}
           onClose={()=>setShowHistory(false)}
           onEditCurrentGame={(ji, k) => {
             updateMatch(activeId, m => {
@@ -541,8 +541,9 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
   games, seriesCount, seriesFinished, seriesWinner, matchClosed,
   onClose, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries}) {
 
-  const d1 = seriesWins.p1+(seriesFinished&&seriesWinner==="p1"?1:0);
-  const d2 = seriesWins.p2+(seriesFinished&&seriesWinner==="p2"?1:0);
+  const sw = seriesWins||{p1:0,p2:0};
+  const d1 = sw.p1+(seriesFinished&&seriesWinner==="p1"?1:0);
+  const d2 = sw.p2+(seriesFinished&&seriesWinner==="p2"?1:0);
   const CELL_W=38, CELL_H=60, NAM_W=90;
   const BORDER="1px solid rgba(255,255,255,0.15)";
   const BORDER_THIN="1px solid rgba(255,255,255,0.08)";
@@ -600,14 +601,14 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
         <div style={{fontSize:10,color:"#f9e04b",letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>
           Serie actual #{seriesCount} {seriesFinished?"- terminada":"- en juego"}
         </div>
-        {games.length===0
+        {(games||[]).length===0
           ? <div style={{color:"#555",fontSize:12,marginBottom:12}}>Sin juegos registrados</div>
-          : <MiniGrid gamesData={games} isEditable={!(activeMatch&&activeMatch.matchClosed)} p1wins={0} p2wins={0} onToggle={(ji,k)=>onEditCurrentGame(ji,k)}/>
+          : <MiniGrid gamesData={games||[]} isEditable={!matchClosed} p1wins={0} p2wins={0} onToggle={(ji,k)=>onEditCurrentGame(ji,k)}/>
         }
 
-        {seriesHistory.length>0&&<>
+        {(seriesHistory||[]).length>0&&<>
           <div style={{fontSize:10,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Series completadas</div>
-          {seriesHistory.map((s,i)=>{
+          {(seriesHistory||[]).map((s,i)=>{
             const isLast=i===seriesHistory.length-1;
             const fakeGames=s.games||[
               ...Array.from({length:s.p1wins},()=>({winner:"p1"})),
