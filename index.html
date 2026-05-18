@@ -62,13 +62,12 @@
 </div>
 <div id="root"></div>
 <script>
-  // Quitar splash cuando React haya montado el componente
   window._hideSplash = function() {
-    const s = document.getElementById('splash');
-    if (s) { s.style.opacity='0'; setTimeout(()=>{ if(s.parentNode) s.parentNode.removeChild(s); }, 700); }
+    var s = document.getElementById('splash');
+    if (s) { s.style.opacity='0'; setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 700); }
   };
-  // Fallback: quitar después de 5 segundos máximo
-  setTimeout(window._hideSplash, 5000);
+  // Quitar splash a los 3 segundos sin importar nada más
+  setTimeout(window._hideSplash, 3000);
 </script>
 <script type="text/babel">
 const { useState, useEffect } = React;
@@ -747,9 +746,6 @@ function LobbyCard({m, onOpen, onDelete, onReplay}) {
 
 function App() {
   const [ok, setOk] = useState(()=>!!localStorage.getItem("bg"));
-  useEffect(() => {
-    if (window._hideSplash) { setTimeout(window._hideSplash, 300); }
-  }, []);
   if (!ok) return <Acceso ok={()=>setOk(true)} />;
   return <BillarApp />;
 }
