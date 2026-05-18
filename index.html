@@ -121,8 +121,16 @@ function createMatch(p1, p2, firstServe, carrera, modalidad) {
     carrera, modalidad, games: [], currentServe: firstServe,
     wins: {p1:0, p2:0}, seriesFinished: false, seriesWinner: null,
     seriesHistory: [], seriesWins: {p1:0, p2:0}, seriesCount: 1,
-    matchClosed: false, closedAt: null,
+    matchClosed: false, closedAt: null, createdAt: Date.now(),
   };
+}
+
+function formatDate(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const dias = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  const meses = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  return dias[d.getDay()] + " " + d.getDate() + " " + meses[d.getMonth()] + " " + d.getHours().toString().padStart(2,"0") + ":" + d.getMinutes().toString().padStart(2,"0");
 }
 
 function Acceso({ ok }) {
@@ -242,8 +250,8 @@ function BillarApp() {
     setWServe(null); setScreen("newMatch");
   };
 
-  const activeMatches = matches.filter(m => !m.matchClosed);
-  const closedMatches = matches.filter(m => m.matchClosed);
+  const activeMatches = matches.filter(m => !m.matchClosed).sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+  const closedMatches = matches.filter(m => m.matchClosed).sort((a,b) => (b.closedAt||b.createdAt||0)-(a.closedAt||a.createdAt||0));
 
   const chip = (sel) => ({
     padding:"8px 14px", borderRadius:20, fontFamily:"inherit", fontSize:13, fontWeight:600,
@@ -271,7 +279,7 @@ function BillarApp() {
         </div>
         <div className="app-scroll" style={{padding:"0 14px"}}>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
-          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{if(!m.matchClosed){setActiveId(m.id);setScreen("match");}}} onDelete={()=>deleteMatch(m.id)} onReplay={replayMatch} />)}
+          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveId(m.id);setScreen("match");}} onDelete={()=>deleteMatch(m.id)} onReplay={replayMatch} />)}
         </div>
         <div style={{padding:"14px 18px"}}>
           <button style={{width:"100%",padding:"14px 0",borderRadius:14,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer"}} onClick={()=>setScreen("newMatch")}>+ Nueva Partida</button>
@@ -329,6 +337,7 @@ function BillarApp() {
 
   // ===== PARTIDA =====
   if (!activeMatch) { setScreen("lobby"); return null; }
+  const isReadOnly = activeMatch.matchClosed;
   const {p1Name, p2Name, currentServe, wins, carrera, modalidad, games, seriesFinished, seriesWinner, seriesWins, seriesCount, seriesHistory} = activeMatch;
 
   const CELL_W=44, CELL_H=100, NAM_W=155, HDR_H=18;
@@ -386,6 +395,13 @@ function BillarApp() {
         </div>
       </div>
 
+      {/* Banner terminada */}
+      {isReadOnly && (
+        <div style={{textAlign:"center",padding:"6px 0",background:"rgba(255,80,80,0.1)",borderBottom:"1px solid rgba(255,80,80,0.2)",color:"#f87171",fontSize:12,fontWeight:600}}>
+          Partida terminada — Solo lectura
+        </div>
+      )}
+
       {/* Banner */}
       {seriesFinished
         ? <div style={{textAlign:"center",padding:"7px 0",background:"rgba(249,224,75,0.08)",borderBottom:"1px solid rgba(249,224,75,0.18)",color:"#ddd",fontSize:13,fontWeight:600}}>Serie #{seriesCount} - Ganó: <strong style={{color:"#f9e04b"}}>{seriesWinner==="p1"?p1Name:p2Name}</strong></div>
@@ -439,11 +455,15 @@ function BillarApp() {
 
       {/* Footer */}
       <div style={{display:"flex",gap:8,padding:"10px 14px",borderTop:"1px solid rgba(255,255,255,0.05)",background:"rgba(0,0,0,0.32)",alignItems:"center"}}>
-        {seriesFinished
-          ? <button style={{flex:2,fontSize:13,padding:"12px 0",borderRadius:14,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontWeight:800,cursor:"pointer"}} onClick={startNewSeries}>Siguiente serie</button>
-          : <div style={{flex:2}} />
-        }
-        <button style={{padding:"11px 14px",borderRadius:12,background:"rgba(255,80,80,0.12)",border:"1px solid rgba(255,80,80,0.28)",color:"#f87171",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}} onClick={()=>setShowCloseMatch(true)}>Terminar</button>
+        {isReadOnly ? (
+          <button style={{flex:1,fontSize:13,padding:"12px 0",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:"#ccc",fontFamily:"inherit",fontWeight:700,cursor:"pointer"}} onClick={()=>setScreen("lobby")}>← Volver al lobby</button>
+        ) : <>
+          {seriesFinished
+            ? <button style={{flex:2,fontSize:13,padding:"12px 0",borderRadius:14,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontWeight:800,cursor:"pointer"}} onClick={startNewSeries}>Siguiente serie</button>
+            : <div style={{flex:2}} />
+          }
+          <button style={{padding:"11px 14px",borderRadius:12,background:"rgba(255,80,80,0.12)",border:"1px solid rgba(255,80,80,0.28)",color:"#f87171",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}} onClick={()=>setShowCloseMatch(true)}>Terminar</button>
+        </>}
       </div>
 
       {/* Modal terminar */}
@@ -656,6 +676,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay}) {
           <div>
             <div style={{fontSize:13,fontWeight:800,color:"#e8e8e8"}}>{m.p1Name} vs {m.p2Name}</div>
             <div style={{fontSize:10,color:"#555",marginTop:1}}>{m.modalidad} - C{m.carrera} - S#{m.seriesCount}{m.matchClosed?" - Terminada":""}</div>
+            <div style={{fontSize:9,color:"#3a5a3a",marginTop:2}}>{formatDate(m.createdAt)}</div>
           </div>
         </div>
         <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
