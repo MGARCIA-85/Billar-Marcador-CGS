@@ -477,7 +477,7 @@ function BillarApp() {
           seriesHistory={seriesHistory} seriesWins={seriesWins}
           games={games} seriesCount={seriesCount}
           seriesFinished={seriesFinished} seriesWinner={seriesWinner}
-          matchClosed={activeMatch.matchClosed}
+          matchClosed={!!(activeMatch&&activeMatch.matchClosed)}
           onClose={()=>setShowHistory(false)}
           onEditCurrentGame={(ji, k) => {
             updateMatch(activeId, m => {
@@ -602,7 +602,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
         </div>
         {games.length===0
           ? <div style={{color:"#555",fontSize:12,marginBottom:12}}>Sin juegos registrados</div>
-          : <MiniGrid gamesData={games} isEditable={!activeMatch.matchClosed} p1wins={0} p2wins={0} onToggle={(ji,k)=>onEditCurrentGame(ji,k)}/>
+          : <MiniGrid gamesData={games} isEditable={!(activeMatch&&activeMatch.matchClosed)} p1wins={0} p2wins={0} onToggle={(ji,k)=>onEditCurrentGame(ji,k)}/>
         }
 
         {seriesHistory.length>0&&<>
