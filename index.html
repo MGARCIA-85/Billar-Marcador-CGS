@@ -64,10 +64,18 @@
 <script>
   window._hideSplash = function() {
     var s = document.getElementById('splash');
-    if (s) { s.style.opacity='0'; setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 700); }
+    if (s) { s.style.opacity='0'; setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 600); }
   };
-  // Quitar splash a los 3 segundos sin importar nada más
-  setTimeout(window._hideSplash, 3000);
+  // Esperar a que React llene el div #root
+  var _splashCheck = setInterval(function() {
+    var root = document.getElementById('root');
+    if (root && root.children.length > 0) {
+      clearInterval(_splashCheck);
+      setTimeout(window._hideSplash, 200);
+    }
+  }, 100);
+  // Máximo 10 segundos
+  setTimeout(function() { clearInterval(_splashCheck); window._hideSplash(); }, 10000);
 </script>
 <script type="text/babel">
 const { useState, useEffect } = React;
