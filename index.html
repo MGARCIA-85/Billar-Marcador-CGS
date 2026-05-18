@@ -31,6 +31,50 @@
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
   <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS</div>
 </div>
+<div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
+  <svg width="150" height="140" viewBox="0 0 150 140">
+    <defs>
+      <radialGradient id="b8g" cx="35%" cy="30%" r="60%"><stop offset="0%" stop-color="#555"/><stop offset="100%" stop-color="#050505"/></radialGradient>
+      <radialGradient id="b9g" cx="35%" cy="30%" r="60%"><stop offset="0%" stop-color="#f5d060"/><stop offset="100%" stop-color="#8a5c00"/></radialGradient>
+      <radialGradient id="b10g" cx="35%" cy="30%" r="60%"><stop offset="0%" stop-color="#5aaaf5"/><stop offset="100%" stop-color="#082070"/></radialGradient>
+      <radialGradient id="sh" cx="30%" cy="25%" r="50%"><stop offset="0%" stop-color="rgba(255,255,255,0.9)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient>
+    </defs>
+    <ellipse cx="76" cy="47" rx="26" ry="6" fill="rgba(0,0,0,0.35)"/>
+    <ellipse cx="48" cy="97" rx="26" ry="6" fill="rgba(0,0,0,0.35)"/>
+    <ellipse cx="104" cy="97" rx="26" ry="6" fill="rgba(0,0,0,0.35)"/>
+    <circle cx="75" cy="40" r="28" fill="url(#b8g)"/>
+    <circle cx="75" cy="40" r="28" fill="url(#sh)" opacity="0.25"/>
+    <circle cx="75" cy="40" r="11" fill="white"/>
+    <text x="75" y="45" text-anchor="middle" font-size="14" font-weight="900" fill="#111" font-family="Arial,sans-serif">8</text>
+    <circle cx="47" cy="92" r="28" fill="url(#b9g)"/>
+    <circle cx="47" cy="92" r="28" fill="url(#sh)" opacity="0.25"/>
+    <circle cx="47" cy="92" r="11" fill="white"/>
+    <text x="47" y="97" text-anchor="middle" font-size="14" font-weight="900" fill="#7a4a00" font-family="Arial,sans-serif">9</text>
+    <circle cx="103" cy="92" r="28" fill="url(#b10g)"/>
+    <circle cx="103" cy="92" r="28" fill="url(#sh)" opacity="0.25"/>
+    <circle cx="103" cy="92" r="11" fill="white"/>
+    <text x="103" y="97" text-anchor="middle" font-size="11" font-weight="900" fill="#0a3a8a" font-family="Arial,sans-serif">10</text>
+  </svg>
+  <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
+  <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
+  <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS</div>
+</div>
+<script>
+  var _splashCheck = setInterval(function() {
+    var root = document.getElementById('root');
+    if (root && root.children.length > 0) {
+      clearInterval(_splashCheck);
+      var s = document.getElementById('splash');
+      if (s) { s.style.opacity='0'; setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 600); }
+    }
+  }, 150);
+  setTimeout(function() {
+    clearInterval(_splashCheck);
+    var s = document.getElementById('splash');
+    if (s) { s.style.opacity='0'; setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 600); }
+  }, 12000);
+</script>
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect } = React;
@@ -594,7 +638,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   {/* Jugador 1 */}
                   <div style={{flex:1}}>
-                    <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":"#666",marginBottom:4}}>{p1Name}</div>
+                    <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":"#666",marginBottom:4,fontWeight:s.p1wins>s.p2wins?700:400}}>{s.p1wins>s.p2wins?"🏆 ":""}{p1Name}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:2}}>
                       {Array.from({length:s.p1wins},(_,i)=><BallIcon key={i} modalidad={modalidad} size={20}/>)}
                       {s.p1wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
@@ -608,7 +652,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                   </div>
                   {/* Jugador 2 */}
                   <div style={{flex:1,textAlign:"right"}}>
-                    <div style={{fontSize:11,color:s.p2wins>s.p1wins?"#4ade80":"#666",marginBottom:4,textAlign:"right"}}>{p2Name}</div>
+                    <div style={{fontSize:11,color:s.p2wins>s.p1wins?"#4ade80":"#666",marginBottom:4,textAlign:"right",fontWeight:s.p2wins>s.p1wins?700:400}}>{p2Name}{s.p2wins>s.p1wins?" 🏆":""}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:2,justifyContent:"flex-end"}}>
                       {Array.from({length:s.p2wins},(_,i)=><BallIcon key={i} modalidad={modalidad} size={20}/>)}
                       {s.p2wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
