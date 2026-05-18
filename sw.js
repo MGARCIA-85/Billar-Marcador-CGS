@@ -1,4 +1,4 @@
-const CACHE = 'billares-v3';
+const CACHE = 'billares-v4';
 const FILES = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -12,6 +12,7 @@ self.addEventListener('activate', e => {
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     )
   );
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', e => {
