@@ -655,35 +655,84 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
 }
 
 
+function TrofeoRow({count, color}) {
+  return (
+    <div style={{display:"flex",flexWrap:"wrap",gap:2}}>
+      {Array.from({length:count},(_,i)=><span key={i} style={{fontSize:16}}>&#127942;</span>)}
+    </div>
+  );
+}
+
 function LobbyCard({m, onOpen, onDelete, onReplay}) {
   const isOpen = !m.matchClosed;
   const sw1 = m.seriesWins.p1+(m.seriesFinished&&m.seriesWinner==="p1"?1:0);
   const sw2 = m.seriesWins.p2+(m.seriesFinished&&m.seriesWinner==="p2"?1:0);
+  const hasInconclusa = !isOpen && m.wins && (m.wins.p1>0||m.wins.p2>0) && !m.seriesFinished;
+
   return (
-    <div onClick={onOpen} style={{display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"12px 14px",marginBottom:10,cursor:"pointer",opacity:isOpen?1:0.9}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-        <div style={{display:"flex",alignItems:"center",gap:7}}>
-          <BallIcon modalidad={m.modalidad} size={22} />
+    <div onClick={onOpen} style={{display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"12px 14px",marginBottom:10,cursor:"pointer",opacity:isOpen?1:0.95}}>
+
+      {/* Cabecera: nombre + estado + borrar */}
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+          <BallIcon modalidad={m.modalidad} size={26} />
           <div>
-            <div style={{fontSize:13,fontWeight:800,color:"#e8e8e8"}}>{m.p1Name} vs {m.p2Name}</div>
-            <div style={{fontSize:10,color:"#555",marginTop:1}}>{m.modalidad} - C{m.carrera} - S#{m.seriesCount}{m.matchClosed?" - Terminada":""}</div>
-            <div style={{fontSize:9,color:"#3a5a3a",marginTop:2}}>{formatDate(m.createdAt)}</div>
+            <div style={{fontSize:14,fontWeight:800,color:"#e8e8e8",lineHeight:1.2}}>{m.p1Name} vs {m.p2Name}</div>
+            <div style={{fontSize:10,color:"#555",marginTop:2}}>{m.modalidad} · C{m.carrera}</div>
           </div>
         </div>
-        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
           <div style={{fontSize:9,color:isOpen?"#4ade80":"#888",background:isOpen?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.05)",border:isOpen?"1px solid rgba(74,222,128,0.22)":"none",borderRadius:20,padding:"2px 7px",fontWeight:700}}>{isOpen?"EN JUEGO":"FIN"}</div>
           <button style={{background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.2)",color:"#f87171",borderRadius:8,padding:"4px 7px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}} onClick={e=>{e.stopPropagation();onDelete();}}>x</button>
         </div>
       </div>
-      <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderTop:"1px solid rgba(255,255,255,0.06)"}}>
-        <div style={{fontSize:13,fontWeight:700,color:sw1>sw2?"#4ade80":"#aaa"}}>{m.p1Name}: {sw1} series</div>
-        <div style={{fontSize:13,fontWeight:700,color:sw2>sw1?"#4ade80":"#aaa"}}>{m.p2Name}: {sw2} series</div>
+
+      {/* Fecha resaltada */}
+      <div style={{fontSize:11,color:"#4a7a4a",fontWeight:600,marginBottom:8,letterSpacing:0.5}}>
+        &#128337; {formatDate(m.createdAt)}
       </div>
-      {!isOpen && m.wins && (m.wins.p1>0||m.wins.p2>0) && !m.seriesFinished && (
-        <div style={{fontSize:10,color:"#666",marginTop:2}}>
-          Última serie incompleta: {m.p1Name} {m.wins.p1} - {m.wins.p2} {m.p2Name}
+
+      {/* Marcador de series con trofeos */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"8px 10px",background:"rgba(0,0,0,0.2)",borderRadius:10,marginBottom:hasInconclusa?6:0}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:11,color:sw1>sw2?"#4ade80":"#888",fontWeight:700,marginBottom:4}}>{m.p1Name}</div>
+          <TrofeoRow count={sw1} />
+          {sw1===0 && <div style={{fontSize:11,color:"#444"}}>—</div>}
+        </div>
+        <div style={{fontSize:22,fontWeight:900,color:"#333",padding:"0 12px",alignSelf:"center"}}>{sw1} - {sw2}</div>
+        <div style={{flex:1,alignItems:"flex-end",display:"flex",flexDirection:"column"}}>
+          <div style={{fontSize:11,color:sw2>sw1?"#4ade80":"#888",fontWeight:700,marginBottom:4,textAlign:"right"}}>{m.p2Name}</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:2,justifyContent:"flex-end"}}>
+            {Array.from({length:sw2},(_,i)=><span key={i} style={{fontSize:16}}>&#127942;</span>)}
+          </div>
+          {sw2===0 && <div style={{fontSize:11,color:"#444"}}>—</div>}
+        </div>
+      </div>
+
+      {/* Serie inconclusa con bolas */}
+      {hasInconclusa && (
+        <div style={{padding:"6px 10px",background:"rgba(249,224,75,0.05)",border:"1px solid rgba(249,224,75,0.12)",borderRadius:8,marginBottom:4}}>
+          <div style={{fontSize:10,color:"#a08030",marginBottom:4,fontWeight:600}}>Serie inconclusa</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontSize:10,color:"#888",marginBottom:3}}>{m.p1Name}</div>
+              <div style={{display:"flex",gap:3}}>
+                {Array.from({length:m.wins.p1},(_,i)=><BallIcon key={i} modalidad={m.modalidad} size={18}/>)}
+                {m.wins.p1===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
+              </div>
+            </div>
+            <div style={{fontSize:14,color:"#555",fontWeight:700}}>vs</div>
+            <div style={{alignItems:"flex-end",display:"flex",flexDirection:"column"}}>
+              <div style={{fontSize:10,color:"#888",marginBottom:3,textAlign:"right"}}>{m.p2Name}</div>
+              <div style={{display:"flex",gap:3,justifyContent:"flex-end"}}>
+                {Array.from({length:m.wins.p2},(_,i)=><BallIcon key={i} modalidad={m.modalidad} size={18}/>)}
+                {m.wins.p2===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
+              </div>
+            </div>
+          </div>
         </div>
       )}
+
       {!isOpen && (
         <button style={{marginTop:8,width:"100%",padding:"8px 0",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReplay(m);}}>Volver a jugar</button>
       )}
