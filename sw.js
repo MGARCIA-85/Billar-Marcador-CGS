@@ -1,4 +1,4 @@
-const CACHE = 'billares-v4';
+const CACHE = 'billares-v5';
 const FILES = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', e => {
