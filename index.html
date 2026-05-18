@@ -27,56 +27,11 @@
   </style>
 </head>
 <body>
-<div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
-  <svg width="150" height="140" viewBox="0 0 150 140">
-    <defs>
-      <radialGradient id="b8g" cx="35%" cy="30%" r="60%"><stop offset="0%" stop-color="#555"/><stop offset="100%" stop-color="#050505"/></radialGradient>
-      <radialGradient id="b9g" cx="35%" cy="30%" r="60%"><stop offset="0%" stop-color="#f5d060"/><stop offset="100%" stop-color="#8a5c00"/></radialGradient>
-      <radialGradient id="b10g" cx="35%" cy="30%" r="60%"><stop offset="0%" stop-color="#5aaaf5"/><stop offset="100%" stop-color="#082070"/></radialGradient>
-      <radialGradient id="sh" cx="30%" cy="25%" r="50%"><stop offset="0%" stop-color="rgba(255,255,255,0.9)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient>
-    </defs>
-    <!-- Sombras -->
-    <ellipse cx="76" cy="47" rx="26" ry="6" fill="rgba(0,0,0,0.35)"/>
-    <ellipse cx="48" cy="97" rx="26" ry="6" fill="rgba(0,0,0,0.35)"/>
-    <ellipse cx="104" cy="97" rx="26" ry="6" fill="rgba(0,0,0,0.35)"/>
-    <!-- Bola 8 -->
-    <circle cx="75" cy="40" r="28" fill="url(#b8g)"/>
-    <circle cx="75" cy="40" r="28" fill="url(#sh)" opacity="0.25"/>
-    <circle cx="75" cy="40" r="11" fill="white"/>
-    <text x="75" y="45" text-anchor="middle" font-size="14" font-weight="900" fill="#111" font-family="Arial,sans-serif">8</text>
-    <!-- Bola 9 -->
-    <circle cx="47" cy="92" r="28" fill="url(#b9g)"/>
-    <circle cx="47" cy="92" r="28" fill="url(#sh)" opacity="0.25"/>
-    <circle cx="47" cy="92" r="11" fill="white"/>
-    <text x="47" y="97" text-anchor="middle" font-size="14" font-weight="900" fill="#7a4a00" font-family="Arial,sans-serif">9</text>
-    <!-- Bola 10 -->
-    <circle cx="103" cy="92" r="28" fill="url(#b10g)"/>
-    <circle cx="103" cy="92" r="28" fill="url(#sh)" opacity="0.25"/>
-    <circle cx="103" cy="92" r="11" fill="white"/>
-    <text x="103" y="97" text-anchor="middle" font-size="11" font-weight="900" fill="#0a3a8a" font-family="Arial,sans-serif">10</text>
-  </svg>
-  <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
-  <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
+<div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
   <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS</div>
 </div>
 <div id="root"></div>
-<script>
-  window._hideSplash = function() {
-    var s = document.getElementById('splash');
-    if (s) { s.style.opacity='0'; setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 600); }
-  };
-  // Esperar a que React llene el div #root
-  var _splashCheck = setInterval(function() {
-    var root = document.getElementById('root');
-    if (root && root.children.length > 0) {
-      clearInterval(_splashCheck);
-      setTimeout(window._hideSplash, 200);
-    }
-  }, 100);
-  // Máximo 10 segundos
-  setTimeout(function() { clearInterval(_splashCheck); window._hideSplash(); }, 10000);
-</script>
 <script type="text/babel">
 const { useState, useEffect } = React;
 
