@@ -669,7 +669,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay}) {
   const sw1 = m.seriesWins.p1+(m.seriesFinished&&m.seriesWinner==="p1"?1:0);
   const sw2 = m.seriesWins.p2+(m.seriesFinished&&m.seriesWinner==="p2"?1:0);
   return (
-    <div onClick={isOpen?onOpen:undefined} style={{display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"12px 14px",marginBottom:10,cursor:isOpen?"pointer":"default",opacity:isOpen?1:0.82}}>
+    <div onClick={onOpen} style={{display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"12px 14px",marginBottom:10,cursor:"pointer",opacity:isOpen?1:0.9}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
         <div style={{display:"flex",alignItems:"center",gap:7}}>
           <BallIcon modalidad={m.modalidad} size={22} />
@@ -688,6 +688,11 @@ function LobbyCard({m, onOpen, onDelete, onReplay}) {
         <div style={{fontSize:13,fontWeight:700,color:sw1>sw2?"#4ade80":"#aaa"}}>{m.p1Name}: {sw1} series</div>
         <div style={{fontSize:13,fontWeight:700,color:sw2>sw1?"#4ade80":"#aaa"}}>{m.p2Name}: {sw2} series</div>
       </div>
+      {!isOpen && m.wins && (m.wins.p1>0||m.wins.p2>0) && !m.seriesFinished && (
+        <div style={{fontSize:10,color:"#666",marginTop:2}}>
+          Última serie incompleta: {m.p1Name} {m.wins.p1} - {m.wins.p2} {m.p2Name}
+        </div>
+      )}
       {!isOpen && (
         <button style={{marginTop:8,width:"100%",padding:"8px 0",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReplay(m);}}>Volver a jugar</button>
       )}
