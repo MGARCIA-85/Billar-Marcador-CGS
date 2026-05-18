@@ -429,7 +429,7 @@ function BillarApp() {
                     const isLastGame=ji===games.length-1;
                     const isNext=!seriesFinished&&ji===games.length;
                     const isSaque=isNext&&currentServe===k;
-                    const clickable=isNext||(hasWon&&isLastGame);
+                    const clickable=!isReadOnly&&(isNext||(hasWon&&isLastGame));
                     return <div key={ji} onClick={()=>clickable&&handleCellClick(k,ji)} style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:isNext?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.02)",position:"relative",cursor:clickable?"pointer":"default",boxShadow:(seriesFinished&&hasWon&&isLastGame)?"inset 0 0 0 2px rgba(249,115,22,0.5)":"none"}}>
                       {hasWon && <BallIcon modalidad={modalidad} size={28} />}
                       {isSaque && <div style={{position:"absolute",top:4,left:4}}><CueBallSaque size={16} /></div>}
@@ -448,11 +448,11 @@ function BillarApp() {
 
       {/* Footer */}
       <div style={{display:"flex",gap:8,padding:"10px 14px",borderTop:"1px solid rgba(255,255,255,0.05)",background:"rgba(0,0,0,0.32)",alignItems:"center"}}>
-        {seriesFinished
+        {!isReadOnly && seriesFinished
           ? <button style={{flex:2,fontSize:13,padding:"12px 0",borderRadius:14,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontWeight:800,cursor:"pointer"}} onClick={startNewSeries}>Siguiente serie</button>
           : <div style={{flex:2}} />
         }
-        <button style={{padding:"11px 14px",borderRadius:12,background:"rgba(255,80,80,0.12)",border:"1px solid rgba(255,80,80,0.28)",color:"#f87171",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}} onClick={()=>setShowCloseMatch(true)}>Terminar</button>
+        {!isReadOnly && <button style={{padding:"11px 14px",borderRadius:12,background:"rgba(255,80,80,0.12)",border:"1px solid rgba(255,80,80,0.28)",color:"#f87171",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}} onClick={()=>setShowCloseMatch(true)}>Terminar</button>}
       </div>
 
       {/* Modal terminar */}
@@ -672,7 +672,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay}) {
   const isOpen = !m.matchClosed;
   const sw1 = m.seriesWins.p1+(m.seriesFinished&&m.seriesWinner==="p1"?1:0);
   const sw2 = m.seriesWins.p2+(m.seriesFinished&&m.seriesWinner==="p2"?1:0);
-  const hasInconclusa = !isOpen && m.wins && (m.wins.p1>0||m.wins.p2>0) && !m.seriesFinished;
+  const hasInconclusa = m.wins && (m.wins.p1>0||m.wins.p2>0) && !m.seriesFinished;
 
   return (
     <div onClick={onOpen} style={{display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"12px 14px",marginBottom:10,cursor:"pointer",opacity:isOpen?1:0.95}}>
@@ -715,7 +715,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay}) {
       </div>
 
       {/* Serie inconclusa con bolas */}
-      {hasInconclusa && (
+      {(isOpen ? (m.wins&&(m.wins.p1>0||m.wins.p2>0)) : hasInconclusa) && (
         <div style={{padding:"6px 10px",background:"rgba(249,224,75,0.05)",border:"1px solid rgba(249,224,75,0.12)",borderRadius:8,marginBottom:4}}>
           <div style={{fontSize:10,color:"#a08030",marginBottom:4,fontWeight:600}}>Serie inconclusa</div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
