@@ -104,6 +104,16 @@ const BALL_COLORS = {
   "Bola 10": { bg: "#1a6ec7", num: "10" },
 };
 
+function SpecialBall({ type, size = 28 }) {
+  if (type === "gold") {
+    return <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAAhOklEQVR42s2de7BlWV3fP7/fWnufc+6j3z3TzQwzAwwi0xh5VDRFhBlQi1g+CFrdYKRUUgYNYIVHxUiKePsiPvgDUwmUlpqAEEXTV2LUREFK6IkJEI1ljJnxEcXH8JKZ6Z7pvo9z9l5r/fLHWnuffc69PfTIDNhVq+49995zzj7f/Xt8f9/fb60WvsD/NjZQLqJnbsDObRE/79cD5c78eme3SAL2hfw88oUEbfNuIoMP+OEN/P/6M57YBG4P8BSMW0icMjgKrBhUAglhKsJVMR5Q4RMi/Ll3/Gnt+fjr3s1Dw/e6cBa3BWxtkfgCgPm4Anj2LI78YXpLe+u38bQmcVdM3JUiz0nGbZWTSsuVmJVPbYsXKWKogpS/CxHMeECEP3TCf1fHh9aP8LHX/Djb/Y27E3/+buLjaZXyeAF3xx3Y5iYJ4Ee+g9vaPb4lGN8co/zdylNZKiAkAJITkpuDKGaQgGQZ1ARmlq9YQERQ70wqD5XLfxcT9znhN5znF6ZP5UPd+2/ciV+2/r+VAG5soPfei3QW90Mv5Xmt8T1tlG/yylobIARQCJUglUO8IpUimoEhATHlFcqKllcHZkYQRDCBhGKKaeXR2hfgE7/vhX+vnp9943u53Ln3YxF3HxcAy10OAJvfyp0pyr+Iia8Tg2ljSAGtdmilSK05wNUuLy2vEwzaCLOy2ig0AzBTsSERUAXtvubvDbFohlYe9Q5C5BPAO+6/yk+8/f1c2djIb9VZ5xcdwI0N9PwmJmA//HJub1t5c0h8a4rGdIY5IQ1BGzkYK4zdfHUAGtBE2AuwE2A3wG4L0zAHMaVsYSIZPOfAKXiXVxcnxSxFIxl476EJ/JnBmzd/kfcs3/AvGoBDl3jzy3hdG+Q8Zod2Z5iDVCmuUuiAmzhY8bBa1lpZEwdOoDHYbuHhFh6ewcMNXGkWQYxpHshU8/OczzehclD5OaiqRhuxWSBGwzuFNvD+0PLat/wKf1yu//PK1vL5uuzGS7lNkJ/C+NrtPUOMWLn9wHWArXs4WsPxGo4UICufryREuNrAp6fwmT14YAqXpxnEnQCzKIRI73uqGagOuHqwuuSCGNFgb0babjARXIhcMeENm7/Iv+u86G/q0vL5gLf5Mr7eTN4Zgt2wOyPUiqsdUmm2iA649QoO13CshhM1nBjB6gikBmrAlxdugV3Y3YaPb8N9O/DXU7g0he0G9qLQxpxQ6FxYC3gORhWMfPlaVl1lTtRE2Gngyh5xr8U5hSbwzr98kFe/+26mZ8/itv4GCcY9WsAvnMW95teIb/k2XpuSvGdvaqttSxx7/NgjYw8rFazXcGQEJyZwegVuW4Xb1uDkGtSHQA4DRwZrDRgBCpVBFWE7wE6bk0kTuyQivb/JwI19Z4kugziu8nWs1LA6EiZ1/nnlc7idNcTK85y1ES/8iqfy/p/+Ja5cOIvbuvfRubN/NOCdPYue2yK+5dt4K0m+b3vXkgIrFa72OSFMPKxWcGgEx0dwagynJ7C+AnRrtawJMAYqIAJ7xSIjHJnB8SncP82hwEu+24IhxXEke2iOYOVjKxnQSnL4WK0zmM4JbTJWM5BSe/zlHdra81wR/tubvomvP7fVx8X4WAMoF+bgvUORV1/etlApbuSRkc/AdZZ3dAQ3rMBNK3B8FdxasbBuHSprrYDogSnwABAykLINRypYq2HUZMtyEVyC1JHBDsQBmFpA7OLjyMHaKLszIqyNjHFdko5SPbBNSMZTqPjwm76Rrz23xT2PBkR/nTHPndsi/NDL+dcOefWlK9bWjqr20LnsWg2HO5ddgyeswco6sA4cHqyjxWUnSwHkULHGbbAHQEYwqWAkUGl2UVd4nxOIS5YIhROW5SlurTDxwtoox8qQYGVk1IX2OMV/dps4azlNzQe//yzPP7fFn15vTNTr4Hl+827Cj3w7/7JSee1D27S1o+pizHoNR8ZwYhVuPgy3H4cn3QArp4GbgFuB24EvBb4EuLlY3kHRd5IBl7rc3QKcL8nCla8ixcrE+g8gSx9KJT+v1sw71yo4PIbjq8IT1pWbjwhPOAI3HoYbD+FGFbFynB4n+fU3nuXk1hapI91/Ywu8cBZ3bpPw1u/kpWryQ5e3CZUzP3LZ8lbLRR0tVnfrEThyFDhW1gnghmJx/jo5QcfKJMfCDrgFEAdoiRgqxRZLLOwFiQSY9K7sqhxjVyJUXjLxxrrnur++QlCx262V923caS88c29/JfaoLXBjI8e8H/suzqjJO3f2SF5wE49MisseGcPxFbj5EDzlBBy5sVjdk4CnAU8tIF5vpJ1lF6bJ4KUCghaLcwxiXHFV6RNLqUA6ayysLhVQpXuBKlt6tQon14TTR4QbD8HJdTixjlehnYx4nh2Xf3Nui7hx5yMzlQN/aSD334C+4qupPzvjAzHIzSGSxs50XOXMdngEx1bgpnV48jFYvQF4AnBbWUcfJUky4NPAJ4BLwFXY3s1ZeLuFaSRXIjYn0kVQyBaakwKVg9oLo6qjMsJq4Z06GvDOUvaNVVABk1zlJMPtzAiVl6/8qqfxh5u/zh88Er050AK3Ssb9o11+uHLyZbOWMPa4ceFV63V221NrcNsRWDlZwLsdeJLAiivouevn6g8AnwQeymSaBnZi5tZm+5OEDgBcuA+Wda+UjJhyFRIixFCoUueUPoPpR3BsVTi5luPhiTU4soKakZzqT7zlJZy+Zwu7VjzUa9W3P/kqvtKpvO7qLnHkcSNnTKoc946MctK4dR1WjwOngCf7bI7uBHCy+O7RkoYnj2yO9wN/AXwWuJJpzKyB3bj4mXsBYQBi587Df6lIXzFC0yamrbE3K6GhKVRpAOSogsNj4dgKHF+DY+voeISNazvWqrx9E9KZew+2hH0A3nMHZhvoLPKOlJDC7PsK41ANxybwxDU4fAQ4pfDkI3DTraC3A08pPnxTySDHCkdZLf4zuI4EfAr4eHHfy4XG7MFDbQawTYPad2CBTtkX92Twuqm4e0jQBGMvJNqZ5Ti7DKTC2AurI+HwChxZgWMr5gzipOZbfvCs+wfntogXzu63ArePsmwSb34G3+5VXrW9Sxy7bH0dZTk2hiceglNHQJ5Qw+2n4JbbwX9JAe6GYnXj4ie69PEsf8KmuOxfFQsscY8deHgKDzZwpc2S1rQr5ZaFVQaaYCnnvJvTn6o87pUaByO1jHq5jKzgLgq4IeX3ClGsjUgb7Vlf8lX89N6TSXfffW0A5eJF7MwVJtstW7NGDnugdtn61qqcdW9ahVsOgzs1gttvgVvPwPgrgWcXkndoXtQuMACbg7eX4L4E9wEPFvC2c+zbnsIDM7ja5uSxFzJ4bflQyRY5hQwEVTdIKE4XdcJKBaeCL5RoGcSYuvfJik+bf6a7jaTKceNkWz9+/sft9zbuxN/9l3PlRgfW50SwncTLJ7XcFhNpVKHjIjkdquHkBG5eBX+igltuhif8HVh9EfB1wHOApwO3ADeWGHhk4L4r2SqnI7ivhk+6nDguZ8uzHbiyBw8U6Wo6tLiF5tI8FspSUunuV8mmxX1h2sJuK+zMhO2psLcHNs20yZqcYGIJtspckJjUsD7KryrYGzfOUp/PvRXZZ4EX78bu2sA/uMt72iAnnMHIISsD8G5dhUPHFG49Dbc8A05+NbjnFndlEOO6INMOvpaGyCcjfCbCgxEeSrANcTe77eUmW91OgL1O0k/F+lJOKF2jCRkkliU3HpZ8vldrBNHcjTKyqpPSHORmoPh079lGCCay15Iqz0kz93+e/3/t3qEVKsCFCzgB+/QOX1NXPD0GbOTRie/EAeGmCRxdI+f607fCiWdB9ZxyD4Yl43ggs3RrBKmGByr4rIeHPWx72BGmu9llLzVFvgpzztcOLNAGUSBL9vPmkg7ozLAlmmwOxrS1bIkziiXCziw/nrbGrM10J3cKBS2lZO2MSQ2qmJl9LwB3LbvwVn4Qje8SExt5Uhf3Dtdw4xhOroAcr+HUjXD8dlh5ZnHNuMT1XEke1eLa9vBAAW7XYTPHTqM5WSyBNxta3bA0W1JexEDSopxl5FZpSnMq0waYBWOvMXaaAlyT4+32FPaaRRDTIEH57M7ODLzn7//oy6ozm5vzOtmbISLEX34jNz4040UhIGOPW3FZST4+hlMTcOsCJw/D8dNw6KkgNxWHkmsUtR1LczBzcMXBtoOpg9axG5SHo7IbhN1oGbg4B64Dr+N0Cy89tMJBJWMDa002pzFtKlLYgJWbSGlAGc6DidEmIVLet7xQl4gqR/QOvz1NLwP+FRdRIOnF8zkOzoQXrYxYU4iTClmrcrl24xgmKwaHKzh+FA6fgtGtJdMe1EZYMokkMBXYUZgpRKWNwjQqbZI+9jRpnmk7t+3WggXKAWtIkmzwnAGhDjG/1yzmpLLXWLa6ANMGmhbaYLllkMCK8i2dsuNQM0OxF29soCWZ4O8/k69NjG/AxCYeWynue2KUqQtr5ML36FFYvxHk5COUaJF5uLeMSMl4HSLBZGFFsz5zLjfRzQ6QQuxzN3SsWFEsfFl1MVQb4FMWGZyCuMFNk7kIgYBTwzvRaYs5lTOTP66eLrT3bGygeu4c8SNvY5ISXxUjMqnQlQqO1Nl9dQVYd3BkFdYPw+hYiX3pGopAW1aEVAJaU4Acyk2W73I3iZBs0WU7vmdp8NKyCJzIIqALcZD5a5Sxj54st3GeMNrYPZbys3wzLRVvt4WMHicjVNXuGjQG4eE9nl5VnMawSYWuluQxGQMTy73I9RVYWQVZL4nhIBuIxdQKiCEOU1tvTjb4YAetfi4mzcGwpbfrwBuKCR1t7903DV/LskWWBNMnqcHXtFTl9LxTS6/Z9e/3/Mz9ilKXEs+e1EBLHFf4TqKXUWEhaxWsjKCelNh3kMbY8b+9AUNtM0tNHYBldShiC7GqtxgGf858HsbsYGlzQZHp/nbgxiJzC5dOX0wQSwy18jcm2X0xw2TeLugs0AnaJgORZxbRJSj5Yr9cKe3AEv8mXc+2lvKLOo8A9OAdZH279AEvNmW1kAqIXZQp1jiMcUOrSYMRjqEVWRq4th0cQSwNMjEHWPbAnWPKl9VZppn0K39EWWyfusyaRLj14/Xk9LCUe5plAPsOm686SlcGULSrbUtVsRB8pFjeTgbR9iDOFgEkgAWwhJhhlrBkWAfkIFal0jyP3WQWc3XFOCAEdO7Houva8AYkWXDP4U1b6oz2H2m5dFRFFNK4YuS1vQ1A7QJOhZsx8HncDO+GIoqAKQQpVjQtlf8wKO0VIa8oAmEPwjSDmBqwNoNHBIuIRcRSBrEDIc7XMnhDXhhsnuc7ztavznLjYgLpAU5z0BbuvQ0IugwGOpfqbZdBTJWHlOQ2AP/R+zgsynESOEV0KKIUqYcATFMmUKs7IA+W4FiXuHe1AFhUgbgH7R40M2hnxQrnIKrNBTtLxuBhfjsbrLg/yHcUY4EbprlmmArR9lkFwBkY1nO7BV5ugxhawOuzfQeiLozQFeVHbsqdw4rDKqxB5kOlpMuBNQg0AlMrM2dT8Fdh9GAmTozmnXC2IV2FZhvaAmKaZgtMTQYwBogBiRFJCUtpHvu6+zWwqLCk0XWWZEtxsHezYnFOMzWh7yHnD52wPBqy5MrDErEPfaXS6ZXv4RxibmSdBPCpZU2UutA6iVZq0Qh1SwZvN+UhlXoP9AqEB/MAix+DWol3O9n62h1odrMFximkEgttzg+V7MKyRGtsENOWp1RDnNfFKR0A4EBc7VxVBMyVzJvAqewj5sKi3qvD77U8d0m4ze8ph3Mt7Bg7wXeT2NFyWbUXMtuTKVlb32mg2s2u2k5gFKEel9veZrBsF9IOhJ0cB9sphNlc0rKcSCRFNCWEMjiui0khLmXKcA2uZgPaopLvZdd8R0DCXLFxXSzUpYQhS/FP5s/pLFfTYulYnjwG8LUirdJvsIgmNMnYKRFuIpYBrBtwJVnEKksco9G8RkqzrFLGXUjdKhZohVxrAA2IRlRTDx4DKWpogUPrGwIYr2GBruS7XmdKoLGUaQPwDqSwsmh9XUjoYqT2AHYIFzUmWm58qeQ4HKyM2SbwltEfaRgAeBWiKzXQqBSSKRNnZhm0OIW0l2NjKqTaWgg5DkqIuJgW1BRbEgAW+NrS9yktSvs9WZAl69IMvOoc/OVtFLIUA5H5TdUlCxzqjiKZy3lgT5VgSpUMi4Y0CGqWZZoEh/Yi4x7AKlOaSYCmBu+z79CCtNnabJZ9P02hmUIoicRCT2MKJZhfuB3gxgN3XrbAZQB1AGBvlSWLO9dxyOzvspRxe+vSuQvTXVtadG3KKyi6k7Nwy1UV9nBUsc1TT61J/+QkkFLk6F7DyE1zVE5keX5U55EnJQccF7K1pQb8DLTEP1ukMYj1TZ9hGbZsgcNkshwbu8yNLXK1oUUqGZRY3DctZ94lWUwH8c9k7r5z2WxYfclDAH5lzOVmytXKcSgGI9pgZGxQBbDbss6USRI0WgawrbIFOimKZSiRu9AWV8DTJlsnHYCLlGCfDDUkvwcklX0WaPlGO1nkhV1iGdKfZAdUGIO+Shf4pNTFannNlZ+McjL+GsA/4zVsf+TH+GzluGnWYpaQrKNlvDNrF5gFIjMaE1aiUbcBGdW5heULgFXMUduFudVJWyhMdt/OPXQhMB8QCw9Qa+JBm24G1taBGdOcUPfJ5hoxbzjxoDqcXirAQd4FlHq5WCQJqtw3H28z/rKqeJZOcx3NQL2wAetPszzmnswYxcA4tPja5XlaX6RfV1YVcg0snVXGcjvLxel8REOG8hSLe+bSAW49/FkHWhezhr87qM61YawbVhg6/7nJgN7YUKAVLKFNgNDKX/QAGtzrHf/QuU6/LD5RpJ6IIaYZ0VlDSkYIkRACq1GpQqmbomWZ1xfhoC4Vq6Z8JX5+2+WRLHC52B8KrCwC1KHexUS1JX116XlDMbYf1hyAyADAIcEvicxApA1cscbPAUT4vaKbiXOWh2cHQdRiV2YJTUyQGixFLHk0CQSoqmK2VVcGxJJYUj9/MhzYkmVJ1hYLfVtSl3kk9cTKh14KA8v18lA4QA6cmaDL1Qt0yiBGISaSijgz/uQNW1cuGUi2wMDv7UwJqnixUgXZPID2vpGyBB/ISUQsoaZIApcExTLaVmzfuo0caS5MyCJAXIPYCvs7btf8+8+x+WVZprKDunhdsiwEPElHnaQn8iGICYol/R2Aixs4byDs8OcfOcSfrIy4ow2YE8TMUBNcN92ZuppS6HZqJDNSjETJ6m52gVRkwyVpw5dSuBBcs/0llC7FxAVyOwR1qaUpwzh6LUu0eanayWJSpC/Tok67rAyh812j3ebHEISQRCQJKclFgIsXQS9u4GSThPChuso5wjnLAzpLSx2oE8SV+rWUgKlodr0m3ssq5dY2RU+UwmT8YNZvMBQ0HF9bAHUJaDno8VJ7c9/QJXM61LU3m9LzmkWYhVz/z4YrlrGPIDRRzJK4nSm7YL/VTSj4u0pbMyV+pWl5TTJU3HxTi0NyOk+GRckyV9K+t2EoEcsMLxku6fzWuW7+rshiSk9lpOzQ7GZZ3GCmRQ8Ac/jYZE6iWQJuuT3SJZ9Yauq27DeRkK3OW2l7mmXnKdk4y2tCTNAGoY0kp6qGfOT1P7f76W5/nedcvpabj/Nbn7wk962M7IlAcs5US8XsyGoGzrDYNU5zzBPLPh4xQrSiKeq8ye5s0TwsF6jq9jVseiVluKWhs9LYxWSZJwyT/VNbw/g5zODBICRhFvMHSjHT14rsHFpClbp5eEjk5FFc2LyopKRbpSOXJxME7MMb+Ce9gqnA1shDMpJILjK8t/y1grqGUW3UNdSV5N1D3nKMRAgIsWO5LXkSodHcF56V1QJR++l7scEs35I1uiUXH7q6k2tY6wGEPF+S9LGvTfOZw+y+eUKhm5JoQ97o3XYbvoMYpn5nypWI/WeAbjJBsyuXHQVi79zekxgTLpZUnAcUDeegqozRCOoCYlUrzoNqygK1ZokiN+CKb7RS1mCsNmVLHCrJHVjdxpp9YOp8+5ZbGqjUAwg5S3VvWhImOtVpOFbSdm7ej7eV3aFRYuUcMcov/fOf3fnshbNZOesBlE2SbaDPez33TAMfHNVITMRkIJrB8z53NasKxrVlECuhqgT1hkgqYxE6r58734klibTS7wExAxVddNXBhppr7VJSOTjp6HKmHtRr1s8E5vsXBkNHwWz+fb8ydYlRiFGwpDqdiWnybx8Msy1OqG6dye9dqf1o2wpNzPJ+LCTYFSt0PlvfeFRA9ELlFfUgmgrdy5bYlu0F1hoEwVohNYIFBvt+pY+FfYUgSxap80FJpwevoRoDQ2lKekvsVPf+vhbwwoJ8JqXuFlISYtJYe6dNI7/xz9778O9ubKDDPXQ9gOfOEW0Dfe4buPvqHh+qvWgTiLlbZrmGFCsZ1KgqGI1ScelciTgvqMtdfRMlidDafAJrFvPW/b18g2gTperRHjRh2PlatL6D3Hqhnu6EAddZpPSJpS/P+nao9YNEtlRC5j3JQrL8xKZRLMkmwPJ2h4VNWFvll2L2xmkjH1PJ2+edy6buS9RPCCaGekE0oSqkIDk5R0hSCGl3LolJ3vzSTWGl3NwJZv3MizqlcoZXm2/tGnLF4YD5gISbzEc/OstTyeO8vWi7TyjIoobJcm0uA91PSEnjyHn30K6873U/f/WjB22DXZDjzm0RL1zA3fn9/PZ0xs+MKnG7M0JbMlOTLM+OiM0vxAO1oZXhqhwn1ZWupzNMjdTFR6RvM7cmRNN+0FG7rfuVMPJC7edbFoYZuEswwzU8M6Fy0g1E4vxiESC6uBZP/JD8dyJ5jjqpiSh7U90z0+8zkHvu2F9E7ts4cscdyF13IU8W/keT9BXOsZLAvBv0U0TK3S0u4vJ2chFDlwtZWVRTOjox1/gKvUg2l6wocyoDjWuh5BvwwwxQ3sLgCnhdFVXmWdCFiqowCj9fvtu5WcDDlBRdHLnK7+zJD7zuvVd+9cxZ3Gt+fP9M34Ezihcu4M6dI37oh/WlR9f5hSZaWJ+YXx2Vcwcc1E4YOfDFXfp9F21mphakH8wKocweRyvTolk6jMkIoWxFaGBa5pj32jy3PCyrmrA4ktZ15tLyeOCQUOsAdGcZSM2Mouos3Au++zsUMyUEjZVU7uq2/PaN06vPLd554PEoB25g29rK5PqFP2B/8NLn6W2HVnj2tCE4h3YyvJWUmWnFIPqXzUndOESXCW3QybFOMhoE9u73mXJI72bLoxWddXk/30TTLz/4WtzXF+ZQlZ/V5SSPbH2Se2KaKZWYkpKaJsescbtNqL/uu35h7/47ziJ3332wBnTNHYA/cxE7cy8uHbMPYPKNo0pON4HYgSgDZbKjHv0MhBuMhmneWd6VXjaM2uTHVkzGBtaTg7+gZSSq56KaY9sQqOXlhiB2lVThsFXVnSsj/UlHKlkmt6SkqNFL7bZ33Cte995LFy9cw3U/5451Ecw2MNlk9/0b1bc4DR+rPMe390hgSj2fYuo0p6qT7KWMzbjszuKESosbqdG6LMJqEawtFHAlF6WmIEX10ZIM2ijd9qt+G+tCzBzMAy5MtIrkYmDBgmXeUpUMnJliSduxq6tLD+uPvva9l9+7sYE/t/nIx0N9zs28XTz8wA/656+N7YOqVo1qs7WJaXcWy8h32VDyKUSdJXY8I9KXc6mFEGw+/dvFtxIn28HjNkITbTDHzL6B9A7A4ffJBnRleT+dk3mD3DJwKSoxaDvSurr0sP7cq95z+eXXe2Tede2G/vAG/gWbhN94s/um1Yn8kmiSUWW2NkEn9eAYkbIz0i9v5pXCWLvauPSbQrQesNBVJ93gdwG5KT8PSwkkFR65b7q/CL02VGv67J2zrJR4kpKSkiMEbUdSVZeu6q9+aPvyS+64A+sOVHvMjn7qQPzApnvJ6kT+o7pU1c7i6gQ3qY3JqJxb5ebbTEWXN/MOSoGQLTP1AGbAet0ulHo1DCbpky2MeIS02OrMVmgL89aLQ9Rdqza7begsT+rqoav6y8lfOvvKn8wuK3J9Jxhd96kG776b9OEN/Nect3tf+lz5n071xaIyaULRIwd7ELpeg/QVgyxKI1oExkK4nXZq9+LqlO+eggxiou+IckkUfZIZZGRXFHSnuVxUzUMZmBKDWowujWTkH7rq3vOJd176R2/4XdJ5kBe84PqPf3rUh491lvhfNqpnro/swsqEpzYxhZURbnVsMq6h9pYrCZ1vgnYdL2OpCVyiv/XccM4TcyNnaUKr7w/bgkvvH0IqikoSLEnZnZnjXWg1puhcChVXd+UHX/nOB3/Ayjk+j/a81Ud7+FhviS/aTJ/65i9f+fnk45dOKn367gwJkWgmmko3a3lKfmHC1ObKbzfYo1055UB7C7L8fbG67li75Z7NvK8rixNCdBnWEaOz0LqoVvndXX/56o5+5/f8zIPvuHAWd+bc9cW8x+z8wGFh/cHN+vXO8ZbJ2CYxpTgZmYwqdFRZqVELF1ueSBicvsH+/YS5v29LA0ZpPnTU7Wtr57J7STqSv2+FNgghKG2rIQTnNXmubMtvXtnRf/ran3/g/32+J1l+XidYmiGcR2ST9F/fVH1ZXcvbJiO+FgyRFEY1WlemmbjaXBxw1teyy9MJckAvdziJMN/GKoMtW0LTlu5Zm9esFZpWrW0lta1zHs/VHb3UNGz+k3dd+rfLRvBFAXA5LgL82pvGL/fe3rQy4Wkpd+5isUStvEnveoXcdrFRD9i6BfvnXbrwEHOju1CeOXBlpaaVFILzHsfVHQ0h6ruuTNNbXvsfLv+VGXL+PPJYHET72J3iu4GeP59L2Z98JSu3nJq8QrDvHY94mmoiJKPyFiqHOGfqHdKdc+qW5vSuDaD0AIau2R3pXDU1raamEcVUxTxXd5iFqFuhcW975bvv/9+PldU9LgAuVy4A7/oOxidvHr9ERP4x2F1rE7yRTxRStegc5tRE8znS0qlJwv6hS+uk9ijEiIUkFkJebRCHqYgpTavsTuUvYpALbSvv+u53P/hHHXBnL5Cul9990QDsBeMLqJyb3+n3vWH1GVVlLwa+wcSetTaWkXM2IL5d2WXz/1Cg2xiTR8skJsSsSDuWOV2Kys4Umob7YtIPW9L/tPuw/uZrtu7f7oC7Z3Cq+mP97/H+zwjkwgX07NnFO//Lbzj8pKThKwz5e2Y8E+zJCCdVmHjXxUMZWGAX86BpJSWTyynxSTO5lyi/A3x0yvj3v/unPr3bh5Q78dxFeryA+0IBOLfKDfQi6F3nictudOFVJ9fUT0+3ojeJ2akIxyzJGslqhGjIniUeNpP7NflPhZl86hXvvv8zB1ErgC/kf4vx/wF/Sq1+TxX2RwAAAABJRU5ErkJggg==" width={size} height={size} style={{flexShrink:0,objectFit:"contain"}}/>;
+  }
+  if (type === "diamond") {
+    return <span style={{fontSize:size*0.85,lineHeight:1,flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>💎</span>;
+  }
+  return null;
+}
+
 function BallIcon({ modalidad, size = 38 }) {
   const b = BALL_COLORS[modalidad]; if (!b) return null;
   const r = size / 2;
@@ -197,6 +207,7 @@ function BillarApp() {
   const [showHistory, setShowHistory] = useState(false);
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState("active");
+  const [ballMenu, setBallMenu] = useState(null); // {k, ji} posición del menú
 
   useEffect(() => {
     const unsub = db.collection("billar").doc("partidas").onSnapshot(snap => {
@@ -363,16 +374,17 @@ function BillarApp() {
   const sw1 = seriesWins.p1+(seriesFinished&&seriesWinner==="p1"?1:0);
   const sw2 = seriesWins.p2+(seriesFinished&&seriesWinner==="p2"?1:0);
 
-  const handleCellClick = (k, ji) => {
+  const handleCellClick = (k, ji, ballType) => {
     const gameRecord = games[ji];
     const hasWon = gameRecord && gameRecord.winner === k;
     const isLastGame = ji === games.length-1;
     const isNext = !seriesFinished && ji === games.length;
+    const bt = ballType || "normal";
     if (isNext) {
       const newWins = {...wins, [k]: wins[k]+1};
       const nextServe = currentServe==="p1"?"p2":"p1";
       const willFinish = newWins[k] >= carrera;
-      updateMatch(activeId, m => ({...m, wins:newWins, games:[...m.games,{winner:k,serve:currentServe}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+      updateMatch(activeId, m => ({...m, wins:newWins, games:[...m.games,{winner:k,serve:currentServe,ballType:bt}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
     } else if (hasWon && isLastGame) {
       updateMatch(activeId, m => {
         if (m.games.length===0) return m;
@@ -380,6 +392,12 @@ function BillarApp() {
         return {...m, games:m.games.slice(0,-1), wins:{...m.wins,[last.winner]:m.wins[last.winner]-1}, currentServe:last.serve, seriesFinished:false, seriesWinner:null};
       });
     }
+    setBallMenu(null);
+  };
+
+  const handleCellLongPress = (k, ji) => {
+    const isNext = !seriesFinished && ji === games.length;
+    if (isNext && !isReadOnly) setBallMenu({k, ji});
   };
 
   return (
@@ -446,8 +464,15 @@ function BillarApp() {
                     const isNext=!seriesFinished&&ji===games.length;
                     const isSaque=isNext&&currentServe===k;
                     const clickable=!isReadOnly&&(isNext||(hasWon&&isLastGame));
-                    return <div key={ji} onClick={()=>clickable&&handleCellClick(k,ji)} style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:isNext?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.02)",position:"relative",cursor:clickable?"pointer":"default",boxShadow:(seriesFinished&&hasWon&&isLastGame)?"inset 0 0 0 2px rgba(249,115,22,0.5)":"none"}}>
-                      {hasWon && <BallIcon modalidad={modalidad} size={28} />}
+                    let pressTimer = null; let longPressed = false;
+                    const onPressStart = () => { longPressed=false; if(isNext&&!isReadOnly) pressTimer = setTimeout(()=>{ longPressed=true; handleCellLongPress(k,ji); }, 600); };
+                    const onPressEnd = () => { clearTimeout(pressTimer); };
+                    return <div key={ji}
+                       onClick={()=>{ if(!longPressed) { clickable&&handleCellClick(k,ji); } longPressed=false; }}
+                      onMouseDown={onPressStart} onMouseUp={onPressEnd} onMouseLeave={onPressEnd}
+                       onTouchStart={onPressStart} onTouchEnd={()=>{ onPressEnd(); }}
+                      style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:isNext?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.02)",position:"relative",cursor:clickable?"pointer":"default",boxShadow:(seriesFinished&&hasWon&&isLastGame)?"inset 0 0 0 2px rgba(249,115,22,0.5)":"none"}}>
+                       {hasWon && (gr.ballType==="gold" ? <SpecialBall type="gold" size={28}/> : gr.ballType==="diamond" ? <SpecialBall type="diamond" size={28}/> : <BallIcon modalidad={modalidad} size={28}/>)}
                       {isSaque && <div style={{position:"absolute",top:4,left:4}}><CueBallSaque size={16} /></div>}
                     </div>;
                   })}
@@ -461,6 +486,30 @@ function BillarApp() {
           {seriesFinished?"Toca la última bola para deshacer - o presiona Siguiente serie":"Toca una casilla para asignar o quitar victoria"}
         </div>
       </div>
+
+      {/* Menú de selección de bola */}
+      {ballMenu && (
+        <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)"}} onClick={()=>setBallMenu(null)}>
+          <div style={{background:"#0f2010",border:"1px solid rgba(74,222,128,0.3)",borderRadius:20,padding:"20px 24px",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:13,color:"#888",marginBottom:16}}>Elige el tipo de bola</div>
+            <div style={{display:"flex",gap:16,justifyContent:"center"}}>
+              <div onClick={()=>handleCellClick(ballMenu.k,ballMenu.ji,"normal")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                <BallIcon modalidad={modalidad} size={44}/>
+                <div style={{fontSize:11,color:"#aaa"}}>Normal</div>
+              </div>
+              <div onClick={()=>handleCellClick(ballMenu.k,ballMenu.ji,"gold")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                <SpecialBall type="gold" size={44}/>
+                <div style={{fontSize:11,color:"#f5c400"}}>Dorada</div>
+              </div>
+              <div onClick={()=>handleCellClick(ballMenu.k,ballMenu.ji,"diamond")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                <SpecialBall type="diamond" size={44}/>
+                <div style={{fontSize:11,color:"#a8d8ff"}}>Diamante</div>
+              </div>
+            </div>
+            <button onClick={()=>setBallMenu(null)} style={{marginTop:16,padding:"8px 24px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#aaa",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div style={{display:"flex",gap:8,padding:"10px 14px",borderTop:"1px solid rgba(255,255,255,0.05)",background:"rgba(0,0,0,0.32)",alignItems:"center"}}>
@@ -597,7 +646,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                   const clickable=isEditable&&g;
                   return <div key={ji} onClick={()=>clickable&&onToggle(ji,k)}
                     style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,0.01)",cursor:clickable?"pointer":"default"}}>
-                    {hasWon&&<BallIcon modalidad={modalidad} size={22}/>}
+                    {hasWon&&(g.ballType==="gold"?<SpecialBall type="gold" size={22}/>:g.ballType==="diamond"?<SpecialBall type="diamond" size={22}/>:<BallIcon modalidad={modalidad} size={22}/>)}
                   </div>;
                 })}
               </div>
@@ -644,7 +693,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                      <div style={{flex:1}}>
                        <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":"#666",marginBottom:4,fontWeight:s.p1wins>s.p2wins?700:400}}>{s.p1wins>s.p2wins?"🏆 ":""}{p1Name}</div>
                        <div style={{display:"flex",flexWrap:"wrap",gap:2}}>
-                         {Array.from({length:s.p1wins},(_,j)=><BallIcon key={j} modalidad={modalidad} size={20}/>)}
+                         {(s.games||fakeGames).filter(g=>g.winner==="p1").map((g,j)=>g.ballType==="gold"?<SpecialBall key={j} type="gold" size={20}/>:g.ballType==="diamond"?<SpecialBall key={j} type="diamond" size={20}/>:<BallIcon key={j} modalidad={modalidad} size={20}/>)}
                          {s.p1wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
                        </div>
                      </div>
@@ -656,7 +705,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                      <div style={{flex:1,textAlign:"right"}}>
                        <div style={{fontSize:11,color:s.p2wins>s.p1wins?"#4ade80":"#666",marginBottom:4,textAlign:"right",fontWeight:s.p2wins>s.p1wins?700:400}}>{p2Name}{s.p2wins>s.p1wins?" 🏆":""}</div>
                        <div style={{display:"flex",flexWrap:"wrap",gap:2,justifyContent:"flex-end"}}>
-                         {Array.from({length:s.p2wins},(_,j)=><BallIcon key={j} modalidad={modalidad} size={20}/>)}
+                         {(s.games||fakeGames).filter(g=>g.winner==="p2").map((g,j)=>g.ballType==="gold"?<SpecialBall key={j} type="gold" size={20}/>:g.ballType==="diamond"?<SpecialBall key={j} type="diamond" size={20}/>:<BallIcon key={j} modalidad={modalidad} size={20}/>)}
                          {s.p2wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
                        </div>
                      </div>
