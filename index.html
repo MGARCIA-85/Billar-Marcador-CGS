@@ -240,7 +240,7 @@ function BillarApp() {
     if (!wP1.trim() || !wP2.trim() || !wServe) return;
     const m = createMatch(wP1.trim(), wP2.trim(), wServe, wCarrera, wModalidad);
     saveMatches([...matches, m]);
-    setActiveId(m.id); setScreen("match");
+    setActiveId(m.id); setScreen("lobby"); setLobbyTab("active");
     setWP1(""); setWP2(""); setWServe(null); setWCarrera(5); setWModalidad("Bola 8");
   };
 
@@ -450,7 +450,7 @@ function BillarApp() {
   const isReadOnly = activeMatch.matchClosed;
   const {p1Name, p2Name, currentServe, wins, carrera, modalidad, games, seriesFinished, seriesWinner, seriesWins, seriesCount, seriesHistory} = activeMatch;
 
-  const CELL_W=44, CELL_H=100, NAM_W=155, HDR_H=18;
+  const CELL_W=44, CELL_H=130, NAM_W=290, HDR_H=18;
   const BORDER="2px solid rgba(255,255,255,0.22)";
   const BORDER_THIN="1px solid rgba(255,255,255,0.11)";
   const totalJuegos = carrera*2-1;
@@ -525,9 +525,9 @@ function BillarApp() {
             <div style={{height:HDR_H}} />
             {["p1","p2"].map((k,ri) => {
               const sw=k==="p1"?sw1:sw2, name=k==="p1"?p1Name:p2Name;
-              const tFS=sw<=5?16:sw<=10?15:sw<=15?13:11;
+              const tFS=sw<=5?24:sw<=10?21:sw<=15?18:15;
               return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.25)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 8px 6px",overflow:"hidden",boxSizing:"border-box"}}>
-                <div style={{fontSize:18,fontWeight:800,color:"#e0e0e0",lineHeight:1.15,width:"100%",wordBreak:"break-word",flexShrink:0,marginBottom:5}}>{name}</div>
+                <div style={{fontSize:26,fontWeight:800,color:"#e0e0e0",lineHeight:1.15,width:"100%",wordBreak:"break-word",flexShrink:0,marginBottom:6}}>{name}</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:1,width:"100%",overflow:"hidden"}}>
                   {Array.from({length:sw},(_,i)=><span key={i} style={{fontSize:tFS,lineHeight:1.1}}>&#127942;</span>)}
                 </div>
@@ -708,10 +708,11 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
           <div style={{height:16}}/>
           {["p1","p2"].map((k,ri)=>{
             const sw=k==="p1"?p1wins:p2wins;
-            return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.3)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"5px",overflow:"hidden",boxSizing:"border-box"}}>
-              <div style={{fontSize:12,fontWeight:800,color:"#e0e0e0",lineHeight:1.2,wordBreak:"break-word",marginBottom:3}}>{k==="p1"?p1Name:p2Name}</div>
+            const trophyFS=sw<=5?22:sw<=10?19:sw<=15?16:13;
+            return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.3)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 8px 6px",overflow:"hidden",boxSizing:"border-box"}}>
+              <div style={{fontSize:24,fontWeight:800,color:"#e0e0e0",lineHeight:1.2,wordBreak:"break-word",marginBottom:5}}>{k==="p1"?p1Name:p2Name}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:1}}>
-                {Array.from({length:sw},(_,i)=><span key={i} style={{fontSize:12,lineHeight:1}}>&#127942;</span>)}
+                {Array.from({length:sw},(_,i)=><span key={i} style={{fontSize:trophyFS,lineHeight:1.1}}>&#127942;</span>)}
               </div>
             </div>;
           })}
@@ -860,7 +861,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
   const sw1 = m.seriesWins.p1+(m.seriesFinished&&m.seriesWinner==="p1"?1:0);
   const sw2 = m.seriesWins.p2+(m.seriesFinished&&m.seriesWinner==="p2"?1:0);
 
-  const CELL_W=38, CELL_H=65, NAM_W=105, HDR_H=14;
+  const CELL_W=38, CELL_H=85, NAM_W=175, HDR_H=14;
   const BORDER="1px solid rgba(255,255,255,0.2)";
   const BORDER_THIN="1px solid rgba(255,255,255,0.08)";
   const totalJuegos = m.carrera*2-1;
@@ -893,7 +894,6 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
         <div style={{display:"flex",alignItems:"center",gap:6,flex:1}}>
           <BallIcon modalidad={m.modalidad} size={20}/>
           <div>
-            <div style={{fontSize:13,fontWeight:800,color:"#e8e8e8"}}>{m.p1Name} vs {m.p2Name}</div>
             <div style={{fontSize:9,color:"#4a7a4a"}}>&#128337; {formatDate(m.createdAt)} · {m.modalidad} · Carrera {m.carrera}</div>
           </div>
         </div>
@@ -913,13 +913,12 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
               const name=k==="p1"?m.p1Name:m.p2Name;
               const wins=k==="p1"?m.wins.p1:m.wins.p2;
               const isSaque=!m.seriesFinished&&m.currentServe===k;
-              return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.2)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"5px 8px",overflow:"hidden",boxSizing:"border-box"}}>
-                <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2}}>
-                  {isSaque&&<span style={{fontSize:9,color:"#f9e04b"}}>▶</span>}
-                  <div style={{fontSize:12,fontWeight:800,color:isSaque?"#f9e04b":"#e0e0e0",lineHeight:1.2}}>{name}</div>
-                  <span style={{fontSize:12,color:"#4ade80",fontWeight:900,marginLeft:2}}>{wins>0?wins:""}</span>
+              return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.2)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 10px",overflow:"hidden",boxSizing:"border-box"}}>
+                <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
+                  <div style={{fontSize:20,fontWeight:800,color:isSaque?"#f9e04b":"#e0e0e0",lineHeight:1.2}}>{name}</div>
+                  
                 </div>
-                <div style={{fontSize:11,display:"flex",flexWrap:"wrap",gap:1}}>{Array.from({length:k==="p1"?m.seriesWins.p1:m.seriesWins.p2},(_,i)=><span key={i}>&#127942;</span>)}</div>
+                <div style={{fontSize:18,display:"flex",flexWrap:"wrap",gap:2}}>{Array.from({length:k==="p1"?m.seriesWins.p1:m.seriesWins.p2},(_,i)=><span key={i}>&#127942;</span>)}</div>
               </div>;
             })}
           </div>
