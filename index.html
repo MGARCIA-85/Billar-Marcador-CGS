@@ -627,7 +627,6 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
         {(seriesHistory||[]).length>0&&<>
           <div style={{fontSize:10,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Series completadas</div>
           {(seriesHistory||[]).map((s,i)=>{
-           {(seriesHistory||[]).map((s,i)=>{
              const isLast=i===seriesHistory.length-1;
              const fakeGames=s.games||[
                ...Array.from({length:s.p1wins},()=>({winner:"p1"})),
@@ -688,7 +687,6 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                </div>
              );
            })}
-          })}
         </>}
 
         {matchClosed && (
