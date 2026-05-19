@@ -642,7 +642,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                   <div style={{flex:1}}>
                     <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":"#666",marginBottom:4,fontWeight:s.p1wins>s.p2wins?700:400}}>{s.p1wins>s.p2wins?"🏆 ":""}{p1Name}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:2}}>
-                      {Array.from({length:s.p1wins},(_,i)=><BallIcon key={i} modalidad={modalidad} size={20}/>)}
+                      {Array.from({length:s.p1wins},(_,i)=><BallIcon key={i} modalidad={modalidad} size={20} onClick={isLast&&!matchClosed?()=>onEditHistoryGame(i,ji,"p1",fakeGames):undefined} style={{cursor:isLast&&!matchClosed?"pointer":"default"}}/>)}
                       {s.p1wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
                     </div>
                   </div>
@@ -661,11 +661,24 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                     </div>
                   </div>
                 </div>
+                {/* Edición última serie en partidas activas */}
                 {isLast && !matchClosed && (
-                  <button onClick={onDeleteLastSeries}
-                    style={{marginTop:6,width:"100%",padding:"6px 0",borderRadius:8,background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.22)",color:"#f87171",fontFamily:"inherit",fontSize:11,cursor:"pointer"}}>
-                    Eliminar esta serie del historial
-                  </button>
+                  <>
+                    <div style={{fontSize:9,color:"#3a6a3a",textAlign:"center",marginTop:4}}>Toca una bola para cambiar el ganador</div>
+                    {(()=>{
+                      const incompleta = s.p1wins<carrera && s.p2wins<carrera;
+                      return incompleta ? (
+                        <button onClick={()=>onRestoreLastSeries(s,fakeGames)}
+                          style={{marginTop:6,width:"100%",padding:"8px 0",borderRadius:8,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                          ▶ Continuar esta serie
+                        </button>
+                      ) : null;
+                    })()}
+                    <button onClick={onDeleteLastSeries}
+                      style={{marginTop:6,width:"100%",padding:"6px 0",borderRadius:8,background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.22)",color:"#f87171",fontFamily:"inherit",fontSize:11,cursor:"pointer"}}>
+                      Eliminar esta serie del historial
+                    </button>
+                  </>
                 )}
               </div>
             );
