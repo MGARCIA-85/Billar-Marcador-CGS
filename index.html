@@ -208,6 +208,7 @@ function BillarApp() {
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState("active");
   const [ballMenu, setBallMenu] = useState(null); // {k, ji} posición del menú
+  const [lobbyBallMenu, setLobbyBallMenu] = useState(null); // {matchId, k, ji}
 
   useEffect(() => {
     const unsub = db.collection("billar").doc("partidas").onSnapshot(snap => {
@@ -306,11 +307,84 @@ function BillarApp() {
         </div>
         <div className="app-scroll" style={{padding:"0 14px"}}>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
-          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveId(m.id);setScreen("match");}} onDelete={()=>deleteMatch(m.id)} onReplay={replayMatch} />)}
+          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveId(m.id);setScreen("match");}} onDelete={()=>deleteMatch(m.id)} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={()=>{setActiveId(m.id);setShowHistory(true);}} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+            onUndo={(id)=>{ updateMatch(id, mm => {
+              if (mm.games.length > 0) {
+                // Deshacer último juego
+                const last = mm.games[mm.games.length-1];
+                return {...mm, games:mm.games.slice(0,-1), wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1}, currentServe:last.serve, seriesFinished:false, seriesWinner:null};
+              } else if (mm.seriesHistory.length > 0) {
+                // Deshacer "Siguiente serie" — restaurar última serie del historial
+                const ls = mm.seriesHistory[mm.seriesHistory.length-1];
+                const rg = ls.games || [];
+                const rw = {p1:rg.filter(g=>g.winner==="p1").length, p2:rg.filter(g=>g.winner==="p2").length};
+                const llg = rg[rg.length-1];
+                const ns = llg ? (llg.serve==="p1"?"p2":"p1") : mm.firstServe;
+                const nh = mm.seriesHistory.slice(0,-1);
+                const nsw = {p1:0,p2:0}; nh.forEach(s=>{ if(s.winner&&!s.partial) nsw[s.winner]++; });
+                return {...mm, seriesHistory:nh, seriesWins:nsw, seriesCount:ls.seriesNum, games:rg, wins:rw, currentServe:ns, seriesFinished:true, seriesWinner:ls.winner};
+              }
+              return mm;
+            }); }} />)}
         </div>
         <div style={{padding:"14px 18px"}}>
           <button style={{width:"100%",padding:"14px 0",borderRadius:14,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer"}} onClick={()=>setScreen("newMatch")}>+ Nueva Partida</button>
         </div>
+
+        {/* Menú bola especial desde lobby */}
+        {lobbyBallMenu && (() => {
+          const lm = matches.find(mm=>mm.id===lobbyBallMenu.matchId);
+          if (!lm) return null;
+          const applyBall = (bt) => {
+            const {k, ji} = lobbyBallMenu;
+            const newWins = {...lm.wins, [k]: lm.wins[k]+1};
+            const nextServe = lm.currentServe==="p1"?"p2":"p1";
+            const willFinish = newWins[k] >= lm.carrera;
+            updateMatch(lm.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:lm.currentServe,ballType:bt}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+            setLobbyBallMenu(null);
+          };
+          return (
+            <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)"}} onClick={()=>setLobbyBallMenu(null)}>
+              <div style={{background:"#0f2010",border:"1px solid rgba(74,222,128,0.3)",borderRadius:20,padding:"20px 24px",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+                <div style={{fontSize:13,color:"#888",marginBottom:16}}>Elige el tipo de bola</div>
+                <div style={{display:"flex",gap:16,justifyContent:"center"}}>
+                  <div onClick={()=>applyBall("normal")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                    <BallIcon modalidad={lm.modalidad} size={44}/><div style={{fontSize:11,color:"#aaa"}}>Normal</div>
+                  </div>
+                  <div onClick={()=>applyBall("gold")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                    <SpecialBall type="gold" size={44}/><div style={{fontSize:11,color:"#f5c400"}}>Dorada</div>
+                  </div>
+                  <div onClick={()=>applyBall("diamond")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                    <SpecialBall type="diamond" size={44}/><div style={{fontSize:11,color:"#a8d8ff"}}>Diamante</div>
+                  </div>
+                </div>
+                <button onClick={()=>setLobbyBallMenu(null)} style={{marginTop:16,padding:"8px 24px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#aaa",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Historial desde lobby */}
+        {showHistory && activeId && (() => {
+          const hm = matches.find(mm=>mm.id===activeId);
+          if (!hm) return null;
+          return <HistorialEditable
+            p1Name={hm.p1Name} p2Name={hm.p2Name}
+            modalidad={hm.modalidad} carrera={hm.carrera}
+            seriesHistory={hm.seriesHistory} seriesWins={hm.seriesWins}
+            games={hm.games} seriesCount={hm.seriesCount}
+            seriesFinished={hm.seriesFinished} seriesWinner={hm.seriesWinner}
+            matchClosed={hm.matchClosed}
+            onClose={()=>setShowHistory(false)}
+            onEditSeriesWinner={(idx,nw)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.map((s,i)=>i!==idx?s:{...s,winner:nw});const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw};});}}
+            onEditCurrentGame={(ji,k)=>{updateMatch(activeId,(m)=>{const ng=m.games.map((g,i)=>i===ji?{...g,winner:k}:g);const nww={p1:0,p2:0};ng.forEach(g=>nww[g.winner]++);const sf=nww.p1>=m.carrera||nww.p2>=m.carrera;const sw=nww.p1>=m.carrera?"p1":nww.p2>=m.carrera?"p2":null;return{...m,games:ng,wins:nww,seriesFinished:sf,seriesWinner:sw};});}}
+            onDeleteLastSeries={()=>{updateMatch(activeId,(m)=>{if(m.seriesHistory.length===0)return m;const last=m.seriesHistory[m.seriesHistory.length-1];const nh=m.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:last.seriesNum,games:last.games||[],wins:{p1:last.p1wins,p2:last.p2wins},seriesFinished:true,seriesWinner:last.winner};});}}
+            onEditHistoryGame={(si,ji,k,fb)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.map((ser,idx)=>{if(idx!==si)return ser;const bg=ser.games||fb;const ng=bg.map((g,i)=>i===ji?{...g,winner:k}:g);const p1=ng.filter(g=>g.winner==="p1").length;const p2=ng.filter(g=>g.winner==="p2").length;const nww=p1>=m.carrera?"p1":p2>=m.carrera?"p2":ser.winner;return{...ser,games:ng,p1wins:p1,p2wins:p2,winner:nww};});const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw};});}}
+            onRestoreLastSeries={(ls,lg)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});const rg=ls.games||lg;const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):m.firstServe;return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:false,seriesWinner:null};});setShowHistory(false);}}
+            onRestoreAnySeries={(si,ls,lg)=>{updateMatch(activeId,(m)=>{const rg=ls.games||lg;const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):m.firstServe;const nh=m.seriesHistory.slice(0,si);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:false,seriesWinner:null};});setShowHistory(false);}}
+            onReactivar={()=>{updateMatch(activeId,m=>({...m,matchClosed:false,closedAt:null}));setShowHistory(false);}}
+          />;
+        })()}
       </div>
     );
   }
@@ -608,7 +682,7 @@ function BillarApp() {
 
 function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, seriesWins,
   games, seriesCount, seriesFinished, seriesWinner, matchClosed,
-  onClose, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries, onReactivar}) {
+  onClose, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries, onRestoreAnySeries, onReactivar}) {
 
   const sw = seriesWins||{p1:0,p2:0};
   const d1 = sw.p1+(seriesFinished&&seriesWinner==="p1"?1:0);
@@ -665,18 +739,13 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
           <div style={{fontSize:15,fontWeight:700,color:"#e0e0e0"}}>Historial</div>
           <div style={{fontSize:20,fontWeight:800,color:"#4ade80"}}>{d1} - {d2}</div>
         </div>
-        <div style={{fontSize:10,color:"#f9e04b",letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>
-          Última serie #{seriesCount} — {seriesFinished?"Concluida":"Inconclusa"}
-        </div>
-        {(games||[]).length===0
-          ? <div style={{color:"#555",fontSize:12,marginBottom:12}}>Sin juegos registrados</div>
-          : <MiniGrid gamesData={games||[]} isEditable={false} p1wins={0} p2wins={0} onToggle={(ji,k)=>onEditCurrentGame(ji,k)}/>
-        }
+
 
         {(seriesHistory||[]).length>0&&<>
           <div style={{fontSize:10,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Series completadas</div>
           {(seriesHistory||[]).map((s,i)=>{
              const isLast=i===seriesHistory.length-1;
+             const isSecondLast=i===seriesHistory.length-2;
              const fakeGames=s.games||[
                ...Array.from({length:s.p1wins},()=>({winner:"p1"})),
                ...Array.from({length:s.p2wins},()=>({winner:"p2"})),
@@ -687,8 +756,8 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
                    <span style={{color:"#556",fontSize:11}}>Serie #{s.seriesNum}{s.partial?" *":""}</span>
                  </div>
-                 {/* Resumen visual cuando no es editable */}
-                 {(!isLast || matchClosed) && (
+                 {/* Resumen visual siempre */}
+                 {true && (
                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                      <div style={{flex:1}}>
                        <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":"#666",marginBottom:4,fontWeight:s.p1wins>s.p2wins?700:400}}>{s.p1wins>s.p2wins?"🏆 ":""}{p1Name}</div>
@@ -711,32 +780,43 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                      </div>
                    </div>
                  )}
-                 {/* MiniGrid editable solo para última serie en partidas activas */}
-                 {isLast && !matchClosed && (
-                   <>
-                     <MiniGrid
-                       gamesData={fakeGames}
-                       isEditable={true}
-                       p1wins={s.winner==="p1"?1:0}
-                       p2wins={s.winner==="p2"?1:0}
-                       onToggle={(ji,k)=>onEditHistoryGame(i,ji,k,fakeGames)}
-                     />
-                     {incompleta && (
-                       <button onClick={()=>{onRestoreLastSeries(s,fakeGames);}}
-                         style={{marginTop:6,width:"100%",padding:"8px 0",borderRadius:8,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                         ▶ Continuar esta serie
-                       </button>
-                     )}
-                     <button onClick={onDeleteLastSeries}
-                       style={{marginTop:6,width:"100%",padding:"6px 0",borderRadius:8,background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.22)",color:"#f87171",fontFamily:"inherit",fontSize:11,cursor:"pointer"}}>
-                       Eliminar esta serie del historial
-                     </button>
-                   </>
-                 )}
+
                </div>
              );
            })}
         </>}
+
+        {/* Serie actual — al final */}
+        {(()=>{
+          const p1w=(games||[]).filter(g=>g.winner==="p1").length;
+          const p2w=(games||[]).filter(g=>g.winner==="p2").length;
+          const hasBalls=(games||[]).length>0;
+          return (
+            <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(74,222,128,0.18)",borderRadius:12,padding:"12px 14px",marginTop:10}}>
+              <div style={{fontSize:12,color:"#f9e04b",fontWeight:700,marginBottom:10}}>
+                Serie {seriesFinished?"concluida":"inconclusa"} #{seriesCount}
+              </div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                {/* Bolas jugador 1 */}
+                <div style={{display:"flex",flexWrap:"wrap",gap:3,flex:1,justifyContent:"flex-start",alignItems:"center"}}>
+                  {hasBalls
+                    ? (games||[]).filter(g=>g.winner==="p1").map((g,j)=>g.ballType==="gold"?<SpecialBall key={j} type="gold" size={32}/>:g.ballType==="diamond"?<SpecialBall key={j} type="diamond" size={32}/>:<BallIcon key={j} modalidad={modalidad} size={32}/>)
+                    : <span style={{fontSize:11,color:"#444"}}>—</span>
+                  }
+                </div>
+                {/* VS central */}
+                <div style={{fontSize:13,color:"#444",fontWeight:700,flexShrink:0,textAlign:"center",minWidth:28}}>vs</div>
+                {/* Bolas jugador 2 */}
+                <div style={{display:"flex",flexWrap:"wrap",gap:3,flex:1,justifyContent:"flex-end",alignItems:"center"}}>
+                  {hasBalls
+                    ? (games||[]).filter(g=>g.winner==="p2").map((g,j)=>g.ballType==="gold"?<SpecialBall key={j} type="gold" size={32}/>:g.ballType==="diamond"?<SpecialBall key={j} type="diamond" size={32}/>:<BallIcon key={j} modalidad={modalidad} size={32}/>)
+                    : <span style={{fontSize:11,color:"#444"}}>—</span>
+                  }
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {matchClosed && (
           <button onClick={onReactivar}
@@ -751,70 +831,121 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
 }
 
 
-function LobbyCard({m, onOpen, onDelete, onReplay}) {
+ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo}) {
   const isOpen = !m.matchClosed;
   const sw1 = m.seriesWins.p1+(m.seriesFinished&&m.seriesWinner==="p1"?1:0);
   const sw2 = m.seriesWins.p2+(m.seriesFinished&&m.seriesWinner==="p2"?1:0);
-  const hasInconclusa = m.wins && (m.wins.p1>0||m.wins.p2>0) && !m.seriesFinished;
+
+  const CELL_W=38, CELL_H=65, NAM_W=105, HDR_H=14;
+  const BORDER="1px solid rgba(255,255,255,0.2)";
+  const BORDER_THIN="1px solid rgba(255,255,255,0.08)";
+  const totalJuegos = m.carrera*2-1;
+
+  const handleClick = (k, ji) => {
+    if (!isOpen) return;
+    const gr = m.games[ji];
+    const hasWon = gr && gr.winner === k;
+    const isLastGame = ji === m.games.length-1;
+    const isNext = !m.seriesFinished && ji === m.games.length;
+    if (isNext) {
+      const newWins = {...m.wins, [k]: m.wins[k]+1};
+      const nextServe = m.currentServe==="p1"?"p2":"p1";
+      const willFinish = newWins[k] >= m.carrera;
+      onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+    } else if (hasWon && isLastGame) {
+      // Deshacer último juego — funciona aunque la serie esté terminada
+      onUpdateMatch(m.id, mm => {
+        const last = mm.games[mm.games.length-1];
+        return {...mm, games:mm.games.slice(0,-1), wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1}, currentServe:last.serve, seriesFinished:false, seriesWinner:null};
+      });
+    }
+  };
 
   return (
-    <div onClick={onOpen} style={{display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"10px 12px",marginBottom:10,cursor:"pointer",opacity:isOpen?1:0.95}}>
+    <div style={{display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"10px 12px",marginBottom:10,opacity:isOpen?1:0.95}}>
 
-      {/* Fila 1: Fecha + estado + borrar */}
+      {/* Cabecera */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-        <div style={{fontSize:11,color:"#4a7a4a",fontWeight:600,letterSpacing:0.5}}>
-          &#128337; {formatDate(m.createdAt)}
+        <div style={{display:"flex",alignItems:"center",gap:6,flex:1}}>
+          <BallIcon modalidad={m.modalidad} size={20}/>
+          <div>
+            <div style={{fontSize:13,fontWeight:800,color:"#e8e8e8"}}>{m.p1Name} vs {m.p2Name}</div>
+            <div style={{fontSize:9,color:"#4a7a4a"}}>&#128337; {formatDate(m.createdAt)} · {m.modalidad} · Carrera {m.carrera}</div>
+          </div>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:6}}>
+        <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
           <div style={{fontSize:9,color:isOpen?"#4ade80":"#888",background:isOpen?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.05)",border:isOpen?"1px solid rgba(74,222,128,0.22)":"none",borderRadius:20,padding:"2px 7px",fontWeight:700}}>{isOpen?"EN JUEGO":"FIN"}</div>
+          {isOpen && <button style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",borderRadius:8,padding:"3px 7px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}} onClick={e=>{e.stopPropagation();onOpenHistory();}}>Hist.</button>}
           <button style={{background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.2)",color:"#f87171",borderRadius:8,padding:"3px 7px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}} onClick={e=>{e.stopPropagation();onDelete();}}>x</button>
         </div>
       </div>
 
-      {/* Fila 2: Nombre vs Nombre + bola en centro */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-        <div style={{fontSize:14,fontWeight:800,color:"#e8e8e8",flex:1}}>{m.p1Name}</div>
-        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,padding:"0 8px"}}>
-          <BallIcon modalidad={m.modalidad} size={28}/>
-          <div style={{fontSize:11,color:"#4ade80",fontWeight:700,marginTop:2}}>{m.modalidad}</div>
-          <div style={{fontSize:9,color:"#666"}}>Carrera {m.carrera}</div>
-        </div>
-        <div style={{fontSize:14,fontWeight:800,color:"#e8e8e8",flex:1,textAlign:"right"}}>{m.p2Name}</div>
-      </div>
-
-      {/* Fila 3: Marcador con trofeos */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",background:"rgba(0,0,0,0.2)",borderRadius:10,marginBottom:hasInconclusa?6:0}}>
-        <div style={{display:"flex",flexWrap:"wrap",gap:2,flex:1}}>
-          {sw1>0 ? Array.from({length:sw1},(_,i)=><span key={i} style={{fontSize:15}}>&#127942;</span>) : <span style={{fontSize:11,color:"#444"}}>—</span>}
-        </div>
-        <div style={{fontSize:20,fontWeight:900,padding:"0 10px",minWidth:60,textAlign:"center"}}>
-          <span style={{color:sw1>sw2?"#4ade80":sw1<sw2?"#aaa":"#888"}}>{sw1}</span>
-          <span style={{color:"#444"}}> - </span>
-          <span style={{color:sw2>sw1?"#4ade80":sw2<sw1?"#aaa":"#888"}}>{sw2}</span>
-        </div>
-        <div style={{display:"flex",flexWrap:"wrap",gap:2,flex:1,justifyContent:"flex-end"}}>
-          {sw2>0 ? Array.from({length:sw2},(_,i)=><span key={i} style={{fontSize:15}}>&#127942;</span>) : <span style={{fontSize:11,color:"#444",textAlign:"right",width:"100%"}}>—</span>}
-        </div>
-      </div>
-
-      {/* Fila 4: Serie inconclusa */}
-      {hasInconclusa && (
-        <div style={{padding:"5px 10px",background:"rgba(249,224,75,0.05)",border:"1px solid rgba(249,224,75,0.12)",borderRadius:8,marginBottom:4}}>
-          <div style={{fontSize:10,color:"#a08030",fontWeight:600,marginBottom:3}}>Serie inconclusa</div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div style={{display:"flex",gap:3}}>
-              {m.wins.p1>0 ? Array.from({length:m.wins.p1},(_,i)=><BallIcon key={i} modalidad={m.modalidad} size={18}/>) : <span style={{fontSize:11,color:"#444"}}>—</span>}
-            </div>
-            <div style={{fontSize:11,color:"#555",fontWeight:700,padding:"0 8px"}}>vs</div>
-            <div style={{display:"flex",gap:3,justifyContent:"flex-end"}}>
-              {m.wins.p2>0 ? Array.from({length:m.wins.p2},(_,i)=><BallIcon key={i} modalidad={m.modalidad} size={18}/>) : <span style={{fontSize:11,color:"#444"}}>—</span>}
+      {/* Cuadrícula para partidas activas */}
+      {isOpen && <>
+        <div style={{display:"flex",overflow:"hidden"}}>
+          <div style={{flexShrink:0,borderRight:BORDER}}>
+            <div style={{height:HDR_H}}/>
+            {["p1","p2"].map((k,ri)=>{
+              const name=k==="p1"?m.p1Name:m.p2Name;
+              const wins=k==="p1"?m.wins.p1:m.wins.p2;
+              const isSaque=!m.seriesFinished&&m.currentServe===k;
+              return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.2)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"5px 8px",overflow:"hidden",boxSizing:"border-box"}}>
+                <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2}}>
+                  {isSaque&&<span style={{fontSize:9,color:"#f9e04b"}}>▶</span>}
+                  <div style={{fontSize:12,fontWeight:800,color:isSaque?"#f9e04b":"#e0e0e0",lineHeight:1.2}}>{name}</div>
+                  <span style={{fontSize:12,color:"#4ade80",fontWeight:900,marginLeft:2}}>{wins>0?wins:""}</span>
+                </div>
+                <div style={{fontSize:11,display:"flex",flexWrap:"wrap",gap:1}}>{Array.from({length:k==="p1"?m.seriesWins.p1:m.seriesWins.p2},(_,i)=><span key={i}>&#127942;</span>)}</div>
+              </div>;
+            })}
+          </div>
+          <div style={{flex:1,overflowX:"auto"}}>
+            <div style={{minWidth:"max-content"}}>
+              <div style={{display:"flex",height:HDR_H}}>
+                {Array.from({length:totalJuegos},(_,ji)=><div key={ji} style={{width:CELL_W,textAlign:"center",fontSize:9,color:"#666",fontWeight:700,lineHeight:HDR_H+"px"}}>{ji+1}</div>)}
+              </div>
+              {["p1","p2"].map((k,ri)=>(
+                <div key={k} style={{display:"flex",borderBottom:ri===0?BORDER:"none"}}>
+                  {Array.from({length:totalJuegos},(_,ji)=>{
+                    const gr=m.games[ji], hasWon=gr&&gr.winner===k;
+                    const isLastGame=ji===m.games.length-1;
+                    const isNext=ji===m.games.length;
+                    const isSaque=isNext&&m.currentServe===k;
+                    const clickable=isNext||(hasWon&&isLastGame);
+                    let lpt=null, lpp=false;
+                    const lps=()=>{ lpp=false; if(isNext) lpt=setTimeout(()=>{ lpp=true; onLobbyBallMenu({matchId:m.id,k,ji}); },600); };
+                    const lpe=()=>clearTimeout(lpt);
+                    return <div key={ji}
+                      onClick={()=>{ if(!lpp) clickable&&handleClick(k,ji); lpp=false; }}
+                      onMouseDown={lps} onMouseUp={lpe} onMouseLeave={lpe}
+                      onTouchStart={lps} onTouchEnd={lpe}
+                      style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:isNext?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.01)",position:"relative",cursor:clickable?"pointer":"default"}}>
+                      {hasWon&&(gr.ballType==="gold"?<SpecialBall type="gold" size={28}/>:gr.ballType==="diamond"?<SpecialBall type="diamond" size={28}/>:<BallIcon modalidad={m.modalidad} size={28}/>)}
+                      {isSaque&&<div style={{position:"absolute",top:3,left:3}}><CueBallSaque size={14}/></div>}
+                    </div>;
+                  })}
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      )}
 
+        <div style={{display:"flex",gap:6,marginTop:6}}>
+          {m.seriesFinished && (
+            <button style={{flex:1,padding:"8px 0",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onNextSeries(m.id);}}>Siguiente serie →</button>
+          )}
+          {(m.games.length>0 || m.seriesHistory.length>0) && (
+            <button style={{padding:"8px 12px",borderRadius:10,background:"rgba(255,200,50,0.1)",border:"1px solid rgba(255,200,50,0.25)",color:"#f9e04b",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0}} onClick={e=>{e.stopPropagation();onUndo(m.id);}}>↩ Deshacer</button>
+          )}
+        </div>
+      </>}
+
+      {/* Partidas terminadas */}
       {!isOpen && (
-        <button style={{marginTop:8,width:"100%",padding:"8px 0",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReplay(m);}}>Volver a jugar</button>
+        <div>
+          <div style={{fontSize:10,color:"#555",textAlign:"center",marginBottom:6,cursor:"pointer"}} onClick={onOpen}>Toca para ver historial completo</div>
+          <button style={{width:"100%",padding:"8px 0",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReplay(m);}}>Volver a jugar</button>
+        </div>
       )}
     </div>
   );
