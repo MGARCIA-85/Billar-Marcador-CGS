@@ -213,6 +213,38 @@ function BillarApp() {
     setPlayersList(list);
     try { localStorage.setItem("bg_players", JSON.stringify(list)); } catch{}
   };
+
+  const renamePlayer = (oldName, newName) => {
+    if (!newName.trim() || oldName === newName.trim()) return;
+    const n = newName.trim();
+    // Actualizar lista de jugadores
+    savePlayersList(playersList.map(p => p === oldName ? n : p).sort((a,b)=>a.localeCompare(b)));
+    // Actualizar TODAS las partidas donde aparece ese nombre
+    const updated = matches.map(m => {
+      let changed = false;
+      let nm = {...m};
+      // Partidas normales
+      if (nm.p1Name === oldName) { nm.p1Name = n; changed = true; }
+      if (nm.p2Name === oldName) { nm.p2Name = n; changed = true; }
+      // Historial de series
+      if (nm.seriesHistory) {
+        nm.seriesHistory = nm.seriesHistory.map(s => ({...s})); // shallow copy ok
+      }
+      // Contrarreloj
+      if (nm.crPlayers) {
+        const np = nm.crPlayers.map(p => p === oldName ? n : p);
+        if (np.some((p,i) => p !== nm.crPlayers[i])) { nm.crPlayers = np; changed = true; }
+      }
+      if (nm.crSerieHistory) {
+        nm.crSerieHistory = nm.crSerieHistory.map(s => ({...s,
+          winnerName: s.winnerName === oldName ? n : s.winnerName
+        }));
+        changed = true;
+      }
+      return changed ? nm : m;
+    });
+    saveMatches(updated);
+  };
   const addPlayerToList = (name) => {
     const n = name.trim();
     if (!n || playersList.includes(n)) return;
@@ -229,6 +261,7 @@ function BillarApp() {
   const [wSeriesCR, setWSeriesCR] = useState(1);
   const [wPenaltyTime, setWPenaltyTime] = useState(10);
   const [newPlayerName, setNewPlayerName] = useState("");
+  const [editingNameKey, setEditingNameKey] = useState(null); // "matchId:field" e.g. "abc:p1" or "abc:cr:2"
   const [sfModalidades, setSfModalidades] = useState([]);
   const [sfJugadores, setSfJugadores] = useState([]);
   const [sfPeriod, setSfPeriod] = useState("Todo");
@@ -425,6 +458,8 @@ function BillarApp() {
             onMoveDown={lobbyTab==="active"?(id)=>moveMatch(id,1):null}
             isFirst={lobbyTab==="active"&&activeMatches.indexOf(activeMatches.find(x=>x.id===m.id))===0}
             isLast={lobbyTab==="active"&&activeMatches.indexOf(activeMatches.find(x=>x.id===m.id))===activeMatches.length-1}
+            onEditName={!m.matchClosed ? (key)=>setEditingNameKey(key) : null}
+            editingNameKey={editingNameKey}
              />)}
         </div>
 
@@ -489,12 +524,21 @@ function BillarApp() {
         const players = hm.crPlayers||[];
         const order = hm.crOrder||[];
         const roundHistory = hm.crRoundHistory||[];
-        const roundWins = hm.crRoundWins||{};
         const accumTime = hm.crAccumTime||{};
         const validRoundsH = hm.crValidRounds||{};
         const serieWinsH = hm.crSerieWins||{};
         const serieHistoryH = hm.crSerieHistory||[];
         const totalSeriesH = hm.crTotalSeries||1;
+        // Sumar rondas de TODAS las series (solo serieHistory, sin duplicar crRoundWins)
+        const allRWH = {};
+        serieHistoryH.forEach(s => {
+          Object.entries(s.roundWins||{}).forEach(([k,v])=>{ allRWH[Number(k)]=(allRWH[Number(k)]||0)+v; });
+        });
+        // Solo agregar crRoundWins si la partida está en curso (última serie no guardada aún)
+        if (serieHistoryH.length < (hm.crTotalSeries||1)) {
+          Object.entries(hm.crRoundWins||{}).forEach(([k,v])=>{ allRWH[Number(k)]=(allRWH[Number(k)]||0)+v; });
+        }
+        const roundWins = allRWH;
         // Promedio: solo rondas válidas (sin forfeit)
         const avgTime = (pidx) => validRoundsH[pidx]>0 ? (accumTime[pidx]||0)/validRoundsH[pidx] : Infinity;
         const standings = [...order].sort((a,b)=>{
@@ -513,7 +557,7 @@ function BillarApp() {
               <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Clasificación final</div>
               {standings.map((pidx,pos)=>(
                 <div key={pidx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:6}}>
-                  <span style={{fontWeight:700,fontSize:15,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{pos+1}. {players[pidx]}{pos===0?" 🏆":""}</span>
+                  <span style={{fontWeight:700,fontSize:15,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{pos===0?"👑":pos===1?"🥈":"🥉"} {pos+1}. {players[pidx]}</span>
                   <div style={{textAlign:"right"}}>
                     <div style={{fontSize:12,color:"#f9e04b",fontWeight:700}}>{serieWinsH[pidx]||0}/{totalSeriesH} series</div>
                     <div style={{fontSize:11,color:"#888"}}>{roundWins[pidx]||0} rondas · {validRoundsH[pidx]>0?fmtTime(avgTime(pidx))+" prom":"—"}</div>
@@ -867,13 +911,31 @@ function BillarApp() {
           {playersList.length === 0
             ? <div style={{color:"#444",fontSize:13,textAlign:"center",padding:"30px 0"}}>No hay jugadores guardados aún</div>
             : playersList.map((p,i) => (
-              <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",borderRadius:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",marginBottom:8}}>
-                <span style={{fontSize:15,fontWeight:600,color:"#e0e0e0"}}>🎱 {p}</span>
-                <button onClick={()=>savePlayersList(playersList.filter((_,j)=>j!==i))}
-                  style={{background:"rgba(255,80,80,0.12)",border:"1px solid rgba(255,80,80,0.25)",color:"#f87171",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-                  Eliminar
-                </button>
-              </div>
+              {editingNameKey===`player:${i}` ? (
+                <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
+                  <input autoFocus
+                    style={{flex:1,padding:"11px 14px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(74,222,128,0.3)",color:"#fff",fontFamily:"inherit",fontSize:14,outline:"none"}}
+                    defaultValue={p}
+                    onBlur={e=>{const v=e.target.value.trim();if(v&&v!==p)renamePlayer(p,v);setEditingNameKey(null);}}
+                    onKeyDown={e=>{if(e.key==="Enter")e.target.blur();if(e.key==="Escape")setEditingNameKey(null);}}
+                  />
+                  <button onClick={()=>setEditingNameKey(null)} style={{padding:"10px 12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:12,cursor:"pointer"}}>✕</button>
+                </div>
+              ) : (
+                <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",borderRadius:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",marginBottom:8}}>
+                  <span style={{fontSize:15,fontWeight:600,color:"#e0e0e0"}}>🎱 {p}</span>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>setEditingNameKey(`player:${i}`)}
+                      style={{background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                      ✏️ Editar
+                    </button>
+                    <button onClick={()=>savePlayersList(playersList.filter((_,j)=>j!==i))}
+                      style={{background:"rgba(255,80,80,0.12)",border:"1px solid rgba(255,80,80,0.25)",color:"#f87171",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              )}
             ))
           }
         </div>
@@ -1200,12 +1262,21 @@ function BillarApp() {
         const players = hm.crPlayers||[];
         const order = hm.crOrder||[];
         const roundHistory = hm.crRoundHistory||[];
-        const roundWins = hm.crRoundWins||{};
         const accumTime = hm.crAccumTime||{};
         const validRoundsH = hm.crValidRounds||{};
         const serieWinsH = hm.crSerieWins||{};
         const serieHistoryH = hm.crSerieHistory||[];
         const totalSeriesH = hm.crTotalSeries||1;
+        // Sumar rondas de TODAS las series (solo serieHistory, sin duplicar crRoundWins)
+        const allRWH = {};
+        serieHistoryH.forEach(s => {
+          Object.entries(s.roundWins||{}).forEach(([k,v])=>{ allRWH[Number(k)]=(allRWH[Number(k)]||0)+v; });
+        });
+        // Solo agregar crRoundWins si la partida está en curso (última serie no guardada aún)
+        if (serieHistoryH.length < (hm.crTotalSeries||1)) {
+          Object.entries(hm.crRoundWins||{}).forEach(([k,v])=>{ allRWH[Number(k)]=(allRWH[Number(k)]||0)+v; });
+        }
+        const roundWins = allRWH;
         // Promedio: solo rondas válidas (sin forfeit)
         const avgTime = (pidx) => validRoundsH[pidx]>0 ? (accumTime[pidx]||0)/validRoundsH[pidx] : Infinity;
         const standings = [...order].sort((a,b)=>{
@@ -1224,7 +1295,7 @@ function BillarApp() {
               <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Clasificación</div>
               {standings.map((pidx,pos)=>(
                 <div key={pidx} style={{display:"flex",justifyContent:"space-between",padding:"7px 10px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:5}}>
-                  <span style={{fontWeight:700,color:pos===0?"#f9e04b":"#e0e0e0"}}>{pos+1}. {players[pidx]}{pos===0?" 🏆":""}</span>
+                  <span style={{fontWeight:700,color:pos===0?"#f9e04b":"#e0e0e0"}}>{pos===0?"👑":pos===1?"🥈":"🥉"} {pos+1}. {players[pidx]}</span>
                   <div style={{textAlign:"right"}}><div style={{fontSize:12,color:"#f9e04b",fontWeight:700}}>{serieWinsH[pidx]||0}/{totalSeriesH} series</div><div style={{fontSize:11,color:"#888"}}>{roundWins[pidx]||0} rondas · {validRoundsH[pidx]>0?fmtTime(avgTime(pidx))+" prom":"—"}</div></div>
                 </div>
               ))}
@@ -1534,7 +1605,7 @@ function CrTimer({ startTs, base=0, big=false }) {
   return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
 }
 
-function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast}) {
+function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey}) {
   const isOpen = !m.matchClosed;
 
   // ── Contrarreloj en lobby ──
@@ -1547,7 +1618,16 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
     const startTs = m.crStartTs || null;
     const totalRounds = m.crTotalRounds || 1;
     const currentRound = m.crRound || 1;
-    const roundWins = m.crRoundWins || {};
+    // Sumar rondas de TODAS las series (serieHistory ya guarda las rondas de cada serie)
+    const _allRW = {};
+    (m.crSerieHistory||[]).forEach(s => {
+      Object.entries(s.roundWins||{}).forEach(([k,v])=>{ _allRW[Number(k)]=(_allRW[Number(k)]||0)+v; });
+    });
+    // Solo agregar crRoundWins si la serie actual aún no está en serieHistory
+    if ((m.crSerieHistory||[]).length < (m.crCurrentSerie||1)) {
+      Object.entries(m.crRoundWins||{}).forEach(([k,v])=>{ _allRW[Number(k)]=(_allRW[Number(k)]||0)+v; });
+    }
+    const roundWins = _allRW;
     const accumTime = m.crAccumTime || {};
     const roundHistory = m.crRoundHistory || [];
     const penaltyTime = m.crPenaltyTime || 10;
@@ -1865,11 +1945,26 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
             Serie {currentSerie} terminada · Siguiente: Serie {currentSerie+1}/{totalSeries}
           </div>
         )}
-        {matchOver2 && (
-          <div style={{textAlign:"center",padding:"8px 0",fontSize:14,fontWeight:700,color:"#f9e04b",marginBottom:4}}>
-            🏆 Ganador: {players[standings[0]]} — {serieWins[standings[0]]||0} serie{(serieWins[standings[0]]||0)!==1?"s":""}
-          </div>
-        )}
+        {matchOver2 && (()=>{
+          return (
+            <div style={{background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"10px",marginBottom:8}}>
+              <div style={{fontSize:10,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Clasificación final</div>
+              {standings.map((pidx,pos)=>(
+                <div key={pidx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:8,
+                  background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",
+                  border:`1px solid ${pos===0?"rgba(249,224,75,0.2)":"rgba(255,255,255,0.06)"}`,marginBottom:4}}>
+                  <span style={{fontWeight:700,fontSize:14,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>
+                    {pos===0?"👑":pos===1?"🥈":"🥉"} {pos+1}. {players[pidx]}
+                  </span>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:11,color:"#f9e04b",fontWeight:700}}>{serieWins[pidx]||0}/{totalSeries} series</div>
+                    <div style={{fontSize:10,color:"#888"}}>{roundWins[pidx]||0} rondas · {(m.crValidRounds||{})[pidx]>0?fmtTime((m.crAccumTime||{})[pidx]/(m.crValidRounds||{})[pidx])+" prom":"—"}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
         <div style={{display:"flex",gap:5,marginTop:4}}>
           {allDone && !serieOver && !matchOver2 && (
             <button onClick={e=>{e.stopPropagation();onUpdateMatch(m.id,mm=>({...mm,crTimes:{},crCurrentIdx:0,crRunning:false,crStartTs:null,crPausedTime:0,crRound:(mm.crRound||1)+1,crRoundDone:false,crFaults:{},crFaultTimes:{}}));}}
@@ -2007,11 +2102,24 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               const players = m.crPlayers||[];
               const order = m.crOrder||[];
               const serieWinsR = m.crSerieWins||{};
-              const roundWins = m.crRoundWins||{};
               const accumTime = m.crAccumTime||{};
               const validRoundsR = m.crValidRounds||{};
               const totalSeriesR = m.crTotalSeries||1;
               const totalRoundsR = m.crTotalRounds||1;
+              // Sumar rondas de TODAS las series (solo serieHistory)
+              const allRoundWins = {};
+              (m.crSerieHistory||[]).forEach(s => {
+                Object.entries(s.roundWins||{}).forEach(([k,v]) => {
+                  allRoundWins[Number(k)] = (allRoundWins[Number(k)]||0) + v;
+                });
+              });
+              // Solo agregar crRoundWins si aún hay series en curso
+              if ((m.crSerieHistory||[]).length < (m.crTotalSeries||1)) {
+                Object.entries(m.crRoundWins||{}).forEach(([k,v]) => {
+                  allRoundWins[Number(k)] = (allRoundWins[Number(k)]||0) + v;
+                });
+              }
+              const roundWins = allRoundWins;
               // Ordenar por series ganadas → rondas → promedio
               const standings = [...order].sort((a,b)=>{
                 const sw=(serieWinsR[b]||0)-(serieWinsR[a]||0); if(sw!==0) return sw;
@@ -2026,8 +2134,8 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                   {standings.map((pidx,pos)=>(
                     <div key={pidx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:8,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:4}}>
                       <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{fontSize:12,color:"#555",fontWeight:700,minWidth:16}}>{pos+1}.</span>
-                        <span style={{fontSize:14,fontWeight:800,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{players[pidx]}{pos===0?" 🏆":""}</span>
+                        <span style={{fontSize:13}}>{pos===0?"👑":pos===1?"🥈":"🥉"}</span>
+                        <span style={{fontSize:14,fontWeight:800,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{pos+1}. {players[pidx]}</span>
                       </div>
                       <div style={{textAlign:"right"}}>
                         <div style={{fontSize:11,color:"#f9e04b",fontWeight:700}}>{serieWinsR[pidx]||0}/{totalSeriesR} series</div>
