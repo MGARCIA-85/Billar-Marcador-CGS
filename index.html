@@ -910,8 +910,8 @@ function BillarApp() {
           {/* Lista */}
           {playersList.length === 0
             ? <div style={{color:"#444",fontSize:13,textAlign:"center",padding:"30px 0"}}>No hay jugadores guardados aún</div>
-            : playersList.map((p,i) => (
-              {editingNameKey===`player:${i}` ? (
+            : playersList.map((p,i) => {
+              if (editingNameKey===("player:"+i)) return (
                 <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
                   <input autoFocus
                     style={{flex:1,padding:"11px 14px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(74,222,128,0.3)",color:"#fff",fontFamily:"inherit",fontSize:14,outline:"none"}}
@@ -921,11 +921,12 @@ function BillarApp() {
                   />
                   <button onClick={()=>setEditingNameKey(null)} style={{padding:"10px 12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:12,cursor:"pointer"}}>✕</button>
                 </div>
-              ) : (
+              );
+              return (
                 <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",borderRadius:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",marginBottom:8}}>
                   <span style={{fontSize:15,fontWeight:600,color:"#e0e0e0"}}>🎱 {p}</span>
                   <div style={{display:"flex",gap:6}}>
-                    <button onClick={()=>setEditingNameKey(`player:${i}`)}
+                    <button onClick={()=>setEditingNameKey("player:"+i)}
                       style={{background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                       ✏️ Editar
                     </button>
@@ -935,8 +936,8 @@ function BillarApp() {
                     </button>
                   </div>
                 </div>
-              )}
-            ))
+              );
+            })
           }
         </div>
       </div>
