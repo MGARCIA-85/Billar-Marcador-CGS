@@ -206,6 +206,18 @@ function BillarApp() {
   const [matches, setMatches] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [screen, setScreen] = useState("lobby");
+  const [playersList, setPlayersList] = useState(()=>{
+    try { return JSON.parse(localStorage.getItem("bg_players")||"[]"); } catch{return [];}
+  });
+  const savePlayersList = (list) => {
+    setPlayersList(list);
+    try { localStorage.setItem("bg_players", JSON.stringify(list)); } catch{}
+  };
+  const addPlayerToList = (name) => {
+    const n = name.trim();
+    if (!n || playersList.includes(n)) return;
+    savePlayersList([...playersList, n].sort((a,b)=>a.localeCompare(b)));
+  };
   const [wP1, setWP1] = useState("");
   const [wP2, setWP2] = useState("");
   const [wServe, setWServe] = useState(null);
@@ -214,6 +226,9 @@ function BillarApp() {
   const [wPlayers, setWPlayers] = useState(["", ""]);
   const [wOrder, setWOrder] = useState([]);
   const [wRondasCR, setWRondasCR] = useState(3);
+  const [wPenaltyTime, setWPenaltyTime] = useState(10);
+  const [newPlayerName, setNewPlayerName] = useState("");
+  const [matchOrder, setMatchOrder] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState("active");
@@ -226,6 +241,16 @@ function BillarApp() {
     });
     return () => unsub();
   }, []);
+
+  const moveMatch = (id, dir) => {
+    const ids = activeMatches.map(m=>m.id);
+    const i = ids.indexOf(id);
+    if(dir===-1 && i===0) return;
+    if(dir===1 && i===ids.length-1) return;
+    const newIds = [...ids];
+    [newIds[i], newIds[i+dir]] = [newIds[i+dir], newIds[i]];
+    setMatchOrder(newIds);
+  };
 
   const saveMatches = async (nm) => {
     setMatches(nm);
@@ -253,6 +278,7 @@ function BillarApp() {
         crTimes: {},
         crRound: 1,
         crTotalRounds: wRondasCR,
+        crPenaltyTime: wPenaltyTime,
         crCurrentIdx: 0,
         crRunning: false,
         crStartTs: null,
@@ -261,7 +287,7 @@ function BillarApp() {
       });
       saveMatches([...matches, m]);
       setActiveId(m.id); setScreen("lobby"); setLobbyTab("active");
-      setWPlayers(["",""]); setWOrder([]); setWCarrera(5); setWModalidad("Bola 8"); setWRondasCR(3);
+      setWPlayers(["",""]); setWOrder([]); setWCarrera(5); setWModalidad("Bola 8"); setWRondasCR(3); setWPenaltyTime(10);
     } else {
       if (!wP1.trim() || !wP2.trim() || !wServe) return;
       const m = createMatch(wP1.trim(), wP2.trim(), wServe, wCarrera, wModalidad);
@@ -316,7 +342,17 @@ function BillarApp() {
     setScreen("newMatch");
   };
 
-  const activeMatches = matches.filter(m => !m.matchClosed).sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+  const activeMatchesRaw = matches.filter(m => !m.matchClosed);
+  const activeMatches = matchOrder.length
+    ? [...activeMatchesRaw].sort((a,b) => {
+        const ai = matchOrder.indexOf(a.id);
+        const bi = matchOrder.indexOf(b.id);
+        if(ai===-1&&bi===-1) return (b.createdAt||0)-(a.createdAt||0);
+        if(ai===-1) return 1;
+        if(bi===-1) return -1;
+        return ai-bi;
+      })
+    : activeMatchesRaw.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   const closedMatches = matches.filter(m => m.matchClosed).sort((a,b) => (b.closedAt||b.createdAt||0)-(a.closedAt||a.createdAt||0));
 
   const chip = (sel) => ({
@@ -337,7 +373,10 @@ function BillarApp() {
               <div style={{fontSize:24,fontWeight:800,color:"#4ade80",letterSpacing:1}}>Billares García</div>
               <div style={{fontSize:11,color:"#555",marginTop:1}}>Control de partidas</div>
             </div>
-            <button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>setScreen("newMatch")}>+ Nueva</button>
+            <div style={{display:"flex",gap:8}}>
+              <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreen("players")}>👥</button>
+              <button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>setScreen("newMatch")}>+ Nueva</button>
+            </div>
           </div>
         </div>
         <div style={{display:"flex",padding:"12px 16px 0",gap:8}}>
@@ -371,6 +410,10 @@ function BillarApp() {
             }); }}
             onReactivar={(id)=>{ updateMatch(id, m=>({...m,matchClosed:false,closedAt:null})); }}
             onTerminar={(id)=>{ updateMatch(id, m=>({...m,matchClosed:true,closedAt:Date.now()})); }}
+            onMoveUp={lobbyTab==="active"?(id)=>moveMatch(id,-1):null}
+            onMoveDown={lobbyTab==="active"?(id)=>moveMatch(id,1):null}
+            isFirst={lobbyTab==="active"&&activeMatches.indexOf(activeMatches.find(x=>x.id===m.id))===0}
+            isLast={lobbyTab==="active"&&activeMatches.indexOf(activeMatches.find(x=>x.id===m.id))===activeMatches.length-1}
              />)}
         </div>
 
@@ -450,7 +493,7 @@ function BillarApp() {
               {standings.map((pidx,pos)=>(
                 <div key={pidx} style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:6}}>
                   <span style={{fontWeight:700,fontSize:15,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{pos+1}. {players[pidx]}{pos===0?" 🏆":""}</span>
-                  <span style={{color:"#888",fontSize:12,textAlign:"right"}}>{roundWins[pidx]||0} ronda{(roundWins[pidx]||0)!==1?"s":""}<br/>{accumTime[pidx]?(accumTime[pidx]).toFixed(2)+"s acum":"—"}</span>
+                  <span style={{color:"#888",fontSize:12,textAlign:"right"}}>{roundWins[pidx]||0} ronda{(roundWins[pidx]||0)!==1?"s":""}<br/>{accumTime[pidx]?fmtTime(accumTime[pidx])+" acum":"—"}</span>
                 </div>
               ))}
               {/* Tabla rondas */}
@@ -473,10 +516,10 @@ function BillarApp() {
                           {roundHistory.map(r=>{
                             const isW=r.winner===pidx;
                             const t=r.times[pidx];
-                            return <td key={r.round} style={{padding:"5px 6px",textAlign:"center",background:isW?"rgba(249,224,75,0.1)":"transparent",color:isW?"#f9e04b":"#888",fontWeight:isW?700:400,fontVariantNumeric:"tabular-nums"}}>{t!==undefined?`${t}s`:"—"}{isW?" 🏆":""}</td>;
+                            return <td key={r.round} style={{padding:"5px 6px",textAlign:"center",background:isW?"rgba(249,224,75,0.1)":"transparent",color:isW?"#f9e04b":"#888",fontWeight:isW?700:400,fontVariantNumeric:"tabular-nums"}}>{t!==undefined?fmtTime(t):"—"}{isW?" 🏆":""}</td>;
                           })}
                           <td style={{padding:"5px 6px",textAlign:"center",color:"#f9e04b",fontWeight:700}}>{roundWins[pidx]||0}</td>
-                          <td style={{padding:"5px 6px",textAlign:"center",color:"#888",fontVariantNumeric:"tabular-nums"}}>{accumTime[pidx]?(accumTime[pidx]).toFixed(2)+"s":"—"}</td>
+                          <td style={{padding:"5px 6px",textAlign:"center",color:"#888",fontVariantNumeric:"tabular-nums"}}>{accumTime[pidx]?fmtTime(accumTime[pidx]):"—"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -488,6 +531,47 @@ function BillarApp() {
           </div>
         );
       })()}
+      </div>
+    );
+  }
+
+  // ===== JUGADORES =====
+  if (screen === "players") {
+    return (
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
+        <div className="app-scroll" style={{padding:"20px 18px"}}>
+          <button onClick={()=>setScreen("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>← Volver</button>
+          <div style={{fontSize:22,fontWeight:800,color:"#4ade80",marginBottom:20}}>👥 Jugadores</div>
+
+          {/* Agregar nuevo */}
+          <div style={{display:"flex",gap:8,marginBottom:20}}>
+            <input
+              style={{flex:1,padding:"11px 14px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none"}}
+              value={newPlayerName} onChange={e=>setNewPlayerName(e.target.value)}
+              placeholder="Nombre del jugador"
+              onKeyDown={e=>{if(e.key==="Enter"&&newPlayerName.trim()){addPlayerToList(newPlayerName);setNewPlayerName("");}}}
+            />
+            <button
+              onClick={()=>{if(newPlayerName.trim()){addPlayerToList(newPlayerName);setNewPlayerName("");}}}
+              style={{padding:"11px 16px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>
+              + Agregar
+            </button>
+          </div>
+
+          {/* Lista */}
+          {playersList.length === 0
+            ? <div style={{color:"#444",fontSize:13,textAlign:"center",padding:"30px 0"}}>No hay jugadores guardados aún</div>
+            : playersList.map((p,i) => (
+              <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",borderRadius:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",marginBottom:8}}>
+                <span style={{fontSize:15,fontWeight:600,color:"#e0e0e0"}}>🎱 {p}</span>
+                <button onClick={()=>savePlayersList(playersList.filter((_,j)=>j!==i))}
+                  style={{background:"rgba(255,80,80,0.12)",border:"1px solid rgba(255,80,80,0.25)",color:"#f87171",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                  Eliminar
+                </button>
+              </div>
+            ))
+          }
+        </div>
       </div>
     );
   }
@@ -506,17 +590,53 @@ function BillarApp() {
           <div style={{fontSize:20,fontWeight:800,color:"#4ade80",marginBottom:18}}>Nueva Partida</div>
 
           {!isCR ? (<>
-            <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Jugador 1</div>
-            <input style={{width:"100%",padding:"11px 14px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",boxSizing:"border-box"}} value={wP1} onChange={e=>setWP1(e.target.value)} placeholder="Ej: César" />
-            <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:14}}>Jugador 2</div>
-            <input style={{width:"100%",padding:"11px 14px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",boxSizing:"border-box"}} value={wP2} onChange={e=>setWP2(e.target.value)} placeholder="Ej: Walker" />
+            {["Jugador 1","Jugador 2"].map((label,pi) => {
+              const val = pi===0?wP1:wP2;
+              const setVal = pi===0?setWP1:setWP2;
+              return (<React.Fragment key={pi}>
+                <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:pi===1?14:0}}>{label}</div>
+                <input style={{width:"100%",padding:"11px 14px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",boxSizing:"border-box",marginBottom:6}}
+                  value={val} onChange={e=>{setVal(e.target.value);}} placeholder="Escribe o selecciona abajo"
+                  onBlur={e=>{if(e.target.value.trim()) addPlayerToList(e.target.value.trim());}}
+                />
+                {playersList.length>0 && (
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:4}}>
+                    {playersList.map((p,i)=>(
+                      <button key={i} onClick={()=>setVal(p)}
+                        style={{padding:"5px 12px",borderRadius:20,fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",
+                          background:val===p?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",
+                          border:val===p?"none":"1px solid rgba(255,255,255,0.11)",
+                          color:val===p?"#fff":"#aaa"}}>
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </React.Fragment>);
+            })}
           </>) : (<>
             <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Jugadores</div>
             {wPlayers.map((p,i) => (
               <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
-                <input style={{flex:1,padding:"10px 12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",fontFamily:"inherit",fontSize:14,outline:"none"}}
-                  value={p} onChange={e=>{const n=[...wPlayers];n[i]=e.target.value;setWPlayers(n);setWOrder([]);}}
-                  placeholder={`Jugador ${i+1}`} />
+                <div style={{flex:1}}>
+                  <input style={{width:"100%",padding:"10px 12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",fontFamily:"inherit",fontSize:14,outline:"none",boxSizing:"border-box",marginBottom:4}}
+                    value={p} onChange={e=>{const n=[...wPlayers];n[i]=e.target.value;setWPlayers(n);setWOrder([]);}}
+                    onBlur={e=>{if(e.target.value.trim()) addPlayerToList(e.target.value.trim());}}
+                    placeholder={`Jugador ${i+1}`} />
+                  {playersList.length>0 && (
+                    <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                      {playersList.filter(pl=>!wPlayers.some((wp,wi)=>wp===pl&&wi!==i)).map((pl,pi)=>(
+                        <button key={pi} onClick={()=>{const n=[...wPlayers];n[i]=pl;setWPlayers(n);setWOrder([]);addPlayerToList(pl);}}
+                          style={{padding:"3px 10px",borderRadius:20,fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer",
+                            background:p===pl?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",
+                            border:p===pl?"none":"1px solid rgba(255,255,255,0.11)",
+                            color:p===pl?"#fff":"#aaa"}}>
+                          {pl}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {wPlayers.length > 2 && <button onClick={()=>{const n=wPlayers.filter((_,j)=>j!==i);setWPlayers(n);setWOrder([]);}} style={{background:"rgba(255,80,80,0.15)",border:"1px solid rgba(255,80,80,0.3)",color:"#f87171",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:14,fontFamily:"inherit"}}>✕</button>}
               </div>
             ))}
@@ -543,6 +663,10 @@ function BillarApp() {
             <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:18}}>Número de rondas</div>
             <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
               {[1,2,3,5,7,10].map(r => <button key={r} onClick={()=>setWRondasCR(r)} style={chip(wRondasCR===r)}>{r}</button>)}
+            </div>
+            <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:18}}>Penalización por falta (segundos)</div>
+            <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
+              {[5,10,15,20,30,60].map(s => <button key={s} onClick={()=>setWPenaltyTime(s)} style={chip(wPenaltyTime===s)}>{s}s</button>)}
             </div>
           </>)}
 
@@ -781,7 +905,7 @@ function BillarApp() {
               {standings.map((pidx,pos)=>(
                 <div key={pidx} style={{display:"flex",justifyContent:"space-between",padding:"7px 10px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:5}}>
                   <span style={{fontWeight:700,color:pos===0?"#f9e04b":"#e0e0e0"}}>{pos+1}. {players[pidx]}{pos===0?" 🏆":""}</span>
-                  <span style={{color:"#888",fontSize:12}}>{roundWins[pidx]||0} ronda{(roundWins[pidx]||0)!==1?"s":""} · {accumTime[pidx]?(accumTime[pidx]).toFixed(2)+"s acum":"—"}</span>
+                  <span style={{color:"#888",fontSize:12}}>{roundWins[pidx]||0} ronda{(roundWins[pidx]||0)!==1?"s":""} · {accumTime[pidx]?fmtTime(accumTime[pidx])+" acum":"—"}</span>
                 </div>
               ))}
               {/* Tabla de rondas */}
@@ -804,10 +928,10 @@ function BillarApp() {
                           {roundHistory.map(r=>{
                             const isW=r.winner===pidx;
                             const t=r.times[pidx];
-                            return <td key={r.round} style={{padding:"6px 8px",textAlign:"center",background:isW?"rgba(249,224,75,0.1)":"transparent",color:isW?"#f9e04b":"#888",fontWeight:isW?700:400,fontVariantNumeric:"tabular-nums"}}>{t!==undefined?`${t}s`:"—"}{isW?" 🏆":""}</td>;
+                            return <td key={r.round} style={{padding:"6px 8px",textAlign:"center",background:isW?"rgba(249,224,75,0.1)":"transparent",color:isW?"#f9e04b":"#888",fontWeight:isW?700:400,fontVariantNumeric:"tabular-nums"}}>{t!==undefined?fmtTime(t):"—"}{isW?" 🏆":""}</td>;
                           })}
                           <td style={{padding:"6px 8px",textAlign:"center",color:"#f9e04b",fontWeight:700}}>{roundWins[pidx]||0}</td>
-                          <td style={{padding:"6px 8px",textAlign:"center",color:"#888",fontVariantNumeric:"tabular-nums"}}>{accumTime[pidx]?(accumTime[pidx]).toFixed(2)+"s":"—"}</td>
+                          <td style={{padding:"6px 8px",textAlign:"center",color:"#888",fontVariantNumeric:"tabular-nums"}}>{accumTime[pidx]?fmtTime(accumTime[pidx]):"—"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1058,17 +1182,27 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
 }
 
 
- function CrTimer({ startTs }) {
-  const [now, setNow] = React.useState(Date.now());
-  React.useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(id);
-  }, []);
-  const elapsed = ((now - startTs) / 1000).toFixed(1);
-  return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{elapsed}s</span>;
+ function fmtTime(totalSecs) {
+  if (totalSecs == null || isNaN(totalSecs)) return "—";
+  const m = Math.floor(totalSecs / 60);
+  const s = Math.floor(totalSecs % 60);
+  const ms = Math.floor((totalSecs % 1) * 100);
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}.${String(ms).padStart(2,"0")}`;
 }
 
-function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar}) {
+function CrTimer({ startTs, base=0, big=false }) {
+  const [now, setNow] = React.useState(Date.now());
+  React.useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30);
+    return () => clearInterval(id);
+  }, [startTs]);
+  const elapsed = (now - startTs) / 1000 + base;
+  const display = fmtTime(elapsed);
+  if (big) return <span style={{fontVariantNumeric:"tabular-nums"}}>{display}</span>;
+  return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
+}
+
+function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast}) {
   const isOpen = !m.matchClosed;
 
   // ── Contrarreloj en lobby ──
@@ -1084,6 +1218,8 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
     const roundWins = m.crRoundWins || {};
     const accumTime = m.crAccumTime || {};
     const roundHistory = m.crRoundHistory || [];
+    const penaltyTime = m.crPenaltyTime || 10;
+    const crFaults = m.crFaults || {};
     const allDone = order.every(i => times[i] !== undefined);
 
     // Posiciones actuales por tiempo (solo los que ya jugaron esta ronda)
@@ -1103,35 +1239,68 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
 
     const matchOver = m.crMatchOver || (allDone && currentRound >= totalRounds);
 
+    // Iniciar/Detener cronómetro
     const handleCrTap = () => {
       onUpdateMatch(m.id, mm => {
         if (mm.crCurrentIdx >= mm.crOrder.length) return mm;
-        const pidx = mm.crOrder[mm.crCurrentIdx];
         if (!mm.crRunning) {
           return {...mm, crRunning:true, crStartTs:Date.now()};
         } else {
-          const elapsed = parseFloat(((Date.now()-mm.crStartTs)/1000).toFixed(2));
-          const newTimes = {...(mm.crTimes||{}), [pidx]: elapsed};
-          const nextIdx = mm.crCurrentIdx + 1;
-          const isLastOfRound = nextIdx >= mm.crOrder.length;
-          if (isLastOfRound) {
-            // Auto-guardar ronda al terminar el último jugador
-            const ord = mm.crOrder||[];
-            const rw = ord.reduce((best,i)=> newTimes[i]!==undefined && (newTimes[best]===undefined || newTimes[i]<newTimes[best]) ? i : best, ord[0]);
-            const newRoundWins = {...(mm.crRoundWins||{})};
-            newRoundWins[rw] = (newRoundWins[rw]||0)+1;
-            const newAccum = {...(mm.crAccumTime||{})};
-            ord.forEach(i=>{ if(newTimes[i]!==undefined) newAccum[i]=(newAccum[i]||0)+newTimes[i]; });
-            const newRoundHistory = [...(mm.crRoundHistory||[]), {round: mm.crRound||1, winner:rw, times:{...newTimes}}];
-            const isMatchOver = (mm.crRound||1) >= (mm.crTotalRounds||1);
-            return {...mm, crRunning:false, crStartTs:null, crTimes:newTimes, crCurrentIdx:nextIdx,
-              crRoundWins:newRoundWins, crAccumTime:newAccum, crRoundHistory:newRoundHistory,
-              crRoundDone:true, crMatchOver:isMatchOver};
-          }
-          return {...mm, crRunning:false, crStartTs:null, crTimes:newTimes, crCurrentIdx:nextIdx, crRoundDone:false};
+          // Solo pausa, guarda tiempo parcial
+          const elapsed = parseFloat(((Date.now()-mm.crStartTs)/1000).toFixed(2)) + (mm.crPausedTime||0);
+          return {...mm, crRunning:false, crStartTs:null, crPausedTime:elapsed};
         }
       });
     };
+
+    // Reiniciar (long press en detener)
+    const handleCrReset = () => {
+      onUpdateMatch(m.id, mm => ({...mm, crRunning:false, crStartTs:null, crPausedTime:0}));
+    };
+
+    // Registrar tiempo y pasar al siguiente
+    const handleRegister = () => {
+      onUpdateMatch(m.id, mm => {
+        if (mm.crCurrentIdx >= mm.crOrder.length) return mm;
+        const pidx = mm.crOrder[mm.crCurrentIdx];
+        const base = mm.crRunning
+          ? parseFloat(((Date.now()-mm.crStartTs)/1000).toFixed(2)) + (mm.crPausedTime||0)
+          : (mm.crPausedTime||0);
+        const fKey = `${mm.crRound||1}_${pidx}`;
+        const fCount = ((mm.crFaults||{})[fKey])||0;
+        const total = parseFloat((base + fCount*(mm.crPenaltyTime||10)).toFixed(2));
+        const newTimes = {...(mm.crTimes||{}), [pidx]: total};
+        const newFaultTimes = {...(mm.crFaultTimes||{}), [pidx]: parseFloat((fCount*(mm.crPenaltyTime||10)).toFixed(2))};
+        const nextIdx = mm.crCurrentIdx + 1;
+        const isLast = nextIdx >= mm.crOrder.length;
+        const baseState = {...mm, crRunning:false, crStartTs:null, crPausedTime:0, crTimes:newTimes, crCurrentIdx:nextIdx, crFaultTimes:newFaultTimes, crRoundDone:false};
+        if (isLast) {
+          const ord = mm.crOrder||[];
+          const rw = ord.reduce((best,i)=> newTimes[i]!==undefined && (newTimes[best]===undefined||newTimes[i]<newTimes[best]) ? i : best, ord[0]);
+          const newRW = {...(mm.crRoundWins||{}), [rw]:((mm.crRoundWins||{})[rw]||0)+1};
+          const newAcc = {...(mm.crAccumTime||{})};
+          ord.forEach(i=>{ if(newTimes[i]!==undefined) newAcc[i]=(newAcc[i]||0)+newTimes[i]; });
+          const newRH = [...(mm.crRoundHistory||[]), {round:mm.crRound||1, winner:rw, times:{...newTimes}, faultTimes:{...newFaultTimes}}];
+          return {...baseState, crRoundWins:newRW, crAccumTime:newAcc, crRoundHistory:newRH, crRoundDone:true, crMatchOver:(mm.crRound||1)>=(mm.crTotalRounds||1)};
+        }
+        return baseState;
+      });
+    };
+
+    // Faltas
+    const handleFault = (delta) => {
+      onUpdateMatch(m.id, mm => {
+        const pidx = mm.crOrder[mm.crCurrentIdx];
+        const key = `${mm.crRound||1}_${pidx}`;
+        const cur = ((mm.crFaults||{})[key])||0;
+        return {...mm, crFaults:{...(mm.crFaults||{}), [key]:Math.max(0,cur+delta)}};
+      });
+    };
+
+    const currentPidx = order[currentIdx];
+    const currentFaultKey = `${currentRound}_${currentPidx}`;
+    const currentFaults = (crFaults[currentFaultKey])||0;
+    const pausedTime = m.crPausedTime || 0;;
 
     const handleNewRound = () => {
       onUpdateMatch(m.id, mm => {
@@ -1192,12 +1361,12 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                         const t = r.times[pidx];
                         return (
                           <td key={r.round} style={{padding:"5px 6px",textAlign:"center",background:isW?"rgba(249,224,75,0.1)":"transparent",color:isW?"#f9e04b":"#888",fontWeight:isW?700:400,fontVariantNumeric:"tabular-nums"}}>
-                            {t!==undefined?`${t}s`:"—"}{isW?" 🏆":""}
+                            {t!==undefined?fmtTime(t):"—"}{isW?" 🏆":""}
                           </td>
                         );
                       })}
                       <td style={{padding:"5px 6px",textAlign:"center",color:"#f9e04b",fontWeight:700}}>{roundWins[pidx]||0}</td>
-                      <td style={{padding:"5px 6px",textAlign:"center",color:"#888",fontVariantNumeric:"tabular-nums"}}>{accumTime[pidx]?`${(accumTime[pidx]).toFixed(2)}s`:"—"}</td>
+                      <td style={{padding:"5px 6px",textAlign:"center",color:"#888",fontVariantNumeric:"tabular-nums"}}>{accumTime[pidx]?fmtTime(accumTime[pidx]):"—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1221,39 +1390,80 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                   <div>
                     <div style={{fontSize:15,fontWeight:800,color:isCurrent?"#4ade80":"#e0e0e0"}}>{name}</div>
                     <div style={{fontSize:10,color:"#888"}}>
-                      {wins>0?`🏆 ${wins} ronda${wins>1?"s":""}`:""}{wins>0&&accumTime[pidx]?" · ":""}{accumTime[pidx]?`${(accumTime[pidx]).toFixed(2)}s acum`:""}
+                      {wins>0?`🏆 ${wins} ronda${wins>1?"s":""}`:""}{wins>0&&accumTime[pidx]?" · ":""}{accumTime[pidx]?fmtTime(accumTime[pidx])+" acum":""}
                     </div>
                   </div>
                 </div>
                 <div style={{textAlign:"right"}}>
                   {roundPos && <div style={{fontSize:10,color:roundPos===1?"#f9e04b":roundPos===2?"#ccc":"#777",fontWeight:700}}>#{roundPos} esta ronda</div>}
-                  <span style={{fontSize:15,fontWeight:900,color:times[pidx]!==undefined?"#4ade80":"#444",fontVariantNumeric:"tabular-nums"}}>
-                    {times[pidx]!==undefined?`${times[pidx]}s`:(isCurrent&&running?<CrTimer startTs={startTs}/>:"—")}
-                  </span>
+                  <div style={{textAlign:"right"}}>
+                    <span style={{fontSize:15,fontWeight:900,color:times[pidx]!==undefined?"#4ade80":"#444",fontVariantNumeric:"tabular-nums",display:"block"}}>
+                      {times[pidx]!==undefined?fmtTime(times[pidx]):(isCurrent&&running?<CrTimer startTs={startTs} base={pausedTime} big={true}/>:"—")}
+                    </span>
+                    {times[pidx]!==undefined && (m.crFaultTimes||{})[pidx]>0 && (
+                      <span style={{fontSize:10,color:"#f87171"}}>+{fmtTime((m.crFaultTimes||{})[pidx])} faltas</span>
+                    )}
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Botón cronómetro */}
+        {/* Cronómetro display */}
         {!allDone && (
-          <button onClick={e=>{e.stopPropagation();handleCrTap();}}
-            style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer",
-              background:running?"linear-gradient(135deg,#7f1d1d,#ef4444)":"linear-gradient(135deg,#166534,#4ade80)",
-              color:"#fff",marginBottom:6}}>
-            {running ? "⏹ Detener" : "▶ Iniciar"}
-          </button>
+          <div style={{textAlign:"center",marginBottom:8,padding:"10px 0",background:"rgba(0,0,0,0.2)",borderRadius:12}}>
+            <div style={{fontSize:42,fontWeight:900,fontVariantNumeric:"tabular-nums",color:running?"#4ade80":"#fff",letterSpacing:2}}>
+              {running ? <CrTimer startTs={startTs} base={pausedTime}/> : <span style={{fontVariantNumeric:"tabular-nums"}}>{fmtTime(pausedTime)}</span>}
+            </div>
+            {currentFaults > 0 && (
+              <div style={{fontSize:12,color:"#f87171",marginTop:2}}>
+                +{fmtTime(currentFaults*penaltyTime)} penalización ({currentFaults} falta{currentFaults>1?"s":""})
+              </div>
+            )}
+          </div>
+        )}
+        {!allDone && (
+          <>
+            {/* Botón principal Iniciar/Detener */}
+            <button
+              onClick={e=>{e.stopPropagation();handleCrTap();}}
+              onContextMenu={e=>{e.preventDefault();e.stopPropagation();handleCrReset();}}
+              onTouchStart={e=>{e.stopPropagation();}}
+              style={{width:"100%",padding:"18px 0",borderRadius:14,border:"none",fontFamily:"inherit",fontSize:18,fontWeight:900,cursor:"pointer",marginBottom:8,
+                background:running?"linear-gradient(135deg,#7f1d1d,#ef4444)":"linear-gradient(135deg,#166534,#4ade80)",
+                color:"#fff"}}>
+              {running ? "⏹ Detener" : (pausedTime>0 ? "▶ Continuar" : "▶ Iniciar")}
+            </button>
+            {/* Fila inferior: Registrar + Faltas */}
+            <div style={{display:"flex",gap:6,marginBottom:6}}>
+              <button onClick={e=>{e.stopPropagation();handleRegister();}}
+                style={{flex:2,padding:"10px 0",borderRadius:10,border:"none",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer",
+                  background:"linear-gradient(135deg,#1e3a8a,#3b82f6)",color:"#fff"}}>
+                ✓ Registrar
+              </button>
+              <div style={{flex:1,display:"flex",flexDirection:"column",gap:4}}>
+                <div style={{fontSize:10,color:"#f87171",textAlign:"center",fontWeight:700}}>Faltas (+{penaltyTime}s)</div>
+                <div style={{display:"flex",gap:4}}>
+                  <button onClick={e=>{e.stopPropagation();handleFault(-1);}}
+                    style={{flex:1,padding:"8px 0",borderRadius:8,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:16,fontWeight:900,cursor:"pointer"}}>−</button>
+                  <span style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:currentFaults>0?"#f87171":"#555"}}>{currentFaults}</span>
+                  <button onClick={e=>{e.stopPropagation();handleFault(1);}}
+                    style={{flex:1,padding:"8px 0",borderRadius:8,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:16,fontWeight:900,cursor:"pointer"}}>+</button>
+                </div>
+              </div>
+            </div>
+          </>
         )}
         {allDone && !matchOver && roundWinner!==null && (
           <div style={{textAlign:"center",padding:"6px 0",fontSize:13,fontWeight:700,color:"#f9e04b",marginBottom:4}}>
-            Ronda {currentRound}: 🏆 {players[roundWinner]} ({times[roundWinner]}s)
+            Ronda {currentRound}: 🏆 {players[roundWinner]} ({fmtTime(times[roundWinner])})
           </div>
         )}
         {matchOver && (()=>{
           const champ = standings[0];
           return <div style={{textAlign:"center",padding:"8px 0",fontSize:14,fontWeight:700,color:"#f9e04b",marginBottom:4}}>
-            🏆 Ganador: {players[champ.i]} — {champ.wins} ronda{champ.wins!==1?"s":""} · {champ.accum.toFixed(2)}s acum
+            🏆 Ganador: {players[champ.i]} — {champ.wins} ronda{champ.wins!==1?"s":""} · {fmtTime(champ.accum)} acum
           </div>;
         })()}
         <div style={{display:"flex",gap:5,marginTop:4}}>
@@ -1305,6 +1515,10 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+          {onMoveUp && (<>
+            <button onClick={e=>{e.stopPropagation();if(!isFirst)onMoveUp(m.id);}} style={{width:24,height:24,borderRadius:6,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:isFirst?"#333":"#aaa",fontSize:12,cursor:isFirst?"default":"pointer",padding:0}}>↑</button>
+            <button onClick={e=>{e.stopPropagation();if(!isLast)onMoveDown(m.id);}} style={{width:24,height:24,borderRadius:6,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:isLast?"#333":"#aaa",fontSize:12,cursor:isLast?"default":"pointer",padding:0}}>↓</button>
+          </>)}
           <div style={{fontSize:9,color:isOpen?"#4ade80":"#888",background:isOpen?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.05)",border:isOpen?"1px solid rgba(74,222,128,0.22)":"none",borderRadius:20,padding:"2px 7px",fontWeight:700}}>{isOpen?"EN JUEGO":"FIN"}</div>
           {isOpen && <button style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",borderRadius:8,padding:"3px 7px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}} onClick={e=>{e.stopPropagation();onOpenHistory();}}>Hist.</button>}
           <button style={{background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.2)",color:"#f87171",borderRadius:8,padding:"3px 7px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}} onClick={e=>{e.stopPropagation();onDelete();}}>x</button>
@@ -1391,7 +1605,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                       </div>
                       <div style={{textAlign:"right"}}>
                         <div style={{fontSize:11,color:"#f9e04b",fontWeight:700}}>{roundWins[pidx]||0} ronda{(roundWins[pidx]||0)!==1?"s":""}</div>
-                        <div style={{fontSize:10,color:"#666"}}>{accumTime[pidx]?(accumTime[pidx]).toFixed(2)+"s acum":"—"}</div>
+                        <div style={{fontSize:10,color:"#666"}}>{accumTime[pidx]?fmtTime(accumTime[pidx])+" acum":"—"}</div>
                       </div>
                     </div>
                   ))}
