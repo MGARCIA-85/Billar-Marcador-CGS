@@ -491,7 +491,17 @@ function BillarApp() {
         const roundHistory = hm.crRoundHistory||[];
         const roundWins = hm.crRoundWins||{};
         const accumTime = hm.crAccumTime||{};
-    const standings = [...order].sort((a,b)=>(roundWins[b]||0)-(roundWins[a]||0)||(accumTime[a]||0)-(accumTime[b]||0));
+        const validRoundsH = hm.crValidRounds||{};
+        const serieWinsH = hm.crSerieWins||{};
+        const serieHistoryH = hm.crSerieHistory||[];
+        const totalSeriesH = hm.crTotalSeries||1;
+        // Promedio: solo rondas válidas (sin forfeit)
+        const avgTime = (pidx) => validRoundsH[pidx]>0 ? (accumTime[pidx]||0)/validRoundsH[pidx] : Infinity;
+        const standings = [...order].sort((a,b)=>{
+          const sw=(serieWinsH[b]||0)-(serieWinsH[a]||0); if(sw!==0) return sw;
+          const rw=(roundWins[b]||0)-(roundWins[a]||0); if(rw!==0) return rw;
+          return avgTime(a)-avgTime(b);
+        });
         return (
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"center",overflowY:"auto",padding:"20px 10px"}}>
             <div style={{background:"#0f2010",border:"1px solid rgba(74,222,128,0.18)",borderRadius:20,padding:"20px 16px",color:"#fff",width:"100%",maxWidth:420}}>
@@ -502,41 +512,75 @@ function BillarApp() {
               {/* Clasificación */}
               <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Clasificación final</div>
               {standings.map((pidx,pos)=>(
-                <div key={pidx} style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:6}}>
+                <div key={pidx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:6}}>
                   <span style={{fontWeight:700,fontSize:15,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{pos+1}. {players[pidx]}{pos===0?" 🏆":""}</span>
-                  <span style={{color:"#888",fontSize:12,textAlign:"right"}}>{roundWins[pidx]||0} ronda{(roundWins[pidx]||0)!==1?"s":""}<br/>{accumTime[pidx]?fmtTime(accumTime[pidx])+" acum":"—"}</span>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:12,color:"#f9e04b",fontWeight:700}}>{serieWinsH[pidx]||0}/{totalSeriesH} series</div>
+                    <div style={{fontSize:11,color:"#888"}}>{roundWins[pidx]||0} rondas · {validRoundsH[pidx]>0?fmtTime(avgTime(pidx))+" prom":"—"}</div>
+                  </div>
                 </div>
               ))}
               {/* Tabla rondas */}
-              {roundHistory.length>0 && (<>
-                <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Resultados por ronda</div>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                    <thead>
-                      <tr>
-                        <td style={{padding:"5px 6px",color:"#555",fontWeight:700}}></td>
-                        {roundHistory.map(r=><td key={r.round} style={{padding:"5px 6px",textAlign:"center",color:"#666",fontWeight:700}}>R{r.round}</td>)}
-                        <td style={{padding:"5px 6px",textAlign:"center",color:"#f9e04b",fontWeight:700}}>🏆</td>
-                        <td style={{padding:"5px 6px",textAlign:"center",color:"#888",fontWeight:700}}>Acum</td>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {standings.map(pidx=>(
-                        <tr key={pidx} style={{borderTop:"1px solid rgba(255,255,255,0.06)"}}>
-                          <td style={{padding:"5px 6px",fontWeight:700,color:"#e0e0e0",whiteSpace:"nowrap"}}>{players[pidx]}</td>
-                          {roundHistory.map(r=>{
-                            const isW=r.winner===pidx;
-                            const t=r.times[pidx];
-                            return <td key={r.round} style={{padding:"5px 6px",textAlign:"center",background:isW?"rgba(249,224,75,0.1)":"transparent",color:isW?"#f9e04b":"#888",fontWeight:isW?700:400,fontVariantNumeric:"tabular-nums"}}>{t!==undefined?fmtTime(t):"—"}{isW?" 🏆":""}</td>;
-                          })}
-                          <td style={{padding:"5px 6px",textAlign:"center",color:"#f9e04b",fontWeight:700}}>{roundWins[pidx]||0}</td>
-                          <td style={{padding:"5px 6px",textAlign:"center",color:"#888",fontVariantNumeric:"tabular-nums"}}>{accumTime[pidx]?fmtTime(accumTime[pidx]):"—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>)}
+              {serieHistoryH.length>0 && (()=>{
+                return (<>
+                  <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Resultados por serie</div>
+                  {serieHistoryH.map((s,gi)=>{
+                    // Compatibilidad: usar s.rounds si existe, si no reconstruir del roundHistory global
+                    const roundsPerSH = hm.crTotalRounds || 1;
+                    const sRounds = s.rounds && s.rounds.length > 0
+                      ? s.rounds
+                      : roundHistory.slice((gi) * roundsPerSH, (gi+1) * roundsPerSH);
+                    const sValidRounds = s.validRounds || {};
+                    // Promedio de la serie: tiempo acumulado de rondas válidas / rondas válidas
+                    const serieAvg = (pidx) => {
+                      const validR = sRounds.filter(r => !(r.forfeits||[]).includes(pidx)).length;
+                      const totalT = sRounds.reduce((sum,r) => {
+                        const t = r.times[pidx];
+                        return t !== undefined ? sum + t : sum;
+                      }, 0);
+                      return validR > 0 ? totalT / validR : null;
+                    };
+                    return (
+                      <div key={gi} style={{marginBottom:12,background:"rgba(255,255,255,0.02)",borderRadius:10,overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",background:"rgba(74,222,128,0.06)",borderBottom:"1px solid rgba(74,222,128,0.12)"}}>
+                          <span style={{fontSize:13,fontWeight:700,color:"#4ade80"}}>Serie {gi+1}</span>
+                          <span style={{fontSize:12,color:"#f9e04b",fontWeight:700}}>{s.winner!==null?`🏆 ${players[s.winner]}`:"Sin ganador"}</span>
+                        </div>
+                        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                          <thead>
+                            <tr style={{borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+                              <td style={{padding:"5px 8px",color:"#555",fontWeight:700}}></td>
+                              {sRounds.map((r,ri)=><td key={ri} style={{padding:"5px 6px",textAlign:"center",color:"#888",fontWeight:700}}>Ronda {ri+1}</td>)}
+                              <td style={{padding:"5px 6px",textAlign:"center",color:"#888",fontWeight:700,borderLeft:"1px solid rgba(255,255,255,0.06)"}}>Prom</td>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {standings.map(pidx=>(
+                              <tr key={pidx} style={{borderTop:"1px solid rgba(255,255,255,0.04)"}}>
+                                <td style={{padding:"6px 8px",fontWeight:700,color:"#e0e0e0",whiteSpace:"nowrap"}}>{players[pidx]}</td>
+                                {sRounds.map((r,ri)=>{
+                                  const isW=r.winner===pidx;
+                                  const t=r.times[pidx];
+                                  const isF=(r.forfeits||[]).includes(pidx);
+                                  return <td key={ri} style={{padding:"6px 6px",textAlign:"center",
+                                    background:isW?"rgba(249,224,75,0.12)":isF?"rgba(239,68,68,0.12)":"transparent",
+                                    color:isW?"#f9e04b":isF?"#f87171":"#aaa",
+                                    fontWeight:isW||isF?700:400,fontVariantNumeric:"tabular-nums",fontSize:12}}>
+                                    {t!==undefined?fmtTime(t):"—"}{isW?" 🏆":""}{isF?" ⚠":""}
+                                  </td>;
+                                })}
+                                <td style={{padding:"6px 6px",textAlign:"center",color:"#888",fontVariantNumeric:"tabular-nums",fontSize:11,borderLeft:"1px solid rgba(255,255,255,0.06)"}}>
+                                  {serieAvg(pidx)!==null?fmtTime(serieAvg(pidx)):"—"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })}
+                </>);
+              })()}
               <button onClick={()=>setShowHistory(false)} style={{width:"100%",marginTop:16,padding:"12px 0",borderRadius:12,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#bbb",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer"}}>Cerrar</button>
             </div>
           </div>
@@ -605,18 +649,33 @@ function BillarApp() {
       if (m.modalidad === "Contrarreloj") {
         const players = m.crPlayers||[];
         const order = m.crOrder||[];
-        const roundWins = m.crRoundWins||{};
+        const serieWinsCR = m.crSerieWins||{};
+        const roundWinsCR = m.crRoundWins||{};
         const accumTime = m.crAccumTime||{};
-    const standings = [...order].sort((a,b)=>(roundWins[b]||0)-(roundWins[a]||0)||(accumTime[a]||0)-(accumTime[b]||0));
+        const validRoundsCR = m.crValidRounds||{};
+        const totalSeriesCR = m.crTotalSeries||1;
+        const totalRoundsCR = m.crTotalRounds||1;
+        // Ganador = más series; empate = mejor promedio
+        const crStandings = [...order].sort((a,b)=>{
+          const sw=(serieWinsCR[b]||0)-(serieWinsCR[a]||0); if(sw!==0) return sw;
+          const aAvg=validRoundsCR[a]>0?(accumTime[a]||0)/validRoundsCR[a]:Infinity;
+          const bAvg=validRoundsCR[b]>0?(accumTime[b]||0)/validRoundsCR[b]:Infinity;
+          return aAvg-bAvg;
+        });
         players.forEach((name,i) => {
           if (!name?.trim()) return;
           ensurePlayer(name);
           const s = statsMap[name];
           s.partidas++;
-          if (standings[0]===i) s.partidasW++;
-          s.crRondas += (m.crTotalRounds||1);
-          s.crRondasW += (roundWins[i]||0);
-          if (accumTime[i]) s.crTimes.push(accumTime[i]/(m.crTotalRounds||1));
+          if (crStandings[0]===i) s.partidasW++;
+          // Series = partidas CR ganadas (para columna 🏆)
+          s.seriesW += (serieWinsCR[i]||0);
+          s.series += totalSeriesCR;
+          // JG = rondas ganadas en CR
+          s.juegosW += (roundWinsCR[i]||0);
+          s.juegos += totalSeriesCR * totalRoundsCR;
+          const vr = validRoundsCR[i];
+          if (accumTime[i] && vr > 0) s.crTimes.push(accumTime[i]/vr);
         });
       } else {
         const history = m.seriesHistory||[];
@@ -1143,7 +1202,17 @@ function BillarApp() {
         const roundHistory = hm.crRoundHistory||[];
         const roundWins = hm.crRoundWins||{};
         const accumTime = hm.crAccumTime||{};
-    const standings = [...order].sort((a,b)=>(roundWins[b]||0)-(roundWins[a]||0)||(accumTime[a]||0)-(accumTime[b]||0));
+        const validRoundsH = hm.crValidRounds||{};
+        const serieWinsH = hm.crSerieWins||{};
+        const serieHistoryH = hm.crSerieHistory||[];
+        const totalSeriesH = hm.crTotalSeries||1;
+        // Promedio: solo rondas válidas (sin forfeit)
+        const avgTime = (pidx) => validRoundsH[pidx]>0 ? (accumTime[pidx]||0)/validRoundsH[pidx] : Infinity;
+        const standings = [...order].sort((a,b)=>{
+          const sw=(serieWinsH[b]||0)-(serieWinsH[a]||0); if(sw!==0) return sw;
+          const rw=(roundWins[b]||0)-(roundWins[a]||0); if(rw!==0) return rw;
+          return avgTime(a)-avgTime(b);
+        });
         return (
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:100,display:"flex",alignItems:"flex-start",justifyContent:"center",overflowY:"auto",padding:"20px 10px"}}>
             <div style={{background:"#0f2010",border:"1px solid rgba(74,222,128,0.18)",borderRadius:20,padding:"20px 16px",color:"#fff",width:"100%",maxWidth:420}}>
@@ -1156,7 +1225,7 @@ function BillarApp() {
               {standings.map((pidx,pos)=>(
                 <div key={pidx} style={{display:"flex",justifyContent:"space-between",padding:"7px 10px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:5}}>
                   <span style={{fontWeight:700,color:pos===0?"#f9e04b":"#e0e0e0"}}>{pos+1}. {players[pidx]}{pos===0?" 🏆":""}</span>
-                  <span style={{color:"#888",fontSize:12}}>{roundWins[pidx]||0} ronda{(roundWins[pidx]||0)!==1?"s":""} · {accumTime[pidx]?fmtTime(accumTime[pidx])+" acum":"—"}</span>
+                  <div style={{textAlign:"right"}}><div style={{fontSize:12,color:"#f9e04b",fontWeight:700}}>{serieWinsH[pidx]||0}/{totalSeriesH} series</div><div style={{fontSize:11,color:"#888"}}>{roundWins[pidx]||0} rondas · {validRoundsH[pidx]>0?fmtTime(avgTime(pidx))+" prom":"—"}</div></div>
                 </div>
               ))}
               {/* Tabla de rondas */}
@@ -1167,9 +1236,13 @@ function BillarApp() {
                     <thead>
                       <tr>
                         <td style={{padding:"5px 8px",color:"#555",fontWeight:700}}></td>
-                        {roundHistory.map(r=><td key={r.round} style={{padding:"5px 8px",textAlign:"center",color:"#666",fontWeight:700}}>R{r.round}</td>)}
-                        <td style={{padding:"5px 8px",textAlign:"center",color:"#f9e04b",fontWeight:700}}>🏆</td>
-                        <td style={{padding:"5px 8px",textAlign:"center",color:"#888",fontWeight:700}}>Acum</td>
+                        {roundHistory.map((r,ri)=>{
+                          const sIdx = Math.floor(ri/(hm.crTotalRounds||1));
+                          const rIdx = ri%(hm.crTotalRounds||1);
+                          return <td key={r.round} style={{padding:"4px 4px",textAlign:"center",color:"#4ade80",fontWeight:700,borderLeft:rIdx===0?"1px solid rgba(74,222,128,0.2)":"none",fontSize:10}}>S{sIdx+1}·R{rIdx+1}</td>;
+                        })}
+                        <td style={{padding:"4px 4px",textAlign:"center",color:"#f9e04b",fontWeight:700,borderLeft:"1px solid rgba(74,222,128,0.2)"}}>🏆S</td>
+                        <td style={{padding:"4px 4px",textAlign:"center",color:"#888",fontWeight:700}}>Prom</td>
                       </tr>
                     </thead>
                     <tbody>
@@ -1179,9 +1252,17 @@ function BillarApp() {
                           {roundHistory.map(r=>{
                             const isW=r.winner===pidx;
                             const t=r.times[pidx];
-                            return <td key={r.round} style={{padding:"6px 8px",textAlign:"center",background:isW?"rgba(249,224,75,0.1)":"transparent",color:isW?"#f9e04b":"#888",fontWeight:isW?700:400,fontVariantNumeric:"tabular-nums"}}>{t!==undefined?fmtTime(t):"—"}{isW?" 🏆":""}</td>;
+                            const isF=(r.forfeits||[]).includes(pidx);
+                            const riIdx = roundHistory.indexOf(r)%(hm.crTotalRounds||1);
+                            return <td key={r.round} style={{padding:"4px 4px",textAlign:"center",
+                              borderLeft:riIdx===0?"1px solid rgba(74,222,128,0.15)":"none",
+                              background:isW?"rgba(249,224,75,0.1)":isF?"rgba(239,68,68,0.08)":"transparent",
+                              color:isW?"#f9e04b":isF?"#f87171":"#888",
+                              fontWeight:isW?700:400,fontVariantNumeric:"tabular-nums",fontSize:10}}>
+                              {t!==undefined?fmtTime(t):"—"}{isW?" 🏆":""}{isF?" ⚠":""}
+                            </td>;
                           })}
-                          <td style={{padding:"6px 8px",textAlign:"center",color:"#f9e04b",fontWeight:700}}>{roundWins[pidx]||0}</td>
+                          <td style={{padding:"5px 4px",textAlign:"center",color:"#f9e04b",fontWeight:700,borderLeft:"1px solid rgba(74,222,128,0.15)"}}>{serieWinsH[pidx]||0}</td>
                           <td style={{padding:"6px 8px",textAlign:"center",color:"#888",fontVariantNumeric:"tabular-nums"}}>{accumTime[pidx]?fmtTime(accumTime[pidx]):"—"}</td>
                         </tr>
                       ))}
@@ -1488,13 +1569,6 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
     // Ganador de ronda = menor tiempo
     const roundWinner = allDone ? sorted[0] : null;
 
-    // Clasificación general: primero por rondas ganadas, luego por tiempo acumulado
-    const standings = order.map(i => ({
-      i,
-      wins: roundWins[i]||0,
-      accum: accumTime[i]||0,
-    })).sort((a,b) => b.wins-a.wins || a.accum-b.accum);
-
     const matchOver = m.crMatchOver || (allDone && currentRound >= totalRounds);
 
     // Iniciar/Detener cronómetro
@@ -1523,31 +1597,42 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
         const pidx = mm.crOrder[mm.crCurrentIdx];
         const fKey = `${mm.crRound||1}_${pidx}`;
         const fCount = ((mm.crFaults||{})[fKey])||0;
-        // Si forfeit (3 faltas) o forzado: tiempo = null (no cuenta para promedio)
+        // 3 faltas = ronda perdida + 30s fijos (sí cuenta para promedio)
         const isForfeit = forfeit || fCount >= 3;
-        const base = isForfeit ? null : (mm.crRunning
+        const FORFEIT_TIME = 30;
+        const base = isForfeit ? 0 : (mm.crRunning
           ? parseFloat(((Date.now()-mm.crStartTs)/1000).toFixed(2)) + (mm.crPausedTime||0)
           : (mm.crPausedTime||0));
-        const faultPenalty = isForfeit ? null : parseFloat((fCount*(mm.crPenaltyTime||10)).toFixed(2));
-        const total = isForfeit ? null : parseFloat((base + (faultPenalty||0)).toFixed(2));
-        const newTimes = {...(mm.crTimes||{}), [pidx]: total}; // null = forfeit
+        const faultPenalty = isForfeit ? FORFEIT_TIME : parseFloat((fCount*(mm.crPenaltyTime||10)).toFixed(2));
+        const total = parseFloat((base + faultPenalty).toFixed(2));
+        const newTimes = {...(mm.crTimes||{}), [pidx]: total};
         const newFaultTimes = {...(mm.crFaultTimes||{}), [pidx]: faultPenalty};
         const nextIdx = mm.crCurrentIdx + 1;
         const isLast = nextIdx >= mm.crOrder.length;
         const baseState = {...mm, crRunning:false, crStartTs:null, crPausedTime:0, crTimes:newTimes, crCurrentIdx:nextIdx, crFaultTimes:newFaultTimes, crRoundDone:false};
         if (isLast) {
           const ord = mm.crOrder||[];
-          // Ganador de ronda: menor tiempo entre los que no tienen forfeit
-          const valid = ord.filter(i => newTimes[i] !== null && newTimes[i] !== undefined);
-          const rw = valid.length > 0 ? valid.reduce((best,i)=> newTimes[i]<newTimes[best]?i:best, valid[0]) : null;
-          const newRW = rw !== null ? {...(mm.crRoundWins||{}), [rw]:((mm.crRoundWins||{})[rw]||0)+1} : {...(mm.crRoundWins||{})};
-          // Acumulado: solo tiempos válidos (sin forfeit y sin penalización)
+          // Ganador de ronda: menor tiempo entre rondas válidas (forfeit no compite)
+          const fRef = mm.crFaults||{};
+          const validPlayers = ord.filter(i => ((fRef[`${mm.crRound||1}_${i}`])||0) < 3);
+          const rw = validPlayers.length > 0
+            ? validPlayers.reduce((best,i)=> newTimes[i]<newTimes[best]?i:best, validPlayers[0])
+            : null;
+          const newRW = rw!==null ? {...(mm.crRoundWins||{}), [rw]:((mm.crRoundWins||{})[rw]||0)+1} : {...(mm.crRoundWins||{})};
+          // Acumular tiempo total (válidas + penalización forfeit)
           const newAcc = {...(mm.crAccumTime||{})};
-          ord.forEach(i=>{ if(newTimes[i]!==null && newTimes[i]!==undefined) newAcc[i]=(newAcc[i]||0)+newTimes[i]; });
-          // Conteo de rondas válidas para promedio
+          ord.forEach(i=>{ if(newTimes[i]!==undefined) newAcc[i]=(newAcc[i]||0)+newTimes[i]; });
+          // Contar solo rondas válidas (sin forfeit) para dividir el promedio
+          const faultsRef = mm.crFaults||{};
           const newValidRounds = {...(mm.crValidRounds||{})};
-          ord.forEach(i=>{ if(newTimes[i]!==null && newTimes[i]!==undefined) newValidRounds[i]=(newValidRounds[i]||0)+1; });
-          const newRH = [...(mm.crRoundHistory||[]), {round:mm.crRound||1, winner:rw, times:{...newTimes}, faultTimes:{...newFaultTimes}}];
+          ord.forEach(i=>{
+            const fk = `${mm.crRound||1}_${i}`;
+            const fc = (faultsRef[fk])||0;
+            if(newTimes[i]!==undefined && fc < 3) newValidRounds[i]=(newValidRounds[i]||0)+1;
+          });
+          // Guardar qué jugadores tuvieron forfeit en esta ronda
+          const forfeitPlayers = ord.filter(i => ((fRef[`${mm.crRound||1}_${i}`])||0) >= 3);
+          const newRH = [...(mm.crRoundHistory||[]), {round:mm.crRound||1, winner:rw, times:{...newTimes}, faultTimes:{...newFaultTimes}, forfeits:forfeitPlayers}];
           const currentRound = mm.crRound||1;
           const isLastRound = currentRound >= (mm.crTotalRounds||1);
 
@@ -1564,7 +1649,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               return iAvg < bAvg ? i : best;
             }, ord[0]);
             const newSW = {...(mm.crSerieWins||{}), [serieWinner]:((mm.crSerieWins||{})[serieWinner]||0)+1};
-            const newSH = [...(mm.crSerieHistory||[]), {serie:mm.crCurrentSerie||1, winner:serieWinner, roundWins:{...newRW}, accumTime:{...newAcc}}];
+            const newSH = [...(mm.crSerieHistory||[]), {serie:mm.crCurrentSerie||1, winner:serieWinner, roundWins:{...newRW}, accumTime:{...newAcc}, rounds:[...newRH], validRounds:{...(mm.crValidRounds||{})}}];
             const isMatchOver = (mm.crCurrentSerie||1) >= (mm.crTotalSeries||1);
             return {...baseState, crRoundWins:newRW, crAccumTime:newAcc, crValidRounds:newValidRounds, crRoundHistory:newRH, crRoundDone:true,
               crSerieWins:newSW, crSerieHistory:newSH,
@@ -1597,7 +1682,9 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
       onUpdateMatch(m.id, mm => ({
         ...mm,
         crTimes:{}, crCurrentIdx:0, crRunning:false, crStartTs:null, crPausedTime:0,
-        crRound:1, crRoundWins:{}, crAccumTime:{}, crValidRounds:{}, crRoundHistory:[],
+        crRound:1, crRoundWins:{},
+        // NO resetear crAccumTime ni crValidRounds — acumulan a través de todas las series
+        crRoundHistory:[],
         crFaults:{}, crFaultTimes:{},
         crCurrentSerie:(mm.crCurrentSerie||1)+1,
         crRoundDone:false, crSerieOver:false
@@ -1658,7 +1745,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                       <td key={r.round} style={{padding:"4px 6px",textAlign:"center",color:"#666",fontWeight:700}}>R{r.round}</td>
                     ))}
                     <td style={{padding:"4px 6px",textAlign:"center",color:"#4ade80",fontWeight:700}}>🏆</td>
-                    <td style={{padding:"4px 6px",textAlign:"center",color:"#888",fontWeight:700}}>Acum</td>
+                    <td style={{padding:"4px 6px",textAlign:"center",color:"#888",fontWeight:700}}>Prom</td>
                   </tr>
                 </thead>
                 <tbody>
@@ -1668,14 +1755,18 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                       {roundHistory.map(r=>{
                         const isW = r.winner===pidx;
                         const t = r.times[pidx];
+                        const isForfeitCell = (r.forfeits||[]).includes(pidx);
                         return (
-                          <td key={r.round} style={{padding:"5px 6px",textAlign:"center",background:isW?"rgba(249,224,75,0.1)":"transparent",color:isW?"#f9e04b":"#888",fontWeight:isW?700:400,fontVariantNumeric:"tabular-nums"}}>
-                            {t!==undefined?fmtTime(t):"—"}{isW?" 🏆":""}
+                          <td key={r.round} style={{padding:"5px 6px",textAlign:"center",
+                            background:isW?"rgba(249,224,75,0.1)":isForfeitCell?"rgba(239,68,68,0.08)":"transparent",
+                            color:isW?"#f9e04b":isForfeitCell?"#f87171":"#888",
+                            fontWeight:isW?700:400,fontVariantNumeric:"tabular-nums"}}>
+                            {t!==undefined?fmtTime(t):"—"}{isW?" 🏆":""}{isForfeitCell?" ⚠":""}
                           </td>
                         );
                       })}
                       <td style={{padding:"5px 6px",textAlign:"center",color:"#f9e04b",fontWeight:700}}>{roundWins[pidx]||0}</td>
-                      <td style={{padding:"5px 6px",textAlign:"center",color:"#888",fontVariantNumeric:"tabular-nums"}}>{accumTime[pidx]?fmtTime(accumTime[pidx]):"—"}</td>
+                      <td style={{padding:"5px 6px",textAlign:"center",color:"#888",fontVariantNumeric:"tabular-nums"}}>{(m.crValidRounds||{})[pidx]>0?fmtTime((accumTime[pidx]||0)/((m.crValidRounds||{})[pidx])):"—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1749,7 +1840,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               <button onClick={e=>{e.stopPropagation();handleRegister(currentFaults>=3);}}
                 style={{flex:2,padding:"10px 0",borderRadius:10,border:"none",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer",
                   background:currentFaults>=3?"linear-gradient(135deg,#7f1d1d,#ef4444)":"linear-gradient(135deg,#1e3a8a,#3b82f6)",color:"#fff"}}>
-                {currentFaults>=3?"⛔ Ronda perdida":"✓ Registrar"}
+                {currentFaults>=3?"⛔ +30s · Registrar":"✓ Registrar"}
               </button>
               <div style={{flex:1,display:"flex",flexDirection:"column",gap:4}}>
                 <div style={{fontSize:10,color:"#f87171",textAlign:"center",fontWeight:700}}>Faltas (+{penaltyTime}s)</div>
@@ -1835,7 +1926,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
           <BallIcon modalidad={m.modalidad} size={20}/>
           <div>
             <div style={{fontSize:11,color:"#aaa",fontWeight:500}}>{formatDate(m.createdAt)}</div>
-            <div style={{fontSize:13,fontWeight:700,color:m.modalidad==="Bola 9"?"#f9e04b":m.modalidad==="Bola 7"?"#e05050":m.modalidad==="Bola 8"?"#cccccc":m.modalidad==="Contrarreloj"?"#4ade80":"#4ade80"}}>{m.modalidad} · Carrera {m.carrera}</div>
+            <div style={{fontSize:13,fontWeight:700,color:m.modalidad==="Bola 9"?"#f9e04b":m.modalidad==="Bola 7"?"#e05050":m.modalidad==="Bola 8"?"#cccccc":m.modalidad==="Contrarreloj"?"#4ade80":"#4ade80"}}>{m.modalidad==="Contrarreloj"?`Contrarreloj · ${m.crTotalSeries||1}S · ${m.crTotalRounds||1}R`:`${m.modalidad} · Carrera ${m.carrera}`}</div>
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
@@ -1915,9 +2006,20 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
             {m.modalidad === "Contrarreloj" ? (()=>{
               const players = m.crPlayers||[];
               const order = m.crOrder||[];
+              const serieWinsR = m.crSerieWins||{};
               const roundWins = m.crRoundWins||{};
               const accumTime = m.crAccumTime||{};
-          const standings = [...order].sort((a,b)=>(roundWins[b]||0)-(roundWins[a]||0)||(accumTime[a]||0)-(accumTime[b]||0));
+              const validRoundsR = m.crValidRounds||{};
+              const totalSeriesR = m.crTotalSeries||1;
+              const totalRoundsR = m.crTotalRounds||1;
+              // Ordenar por series ganadas → rondas → promedio
+              const standings = [...order].sort((a,b)=>{
+                const sw=(serieWinsR[b]||0)-(serieWinsR[a]||0); if(sw!==0) return sw;
+                const rw=(roundWins[b]||0)-(roundWins[a]||0); if(rw!==0) return rw;
+                const aAvg=validRoundsR[a]>0?(accumTime[a]||0)/validRoundsR[a]:Infinity;
+                const bAvg=validRoundsR[b]>0?(accumTime[b]||0)/validRoundsR[b]:Infinity;
+                return aAvg-bAvg;
+              });
               return (
                 <div style={{background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"10px",marginBottom:8}}>
                   <div style={{fontSize:10,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>⏱ Clasificación final</div>
@@ -1928,8 +2030,8 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                         <span style={{fontSize:14,fontWeight:800,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{players[pidx]}{pos===0?" 🏆":""}</span>
                       </div>
                       <div style={{textAlign:"right"}}>
-                        <div style={{fontSize:11,color:"#f9e04b",fontWeight:700}}>{roundWins[pidx]||0} ronda{(roundWins[pidx]||0)!==1?"s":""}</div>
-                        <div style={{fontSize:10,color:"#666"}}>{accumTime[pidx]?fmtTime(accumTime[pidx])+" acum":"—"}</div>
+                        <div style={{fontSize:11,color:"#f9e04b",fontWeight:700}}>{serieWinsR[pidx]||0}/{totalSeriesR} series</div>
+                        <div style={{fontSize:10,color:"#888"}}>{roundWins[pidx]||0} rondas · {validRoundsR[pidx]>0?fmtTime((accumTime[pidx]||0)/validRoundsR[pidx])+" prom":"—"}</div>
                       </div>
                     </div>
                   ))}
