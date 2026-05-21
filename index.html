@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v132</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v132</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -209,6 +209,11 @@ function BillarApp() {
   const [playersList, setPlayersList] = useState(()=>{
     try { return JSON.parse(localStorage.getItem("bg_players")||"[]"); } catch{return [];}
   });
+  const saveJornadas = (list) => {
+    setJornadas(list);
+    try { localStorage.setItem("bg_jornadas", JSON.stringify(list)); } catch{}
+  };
+
   const savePlayersList = (list) => {
     setPlayersList(list);
     try { localStorage.setItem("bg_players", JSON.stringify(list)); } catch{}
@@ -268,6 +273,8 @@ function BillarApp() {
   const [sfFechaDesde, setSfFechaDesde] = useState("");
   const [sfFechaHasta, setSfFechaHasta] = useState("");
   const [matchOrder, setMatchOrder] = useState([]);
+  const [jornadas, setJornadas] = useState(() => { try { return JSON.parse(localStorage.getItem("bg_jornadas")||"[]"); } catch{return[];} });
+  const [jornadaScreen, setJornadaScreen] = useState(null); // null | "list" | jornadaId
   const [showHistory, setShowHistory] = useState(false);
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState("active");
@@ -328,14 +335,30 @@ function BillarApp() {
         crRoundWins: {},
         crAccumTime: {},
       });
-      saveMatches([...matches, m]);
-      setActiveId(m.id); setScreen("lobby"); setLobbyTab("active");
+      const pendingJId = sessionStorage.getItem("pendingJornadaId")||null;
+      sessionStorage.removeItem("pendingJornadaId");
+      const mWithJ = pendingJId ? {...m, jornadaId:pendingJId} : m;
+      saveMatches([...matches, mWithJ]);
+      if(pendingJId) {
+        saveJornadas(jornadas.map(j=>j.id===pendingJId?{...j,matchOrder:[...(j.matchOrder||[]),mWithJ.id]}:j));
+        setJornadaScreen(pendingJId);
+      } else {
+        setActiveId(mWithJ.id); setScreen("lobby"); setLobbyTab("active");
+      }
       setWPlayers(["",""]); setWOrder([]); setWCarrera(5); setWModalidad("Bola 8"); setWRondasCR(3); setWSeriesCR(1); setWPenaltyTime(10);
     } else {
       if (!wP1.trim() || !wP2.trim() || !wServe) return;
+      const pendingJId2 = sessionStorage.getItem("pendingJornadaId")||null;
+      sessionStorage.removeItem("pendingJornadaId");
       const m = createMatch(wP1.trim(), wP2.trim(), wServe, wCarrera, wModalidad);
-      saveMatches([...matches, m]);
-      setActiveId(m.id); setScreen("lobby"); setLobbyTab("active");
+      const mWithJ2 = pendingJId2 ? {...m, jornadaId:pendingJId2} : m;
+      saveMatches([...matches, mWithJ2]);
+      if(pendingJId2) {
+        saveJornadas(jornadas.map(j=>j.id===pendingJId2?{...j,matchOrder:[...(j.matchOrder||[]),mWithJ2.id]}:j));
+        setJornadaScreen(pendingJId2);
+      } else {
+        setActiveId(mWithJ2.id); setScreen("lobby"); setLobbyTab("active");
+      }
       setWP1(""); setWP2(""); setWServe(null); setWCarrera(5); setWModalidad("Bola 8");
     }
   };
@@ -385,7 +408,7 @@ function BillarApp() {
     setScreen("newMatch");
   };
 
-  const activeMatchesRaw = matches.filter(m => !m.matchClosed);
+  const activeMatchesRaw = matches.filter(m => !m.matchClosed && !m.jornadaId);
   const activeMatches = matchOrder.length
     ? [...activeMatchesRaw].sort((a,b) => {
         const ai = matchOrder.indexOf(a.id);
@@ -406,7 +429,229 @@ function BillarApp() {
   });
 
   // ===== LOBBY =====
-  if (screen === "lobby") {
+  // ===== JORNADAS =====
+  if (jornadaScreen) {
+    const jornadaMatches = matches.filter(m => m.jornadaId === jornadaScreen && jornadaScreen !== "list");
+    const currentJ = jornadas.find(j => j.id === jornadaScreen);
+
+    // ── Lista de jornadas ──
+    if (jornadaScreen === "list") {
+      return (
+        <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
+          <div className="app-scroll" style={{padding:"20px 14px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+              <div style={{fontSize:22,fontWeight:800,color:"#f9e04b"}}>🗓 Jornadas</div>
+              <button onClick={()=>setJornadaScreen(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
+            </div>
+            {/* Crear nueva jornada */}
+            <button onClick={()=>{
+              const newJ = {id:"j_"+Date.now(), name:"Jornada "+(jornadas.length+1), currentTurn:0, turnStarted:false, turnScored:false, matchOrder:[], finished:false};
+              saveJornadas([...jornadas, newJ]);
+              setJornadaScreen(newJ.id);
+            }} style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",fontFamily:"inherit",fontSize:15,fontWeight:800,marginBottom:16,background:"linear-gradient(135deg,#166534,#4ade80)",color:"#fff",cursor:"pointer"}}>
+              + Nueva jornada
+            </button>
+            {/* Lista de jornadas existentes */}
+            {jornadas.length===0
+              ? <div style={{color:"#444",textAlign:"center",padding:"40px 0",fontSize:13}}>No hay jornadas creadas</div>
+              : jornadas.slice().reverse().map(j => {
+                  const jms = matches.filter(m=>m.jornadaId===j.id);
+                  const done = jms.filter(m=>m.matchClosed).length;
+                  return (
+                    <div key={j.id} style={{padding:"12px 14px",borderRadius:12,background:"rgba(255,255,255,0.04)",border:`1px solid ${j.finished?"rgba(255,255,255,0.06)":"rgba(249,224,75,0.2)"}`,marginBottom:8}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                        <div onClick={()=>setJornadaScreen(j.id)} style={{flex:1,cursor:"pointer"}}>
+                          <span style={{fontSize:15,fontWeight:700,color:j.finished?"#555":"#f9e04b"}}>{j.name}</span>
+                          <span style={{fontSize:11,color:"#888",marginLeft:8}}>{done}/{jms.length} partidas</span>
+                        </div>
+                        <div style={{display:"flex",gap:6}}>
+                          <button onClick={()=>{
+                            const newName = prompt("Nuevo nombre:", j.name);
+                            if(newName?.trim()) saveJornadas(jornadas.map(x=>x.id===j.id?{...x,name:newName.trim()}:x));
+                          }} style={{fontSize:11,padding:"4px 8px",borderRadius:6,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",cursor:"pointer"}}>✏️</button>
+                          <button onClick={()=>{
+                            if(window.confirm(`¿Eliminar "${j.name}"? También se eliminarán sus partidas.`)){
+                              saveMatches(matches.filter(m=>m.jornadaId!==j.id));
+                              saveJornadas(jornadas.filter(x=>x.id!==j.id));
+                            }
+                          }} style={{fontSize:11,padding:"4px 8px",borderRadius:6,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",color:"#f87171",fontFamily:"inherit",cursor:"pointer"}}>🗑</button>
+                        </div>
+                      </div>
+                      <div onClick={()=>setJornadaScreen(j.id)} style={{fontSize:11,color:"#666",cursor:"pointer"}}>{j.finished?"✅ Finalizada":"🟡 En curso"} · Toca para abrir</div>
+                    </div>
+                  );
+                })
+            }
+          </div>
+        </div>
+      );
+    }
+
+    // ── Pantalla de jornada específica ──
+    if (!currentJ) { setJornadaScreen("list"); return null; }
+
+    const jMatchIds = currentJ.matchOrder || [];
+    const currentTurnIdx = currentJ.currentTurn ?? 0;
+    const currentMatchId = jMatchIds[currentTurnIdx % Math.max(jMatchIds.length,1)];
+    const turnStarted = currentJ.turnStarted ?? false;
+    const canNext = currentJ.turnScored === true;
+    const allJDone = jMatchIds.length>0 && jMatchIds.every(id=>matches.find(m=>m.id===id)?.matchClosed);
+
+    const goNextTurn = () => {
+      let next = (currentTurnIdx+1) % jMatchIds.length;
+      let tries = 0;
+      while(tries<jMatchIds.length){
+        const nm = matches.find(m=>m.id===jMatchIds[next]);
+        if(nm && !nm.matchClosed && !nm.jornadaPaused) break;
+        next=(next+1)%jMatchIds.length; tries++;
+      }
+      saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,currentTurn:next,turnStarted:false,turnScored:false}:j));
+        // Limpiar jornadaTurnScored de todas las partidas de la jornada
+        jMatchIds.forEach(mid => { updateMatch(mid, mm => ({...mm, jornadaTurnScored:false})); });
+    };
+
+    return (
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
+        <div className="app-scroll" style={{padding:"14px 12px"}}>
+          {/* Header */}
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+            <button onClick={()=>setJornadaScreen("list")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>←</button>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <div style={{fontSize:16,fontWeight:800,color:"#f9e04b"}}>{currentJ.name}</div>
+                <button onClick={()=>{const n=prompt("Nuevo nombre:",currentJ.name);if(n?.trim())saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,name:n.trim()}:j));}}
+                  style={{fontSize:11,padding:"3px 6px",borderRadius:5,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",cursor:"pointer"}}>✏️</button>
+              </div>
+              <div style={{fontSize:11,color:"#888"}}>{jMatchIds.filter(id=>matches.find(m=>m.id===id)?.matchClosed).length}/{jMatchIds.length} terminadas</div>
+            </div>
+            {/* Botón Nueva partida */}
+            <button onClick={()=>{
+              setActiveId(null);
+              // Guardar jornadaId pendiente para la nueva partida
+              sessionStorage.setItem("pendingJornadaId", currentJ.id);
+              setJornadaScreen(null);
+              setScreen("newMatch");
+            }} style={{padding:"7px 12px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:800,cursor:"pointer"}}>+ Partida</button>
+            {allJDone && (
+              <button onClick={()=>{
+                if(window.confirm("¿Finalizar jornada? Las partidas pasarán a Terminadas.")) {
+                  // Mover partidas de jornada a terminadas globales
+                  const updated = matches.map(m => m.jornadaId===currentJ.id ? {...m,jornadaId:null} : m);
+                  saveMatches(updated);
+                  saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,finished:true}:j));
+                  setJornadaScreen("list");
+                }
+              }} style={{padding:"7px 12px",borderRadius:10,background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>🏁 Fin</button>
+            )}
+          </div>
+
+          {/* Barra de turno */}
+          {jMatchIds.length>0 && !allJDone && (
+            <div style={{background:"rgba(249,224,75,0.06)",border:"1px solid rgba(249,224,75,0.2)",borderRadius:10,padding:"10px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
+              <div style={{flex:1,fontSize:12,color:"#f9e04b",fontWeight:700}}>
+                {!turnStarted?"⚡ Turno listo":canNext?"✅ Resultado anotado":"🎱 Turno en juego"}
+              </div>
+              {!turnStarted ? (
+                <button onClick={()=>saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnStarted:true,turnScored:false}:j))}
+                  style={{padding:"8px 16px",borderRadius:8,border:"none",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer",background:"linear-gradient(135deg,#166534,#4ade80)",color:"#fff"}}>
+                  🎱 Iniciar turno
+                </button>
+              ) : (
+                <button onClick={()=>{if(canNext)goNextTurn();}}
+                  style={{padding:"8px 16px",borderRadius:8,border:"none",fontFamily:"inherit",fontSize:12,fontWeight:800,
+                    cursor:canNext?"pointer":"not-allowed",
+                    background:canNext?"linear-gradient(135deg,#1e3a8a,#3b82f6)":"rgba(255,255,255,0.06)",
+                    color:canNext?"#fff":"#555"}}>
+                  {canNext?"→ Siguiente":"Anota primero"}
+                </button>
+              )}
+              <button onClick={()=>goNextTurn()} style={{padding:"8px 10px",borderRadius:8,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"#888",fontFamily:"inherit",fontSize:11,cursor:"pointer"}}>⏭</button>
+            </div>
+          )}
+
+          {/* Tarjetas de partidas de la jornada */}
+          {jMatchIds.length===0
+            ? <div style={{color:"#444",textAlign:"center",padding:"40px 0",fontSize:13}}>Crea partidas con el botón "+ Partida"</div>
+            : jMatchIds.map((mid, idx) => {
+                const mm = matches.find(m=>m.id===mid);
+                if(!mm) return null;
+                const isPausedM = mm.jornadaPaused===true;
+                const isTurn = mid===currentMatchId && turnStarted && !mm.matchClosed && !isPausedM;
+                const borderColor = mm.matchClosed?"rgba(255,255,255,0.06)":isTurn?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.1)";
+                const bgColor = mm.matchClosed?"rgba(255,255,255,0.02)":isTurn?"rgba(74,222,128,0.05)":"rgba(255,255,255,0.03)";
+                return (
+                  <div key={mid} style={{border:`2px solid ${borderColor}`,borderRadius:14,marginBottom:10,background:bgColor,opacity:mm.matchClosed?0.6:1}}>
+                    <LobbyCard
+                      m={mm}
+                      onOpen={id=>{setActiveId(id);}}
+                      onDelete={id=>saveMatches(matches.filter(m=>m.id!==id))}
+                      onReplay={()=>{}}
+                      onUpdateMatch={(id,fn)=>updateMatch(id,fn)}
+                      onLobbyBallMenu={(id,k,ji)=>{setLobbyBallMenu({matchId:id,k,ji});}}
+                      onOpenHistory={id=>{setActiveId(id);setShowHistory(true);}}
+                      onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{seriesNum:mm.seriesCount,winner:sw,games:mm.games,partial:false}], seriesWins:{p1:mm.seriesWins.p1+(sw==="p1"?1:0),p2:mm.seriesWins.p2+(sw==="p2"?1:0)}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, currentServe:sw==="p1"?"p2":"p1", seriesFinished:false, seriesWinner:null}; }); }}
+                      onUndo={id=>{ updateMatch(id, mm => { if(mm.games.length>0){const last=mm.games[mm.games.length-1];return{...mm,games:mm.games.slice(0,-1),wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1},currentServe:last.serve,seriesFinished:false,seriesWinner:null};} if(mm.seriesHistory.length>0){const ls=mm.seriesHistory[mm.seriesHistory.length-1];const nh=mm.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});const rg=ls.games||[];const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):mm.firstServe;return{...mm,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:true,seriesWinner:ls.winner};}return mm;});}}
+                      onReactivar={()=>{}}
+                      onTerminar={id=>{ updateMatch(id, m=>({...m,matchClosed:true,closedAt:Date.now()}));
+                        // Si hay turno activo marcar turnScored
+                        if(isTurn) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:true}:j));
+                      }}
+                      onMoveUp={null} onMoveDown={null} isFirst={true} isLast={true}
+                      onEditName={key=>setEditingNameKey(key)}
+                      editingNameKey={editingNameKey}
+                      jornadaTurnActive={isTurn}
+                      jornadaBlocked={!isTurn && turnStarted && !mm.matchClosed}
+                      jornadaPaused={mm.jornadaPaused===true}
+                      onPauseToggle={(id)=>{ updateMatch(id, m=>({...m, jornadaPaused:!m.jornadaPaused})); }}
+                      onJornadaScore={()=>{ if(isTurn) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:true}:j)); }}
+                    />
+                  </div>
+                );
+              })
+          }
+        </div>
+        {/* Menú bola especial (reutilizado del lobby) */}
+        {lobbyBallMenu && (() => {
+          const lm = matches.find(mm=>mm.id===lobbyBallMenu.matchId);
+          if (!lm) return null;
+          const applyBall = (bt) => {
+            const {k, ji} = lobbyBallMenu;
+            const newWins = {...lm.wins, [k]: lm.wins[k]+1};
+            const nextServe = k==="p1"?"p2":"p1";
+            const willFinish = newWins[k] >= lm.carrera;
+            updateMatch(lm.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:mm.currentServe,ballType:bt}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+            if (jornadaScreen && jornadaScreen!=="list") {
+              saveJornadas(jornadas.map(j => j.id===jornadaScreen && j.turnStarted ? {...j, turnScored:true} : j));
+            }
+            setLobbyBallMenu(null);
+          };
+          return (
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setLobbyBallMenu(null)}>
+              <div style={{background:"#1a2e1a",borderRadius:16,padding:"20px",border:"1px solid rgba(255,255,255,0.1)"}} onClick={e=>e.stopPropagation()}>
+                <div style={{fontSize:13,color:"#888",marginBottom:14,textAlign:"center"}}>Tipo de victoria</div>
+                <div style={{display:"flex",gap:16,justifyContent:"center"}}>
+                  <div onClick={()=>applyBall(null)} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                    <div style={{width:44,height:44,borderRadius:"50%",background:"rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>✓</div>
+                    <div style={{fontSize:11,color:"#888"}}>Normal</div>
+                  </div>
+                  <div onClick={()=>applyBall("gold")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                    <SpecialBall type="gold" size={44}/>
+                    <div style={{fontSize:11,color:"#a8d8ff"}}>Golden Break</div>
+                  </div>
+                  <div onClick={()=>applyBall("diamond")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                    <SpecialBall type="diamond" size={44}/>
+                    <div style={{fontSize:11,color:"#a8d8ff"}}>Barrida</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+    );
+  }
+
+    if (screen === "lobby") {
     const list = lobbyTab === "active" ? activeMatches : closedMatches;
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
@@ -419,7 +664,8 @@ function BillarApp() {
             <div style={{display:"flex",gap:8}}>
               <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreen("stats")}>📊</button>
               <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreen("players")}>👥</button>
-              <button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>setScreen("newMatch")}>+ Nueva</button>
+              <button style={{padding:"8px 10px",borderRadius:10,background:jornadaScreen?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:jornadaScreen?"1px solid rgba(249,224,75,0.3)":"1px solid rgba(255,255,255,0.13)",color:jornadaScreen?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setJornadaScreen("list")}>🗓</button>
+              <button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreen("newMatch");}}>+ Nueva</button>
             </div>
           </div>
         </div>
@@ -636,7 +882,7 @@ function BillarApp() {
 
   // ===== ESTADÍSTICAS =====
   if (screen === "stats") {
-    const closed = matches.filter(m => m.matchClosed);
+    const closed = matches.filter(m => m.matchClosed && !m.jornadaId);
     const allMods = [...new Set(closed.map(m=>m.modalidad))].sort();
     const allPlayers = [...new Set(closed.flatMap(m=>m.modalidad==="Contrarreloj"?(m.crPlayers||[]):[m.p1Name,m.p2Name]).filter(Boolean))].sort();
 
@@ -884,6 +1130,8 @@ function BillarApp() {
       </div>
     );
   }
+
+
   // ===== JUGADORES =====
   if (screen === "players") {
     return (
@@ -1078,7 +1326,10 @@ function BillarApp() {
 
           <div style={{display:"flex",gap:12,marginTop:20}}>
             <button style={{flex:1,padding:"14px 0",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:700,cursor:"pointer",opacity:ready?1:0.4}} onClick={startNewMatch} disabled={!ready}>Iniciar</button>
-            <button style={{padding:"14px 16px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.11)",color:"#aaa",fontFamily:"inherit",fontSize:14,cursor:"pointer"}} onClick={()=>setScreen("lobby")}>Cancelar</button>
+            <button style={{padding:"14px 16px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.11)",color:"#aaa",fontFamily:"inherit",fontSize:14,cursor:"pointer"}} onClick={()=>{
+              const pj = sessionStorage.getItem("pendingJornadaId");
+              if(pj){setJornadaScreen(pj);}else{setScreen("lobby");}
+            }}>Cancelar</button>
           </div>
         </div>
       </div>
@@ -1108,6 +1359,12 @@ function BillarApp() {
       const nextServe = currentServe==="p1"?"p2":"p1";
       const willFinish = newWins[k] >= carrera;
       updateMatch(activeId, m => ({...m, wins:newWins, games:[...m.games,{winner:k,serve:currentServe,ballType:bt}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+      // Marcar turno anotado si la partida pertenece a una jornada activa
+      if (jornadaScreen && jornadaScreen!=="list") {
+        saveJornadas(jornadas.map(j => j.id===jornadaScreen && j.turnStarted ? {...j, turnScored:true} : j));
+        // Marcar en la partida que ya se anotó en este turno
+        updateMatch(activeId, mm => ({...mm, jornadaTurnScored:true}));
+      }
     } else if (hasWon && isLastGame) {
       updateMatch(activeId, m => {
         if (m.games.length===0) return m;
@@ -1186,7 +1443,9 @@ function BillarApp() {
                     const isLastGame=ji===games.length-1;
                     const isNext=!seriesFinished&&ji===games.length;
                     const isSaque=isNext&&currentServe===k;
-                    const clickable=!isReadOnly&&(isNext||(hasWon&&isLastGame));
+                    // En jornada: bloqueado si no es el turno activo; o si ya se anotó victoria en este turno (turnScored) solo permitir modificar el juego actual
+                    const jornadaBlockCell = jornadaBlocked || (jornadaTurnActive && m.jornadaTurnScored && !hasWon);
+                    const clickable=!isReadOnly&&!jornadaBlockCell&&(isNext||(hasWon&&isLastGame));
                     let pressTimer = null; let longPressed = false;
                     const onPressStart = () => { longPressed=false; if(isNext&&!isReadOnly) pressTimer = setTimeout(()=>{ longPressed=true; handleCellLongPress(k,ji); }, 600); };
                     const onPressEnd = () => { clearTimeout(pressTimer); };
@@ -1606,7 +1865,7 @@ function CrTimer({ startTs, base=0, big=false }) {
   return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
 }
 
-function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey}) {
+function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle}) {
   const isOpen = !m.matchClosed;
 
   // ── Contrarreloj en lobby ──
@@ -2101,6 +2360,13 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
         <div style={{display:"flex",gap:5,marginTop:6}}>
           <button style={{flex:2,padding:"8px 0",borderRadius:10,background:m.seriesFinished?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",border:m.seriesFinished?"none":"1px solid rgba(255,255,255,0.1)",color:m.seriesFinished?"#fff":"#555",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:m.seriesFinished?"pointer":"default"}} onClick={e=>{e.stopPropagation();if(m.seriesFinished)onNextSeries(m.id);}}>Sig. serie →</button>
           <button style={{flex:1,padding:"8px 0",borderRadius:10,background:(m.games.length>0||m.seriesHistory.length>0)?"rgba(255,200,50,0.1)":"rgba(255,255,255,0.04)",border:(m.games.length>0||m.seriesHistory.length>0)?"1px solid rgba(255,200,50,0.25)":"1px solid rgba(255,255,255,0.08)",color:(m.games.length>0||m.seriesHistory.length>0)?"#f9e04b":"#444",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:(m.games.length>0||m.seriesHistory.length>0)?"pointer":"default"}} onClick={e=>{e.stopPropagation();if(m.games.length>0||m.seriesHistory.length>0)onUndo(m.id);}}>↩ Deshacer</button>
+
+          {onPauseToggle && (
+            <button onClick={e=>{e.stopPropagation();onPauseToggle(m.id);}}
+              style={{flex:1,padding:"8px 0",borderRadius:10,background:jornadaPaused?"rgba(74,222,128,0.1)":"rgba(255,200,50,0.1)",border:jornadaPaused?"1px solid rgba(74,222,128,0.25)":"1px solid rgba(255,200,50,0.25)",color:jornadaPaused?"#4ade80":"#f9e04b",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+              {jornadaPaused?"▶ Reanudar":"⏸ Pausa"}
+            </button>
+          )}
           <button style={{flex:1,padding:"8px 0",borderRadius:10,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.25)",color:"#f87171",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onTerminar(m.id);}}>Terminar</button>
         </div>
       </>}
