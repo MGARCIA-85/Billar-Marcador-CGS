@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v161-debug</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v163</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v161-debug</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v163</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -529,7 +529,7 @@ function BillarApp() {
         <div className="app-scroll" style={{padding:"14px 12px"}}>
           {/* Header */}
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <button onClick={()=>setJornadaScreen("list")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>←</button>
+            <button onClick={()=>{setJornadaScreen(null);setScreen("lobby");}} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 10px",fontSize:16,cursor:"pointer",fontFamily:"inherit"}}>🏠</button>
             <div style={{flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <div style={{fontSize:16,fontWeight:800,color:"#f9e04b"}}>{currentJ.name}</div>
@@ -559,10 +559,7 @@ function BillarApp() {
             )}
           </div>
 
-          {/* DEBUG */}
-          <div style={{background:"#900",color:"#fff",padding:"6px 10px",borderRadius:6,fontSize:11,marginBottom:6,fontFamily:"monospace"}}>
-            turnScoredLocal: {String(turnScoredLocal)} | turnStarted: {String(turnStarted)} | canNext: {String(canNext)}
-          </div>
+
           {/* Barra de turno */}
           {jMatchIds.length>0 && !allJDone && (
             <div style={{background:"rgba(249,224,75,0.06)",border:"1px solid rgba(249,224,75,0.2)",borderRadius:10,padding:"10px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
@@ -599,9 +596,7 @@ function BillarApp() {
                 const bgColor = mm.matchClosed?"rgba(255,255,255,0.02)":isTurn?"rgba(74,222,128,0.05)":"rgba(255,255,255,0.03)";
                 return (
                   <div key={mid} style={{border:`2px solid ${borderColor}`,borderRadius:14,marginBottom:10,background:bgColor,opacity:mm.matchClosed?0.6:1}}>
-                    <div style={{background:"rgba(0,0,255,0.3)",padding:"2px 6px",fontSize:9,color:"#fff"}}>
-                      isTurn={isTurn?"T":"F"} | scored={turnScoredLocal?"T":"F"} | blocked={String(turnStarted && !mm.matchClosed && (!isTurn || turnScoredLocal))}
-                    </div>
+
                     <LobbyCard
                       m={mm}
                       onOpen={id=>{setActiveId(id);}}
@@ -2489,12 +2484,12 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                     const isSaque=isNext&&m.currentServe===k;
                     // Bloqueo de jornada en cuadrícula
                     const jBlockAdd = jornadaBlocked ? true : (jornadaTurnActive ? jornadaTurnScored : false);
-                    // Mismo criterio que botón Deshacer: jornadaTurnScored=true significa que se anotó en este turno
-                    const jCanUndoByClick = jornadaTurnActive ? (jornadaTurnScored && isLastGame) : true;
-                    const jBlockUndo = jornadaBlocked ? true : (jornadaTurnActive ? !jCanUndoByClick : false);
+                    // Permitir quitar la victoria recién anotada en este turno aunque jornadaBlocked=true
+                    // (jornadaBlocked se activa justamente cuando se anota, pero eso no debe impedir corregir)
+                    const jCanUndoByClick = jornadaTurnScored && isLastGame;
+                    const jBlockUndo = jCanUndoByClick ? false : (jornadaBlocked ? true : (jornadaTurnActive ? true : false));
                     const jBlockCell = isNext ? jBlockAdd : (hasWon ? jBlockUndo : false);
                     const clickable=!jBlockCell&&(isNext||(hasWon&&isLastGame));
-                    if(hasWon && isLastGame) console.log(`CELDA k=${k} ji=${ji} | jTurnActive=${jornadaTurnActive} jTurnScored=${jornadaTurnScored} mJTurnScored=${m.jornadaTurnScored} | isLastGame=${isLastGame} jCanUndo=${jCanUndoByClick} jBlockUndo=${jBlockUndo} clickable=${clickable}`);
                     let lpt=null, lpp=false;
                     const lps=()=>{ lpp=false; if(isNext&&!jBlockAdd) lpt=setTimeout(()=>{ lpp=true; onLobbyBallMenu({matchId:m.id,k,ji}); },600); };
                     const lpe=()=>clearTimeout(lpt);
