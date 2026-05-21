@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v163</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v164</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v163</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v164</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -845,7 +845,7 @@ function BillarApp() {
             const newWins = {...lm.wins, [k]: lm.wins[k]+1};
             const nextServe = lm.currentServe==="p1"?"p2":"p1";
             const willFinish = newWins[k] >= lm.carrera;
-            updateMatch(lm.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:lm.currentServe,ballType:bt}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+            updateMatch(lm.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:lm.currentServe,ballType:bt||"normal"}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
             setLobbyBallMenu(null);
           };
           return (
@@ -2416,7 +2416,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
       const newWins = {...m.wins, [k]: m.wins[k]+1};
       const nextServe = m.currentServe==="p1"?"p2":"p1";
       const willFinish = newWins[k] >= m.carrera;
-      onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null, jornadaTurnScored: jornadaTurnActive ? true : mm.jornadaTurnScored}));
+      onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe,ballType:"normal"}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null, jornadaTurnScored: jornadaTurnActive ? true : mm.jornadaTurnScored}));
       if (onJornadaScore) onJornadaScore();
     } else if (hasWon && isLastGame) {
       // Deshacer último juego — funciona aunque la serie esté terminada
