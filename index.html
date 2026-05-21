@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v164</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v169</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v164</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v169</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -560,29 +560,7 @@ function BillarApp() {
           </div>
 
 
-          {/* Barra de turno */}
-          {jMatchIds.length>0 && !allJDone && (
-            <div style={{background:"rgba(249,224,75,0.06)",border:"1px solid rgba(249,224,75,0.2)",borderRadius:10,padding:"10px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
-              <div style={{flex:1,fontSize:12,color:"#f9e04b",fontWeight:700}}>
-                {!turnStarted?"⚡ Turno listo":canNext?"✅ Resultado anotado":"🎱 Turno en juego"}
-              </div>
-              {!turnStarted ? (
-                <button onClick={()=>saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnStarted:true,turnScored:false}:j))}
-                  style={{padding:"8px 16px",borderRadius:8,border:"none",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer",background:"linear-gradient(135deg,#166534,#4ade80)",color:"#fff"}}>
-                  🎱 Iniciar turno
-                </button>
-              ) : (
-                <button onClick={()=>{if(canNext)goNextTurn();}}
-                  style={{padding:"8px 16px",borderRadius:8,border:"none",fontFamily:"inherit",fontSize:12,fontWeight:800,
-                    cursor:canNext?"pointer":"not-allowed",
-                    background:canNext?"linear-gradient(135deg,#1e3a8a,#3b82f6)":"rgba(255,255,255,0.06)",
-                    color:canNext?"#fff":"#555"}}>
-                  {canNext?"→ Siguiente":"Anota primero"}
-                </button>
-              )}
 
-            </div>
-          )}
 
           {/* Tarjetas de partidas de la jornada */}
           {jMatchIds.length===0
@@ -592,11 +570,46 @@ function BillarApp() {
                 if(!mm) return null;
                 const isPausedM = mm.jornadaPaused===true;
                 const isTurn = mid===currentMatchId && turnStarted && !mm.matchClosed && !isPausedM;
-                const borderColor = mm.matchClosed?"rgba(255,255,255,0.06)":isTurn?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.1)";
-                const bgColor = mm.matchClosed?"rgba(255,255,255,0.02)":isTurn?"rgba(74,222,128,0.05)":"rgba(255,255,255,0.03)";
+                const borderColor = mm.matchClosed?"rgba(255,255,255,0.06)":isTurn?"#4ade80":"rgba(255,255,255,0.1)";
+                const bgColor = mm.matchClosed?"rgba(255,255,255,0.02)":isTurn?"rgba(74,222,128,0.13)":"rgba(255,255,255,0.03)";
+                const boxShadow = isTurn?"0 0 18px 4px rgba(74,222,128,0.35)":"none";
                 return (
-                  <div key={mid} style={{border:`2px solid ${borderColor}`,borderRadius:14,marginBottom:10,background:bgColor,opacity:mm.matchClosed?0.6:1}}>
-
+                  <div key={mid} style={{border:`2px solid ${borderColor}`,borderRadius:14,marginBottom:10,background:bgColor,opacity:mm.matchClosed?0.6:1,boxShadow,transition:"box-shadow 0.3s"}}>
+                    {/* Controles de turno dentro de la tarjeta */}
+                    {!mm.matchClosed && mid===currentMatchId && (
+                      <div style={{padding:"8px 10px 0 10px"}}>
+                        {!turnStarted ? (
+                          <div style={{display:"flex",gap:8}}>
+                            <button onClick={()=>saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnStarted:true,turnScored:false}:j))}
+                              style={{flex:1,padding:"10px",borderRadius:10,border:"none",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer",background:"linear-gradient(135deg,#166534,#4ade80)",color:"#fff",letterSpacing:1}}>
+                              🎱 Iniciar turno
+                            </button>
+                            {jMatchIds.filter(id=>{ const m2=matches.find(x=>x.id===id); return m2&&!m2.matchClosed&&!m2.jornadaPaused; }).length>1 && (
+                              <button onClick={()=>goNextTurn()}
+                                style={{padding:"10px 14px",borderRadius:10,border:"1px solid rgba(255,255,255,0.15)",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.07)",color:"#aaa"}}>
+                                ⏭ Saltar
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{display:"flex",gap:8}}>
+                            <button onClick={()=>{if(canNext)goNextTurn();}}
+                              style={{flex:1,padding:"10px",borderRadius:10,border:"none",fontFamily:"inherit",fontSize:14,fontWeight:800,
+                                cursor:canNext?"pointer":"not-allowed",
+                                background:canNext?"linear-gradient(135deg,#1e3a8a,#3b82f6)":"rgba(255,255,255,0.06)",
+                                color:canNext?"#fff":"#555"}}>
+                              {canNext?"→ Siguiente turno":"Anota primero"}
+                            </button>
+                            {jMatchIds.filter(id=>{ const m2=matches.find(x=>x.id===id); return m2&&!m2.matchClosed&&!m2.jornadaPaused; }).length>1 && (
+                              <button onClick={()=>goNextTurn()}
+                                style={{padding:"10px 14px",borderRadius:10,border:"1px solid rgba(255,255,255,0.15)",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.07)",color:"#aaa"}}>
+                                ⏭ Saltar
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <LobbyCard
                       m={mm}
                       onOpen={id=>{setActiveId(id);}}
@@ -632,7 +645,7 @@ function BillarApp() {
                       onEditName={key=>setEditingNameKey(key)}
                       editingNameKey={editingNameKey}
                       jornadaTurnActive={isTurn}
-                      jornadaBlocked={turnStarted && !mm.matchClosed && (!isTurn || turnScoredLocal)}
+                      jornadaBlocked={!mm.matchClosed && (!turnStarted || (turnStarted && (!isTurn || turnScoredLocal)))}
                       jornadaTurnScored={isTurn ? turnScoredLocal : false}
                       jornadaPaused={mm.jornadaPaused===true}
                       onPauseToggle={(id)=>{ updateMatch(id, m=>({...m, jornadaPaused:!m.jornadaPaused})); }}
