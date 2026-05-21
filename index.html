@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v136</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v141</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v136</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v141</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -274,7 +274,8 @@ function BillarApp() {
   const [sfFechaHasta, setSfFechaHasta] = useState("");
   const [matchOrder, setMatchOrder] = useState([]);
   const [jornadas, setJornadas] = useState(() => { try { return JSON.parse(localStorage.getItem("bg_jornadas")||"[]"); } catch{return[];} });
-  const [jornadaScreen, setJornadaScreen] = useState(null); // null | "list" | jornadaId
+  const [jornadaScreen, setJornadaScreen] = useState(null);
+  const [jornadaHistorialId, setJornadaHistorialId] = useState(null); // null | "list" | jornadaId
   const [showHistory, setShowHistory] = useState(false);
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState("active");
@@ -506,9 +507,12 @@ function BillarApp() {
         next=(next+1)%jMatchIds.length; tries++;
       }
       saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,currentTurn:next,turnStarted:true,turnScored:false}:j));
+        // Limpiar jornadaTurnScored de todas las partidas para permitir anotar en el nuevo turno
+        jMatchIds.forEach(mid => updateMatch(mid, mm => mm.jornadaTurnScored ? {...mm, jornadaTurnScored:false} : mm));
     };
 
     return (
+      <>
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
         <div className="app-scroll" style={{padding:"14px 12px"}}>
           {/* Header */}
@@ -586,9 +590,14 @@ function BillarApp() {
                       onReplay={()=>{}}
                       onUpdateMatch={(id,fn)=>updateMatch(id,fn)}
                       onLobbyBallMenu={(obj)=>{setLobbyBallMenu(obj);}}
-                      onOpenHistory={id=>{setActiveId(id);setShowHistory(true);}}
+                      onOpenHistory={id=>{setActiveId(id); setShowHistory(true);}}
                       onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{seriesNum:mm.seriesCount,winner:sw,games:mm.games,partial:false}], seriesWins:{p1:mm.seriesWins.p1+(sw==="p1"?1:0),p2:mm.seriesWins.p2+(sw==="p2"?1:0)}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, currentServe:sw==="p1"?"p2":"p1", seriesFinished:false, seriesWinner:null}; }); }}
-                      onUndo={id=>{ updateMatch(id, mm => { if(mm.games.length>0){const last=mm.games[mm.games.length-1];return{...mm,games:mm.games.slice(0,-1),wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1},currentServe:last.serve,seriesFinished:false,seriesWinner:null};} if(mm.seriesHistory.length>0){const ls=mm.seriesHistory[mm.seriesHistory.length-1];const nh=mm.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});const rg=ls.games||[];const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):mm.firstServe;return{...mm,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:true,seriesWinner:ls.winner};}return mm;});}}
+                      onUndo={id=>{ updateMatch(id, mm => { 
+                        if(mm.games.length>0){const last=mm.games[mm.games.length-1];return{...mm,games:mm.games.slice(0,-1),wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1},currentServe:last.serve,seriesFinished:false,seriesWinner:null,jornadaTurnScored:false};}
+                        if(mm.seriesHistory.length>0){const ls=mm.seriesHistory[mm.seriesHistory.length-1];const nh=mm.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});const rg=ls.games||[];const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):mm.firstServe;return{...mm,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:true,seriesWinner:ls.winner,jornadaTurnScored:false};}
+                        return mm;});
+                        if(jornadaScreen && jornadaScreen!=="list") saveJornadas(jornadas.map(j=>j.id===jornadaScreen?{...j,turnScored:false}:j));
+                      }}
                       onReactivar={()=>{}}
                       onTerminar={id=>{ updateMatch(id, m=>({...m,matchClosed:true,closedAt:Date.now()}));
                         // Si hay turno activo marcar turnScored
@@ -598,7 +607,7 @@ function BillarApp() {
                       onEditName={key=>setEditingNameKey(key)}
                       editingNameKey={editingNameKey}
                       jornadaTurnActive={isTurn}
-                      jornadaBlocked={(!isTurn && turnStarted && !mm.matchClosed) || (isTurn && canNext && !mm.matchClosed)}
+                      jornadaBlocked={!isTurn && turnStarted && !mm.matchClosed}
                       jornadaPaused={mm.jornadaPaused===true}
                       onPauseToggle={(id)=>{ updateMatch(id, m=>({...m, jornadaPaused:!m.jornadaPaused})); }}
                       onJornadaScore={()=>{ if(isTurn) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:true}:j)); }}
@@ -647,8 +656,8 @@ function BillarApp() {
         })()}
       </div>
     {/* Modales historial en jornada */}
-    {showHistory && activeMatch && activeMatch.jornadaId && activeMatch.modalidad === "Contrarreloj" && (()=>{
-        const hm = activeMatch;
+    {jornadaHistorialId && matches.find(m=>m.id===jornadaHistorialId)?.modalidad === "Contrarreloj" && (()=>{
+        const hm = matches.find(m=>m.id===jornadaHistorialId) || activeMatch;
         const players = hm.crPlayers||[];
         const order = hm.crOrder||[];
         const roundHistory = hm.crRoundHistory||[];
@@ -720,22 +729,23 @@ function BillarApp() {
                   })}
                 </>);
               })()}
-              <button onClick={()=>setShowHistory(false)} style={{width:"100%",padding:"12px 0",marginTop:12,borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"#ccc",fontFamily:"inherit",fontSize:14,cursor:"pointer"}}>Cerrar</button>
+              <button onClick={()=>setJornadaHistorialId(null)} style={{width:"100%",padding:"12px 0",marginTop:12,borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"#ccc",fontFamily:"inherit",fontSize:14,cursor:"pointer"}}>Cerrar</button>
             </div>
           </div>
         );
       })()}
-      {showHistory && activeMatch && activeMatch.jornadaId && activeMatch.modalidad !== "Contrarreloj" && (
+      {jornadaHistorialId && matches.find(m=>m.id===jornadaHistorialId)?.modalidad !== "Contrarreloj" && (
         <HistorialEditable
-          p1Name={activeMatch.p1Name} p2Name={activeMatch.p2Name}
-          modalidad={activeMatch.modalidad} carrera={activeMatch.carrera}
-          seriesHistory={activeMatch.seriesHistory||[]} seriesWins={activeMatch.seriesWins||{p1:0,p2:0}}
-          games={activeMatch.games||[]} wins={activeMatch.wins||{p1:0,p2:0}}
-          currentServe={activeMatch.currentServe} seriesFinished={activeMatch.seriesFinished}
-          onClose={()=>setShowHistory(false)}
-          onReactivar={()=>{ updateMatch(activeMatch.id, m=>({...m,matchClosed:false,closedAt:null})); setShowHistory(false); }}
+          p1Name={matches.find(m=>m.id===jornadaHistorialId)?.p1Name} p2Name={matches.find(m=>m.id===jornadaHistorialId)?.p2Name}
+          modalidad={matches.find(m=>m.id===jornadaHistorialId)?.modalidad} carrera={matches.find(m=>m.id===jornadaHistorialId)?.carrera}
+          seriesHistory={matches.find(m=>m.id===jornadaHistorialId)?.seriesHistory||[]} seriesWins={matches.find(m=>m.id===jornadaHistorialId)?.seriesWins||{p1:0,p2:0}}
+          games={matches.find(m=>m.id===jornadaHistorialId)?.games||[]} wins={matches.find(m=>m.id===jornadaHistorialId)?.wins||{p1:0,p2:0}}
+          currentServe={matches.find(m=>m.id===jornadaHistorialId)?.currentServe} seriesFinished={matches.find(m=>m.id===jornadaHistorialId)?.seriesFinished}
+          onClose={()=>setJornadaHistorialId(null)}
+          onReactivar={()=>{ updateMatch(jornadaHistorialId, m=>({...m,matchClosed:false,closedAt:null})); setJornadaHistorialId(null); }}
         />
       )}
+      </>
     );
   }
 
@@ -767,7 +777,7 @@ function BillarApp() {
         </div>
         <div className="app-scroll" style={{padding:"0 14px"}}>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
-          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveId(m.id);setScreen("match");}} onDelete={()=>deleteMatch(m.id)} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={()=>{setActiveId(m.id);setShowHistory(true);}} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveId(m.id);setScreen("match");}} onDelete={()=>deleteMatch(m.id)} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveId(id||m.id);setShowHistory(true);}} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
                 // Deshacer último juego
@@ -1532,9 +1542,10 @@ function BillarApp() {
                     const isNext=!seriesFinished&&ji===games.length;
                     const isSaque=isNext&&currentServe===k;
                     // En jornada: bloqueado si no es el turno activo; o si ya se anotó victoria en este turno (turnScored) solo permitir modificar el juego actual
-                    // Solo bloquear nuevas victorias (isNext), nunca deshacer (hasWon&&isLastGame)
-                    const jornadaBlockNew = jornadaBlocked;
-                    const jornadaBlockCell = isNext ? jornadaBlockNew : false;
+                    // Bloquear nuevas victorias Y deshacer según estado de jornada
+                    const jornadaBlockNew = jornadaBlocked || (jornadaTurnActive && m.jornadaTurnScored===true);
+                    const jornadaBlockUndo = jornadaBlocked || (jornadaTurnActive && m.jornadaTurnScored!==true);
+                    const jornadaBlockCell = isNext ? jornadaBlockNew : (hasWon ? jornadaBlockUndo : false);
                     const clickable=!isReadOnly&&!jornadaBlockCell&&(isNext||(hasWon&&isLastGame));
                     let pressTimer = null; let longPressed = false;
                     const onPressStart = () => { longPressed=false; if(isNext&&!isReadOnly&&!jornadaBlockCell) pressTimer = setTimeout(()=>{ longPressed=true; handleCellLongPress(k,ji); }, 600); };
@@ -2158,7 +2169,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
             </div>
           </div>
           <div style={{display:"flex",gap:6}}>
-            <button style={{padding:"4px 10px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:11,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onOpenHistory();}}>Hist.</button>
+            <button style={{padding:"4px 10px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:11,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onOpenHistory(m.id);}}>Hist.</button>
             <button style={{width:28,height:28,borderRadius:8,background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:900,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onDelete(m.id);}}>✕</button>
           </div>
         </div>
@@ -2365,7 +2376,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
       const newWins = {...m.wins, [k]: m.wins[k]+1};
       const nextServe = m.currentServe==="p1"?"p2":"p1";
       const willFinish = newWins[k] >= m.carrera;
-      onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+      onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null, jornadaTurnScored: jornadaTurnActive ? true : mm.jornadaTurnScored}));
       if (onJornadaScore) onJornadaScore();
     } else if (hasWon && isLastGame) {
       // Deshacer último juego — funciona aunque la serie esté terminada
@@ -2394,7 +2405,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
             <button onClick={e=>{e.stopPropagation();if(!isLast)onMoveDown(m.id);}} style={{width:24,height:24,borderRadius:6,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:isLast?"#333":"#aaa",fontSize:12,cursor:isLast?"default":"pointer",padding:0}}>↓</button>
           </>)}
           <div style={{fontSize:9,color:isOpen?"#4ade80":"#888",background:isOpen?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.05)",border:isOpen?"1px solid rgba(74,222,128,0.22)":"none",borderRadius:20,padding:"2px 7px",fontWeight:700}}>{isOpen?"EN JUEGO":"FIN"}</div>
-          {isOpen && <button style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",borderRadius:8,padding:"3px 7px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}} onClick={e=>{e.stopPropagation();onOpenHistory();}}>Hist.</button>}
+          {isOpen && <button style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",borderRadius:8,padding:"3px 7px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}} onClick={e=>{e.stopPropagation();onOpenHistory(m.id);}}>Hist.</button>}
           <button style={{background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.2)",color:"#f87171",borderRadius:8,padding:"3px 7px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}} onClick={e=>{e.stopPropagation();onDelete();}}>x</button>
         </div>
       </div>
@@ -2450,7 +2461,11 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
 
         <div style={{display:"flex",gap:5,marginTop:6}}>
           <button style={{flex:2,padding:"8px 0",borderRadius:10,background:m.seriesFinished?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",border:m.seriesFinished?"none":"1px solid rgba(255,255,255,0.1)",color:m.seriesFinished?"#fff":"#555",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:m.seriesFinished?"pointer":"default"}} onClick={e=>{e.stopPropagation();if(m.seriesFinished)onNextSeries(m.id);}}>Sig. serie →</button>
-          <button style={{flex:1,padding:"8px 0",borderRadius:10,background:(m.games.length>0||m.seriesHistory.length>0)?"rgba(255,200,50,0.1)":"rgba(255,255,255,0.04)",border:(m.games.length>0||m.seriesHistory.length>0)?"1px solid rgba(255,200,50,0.25)":"1px solid rgba(255,255,255,0.08)",color:(m.games.length>0||m.seriesHistory.length>0)?"#f9e04b":"#444",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:(m.games.length>0||m.seriesHistory.length>0)?"pointer":"default"}} onClick={e=>{e.stopPropagation();if(m.games.length>0||m.seriesHistory.length>0)onUndo(m.id);}}>↩ Deshacer</button>
+          <button style={{flex:1,padding:"8px 0",borderRadius:10,background:(jornadaTurnActive?m.jornadaTurnScored===true:(!jornadaBlocked&&(m.games.length>0||m.seriesHistory.length>0)))?"rgba(255,200,50,0.1)":"rgba(255,255,255,0.04)",border:(jornadaTurnActive?m.jornadaTurnScored===true:(!jornadaBlocked&&(m.games.length>0||m.seriesHistory.length>0)))?"1px solid rgba(255,200,50,0.25)":"1px solid rgba(255,255,255,0.08)",color:(jornadaTurnActive?m.jornadaTurnScored===true:(!jornadaBlocked&&(m.games.length>0||m.seriesHistory.length>0)))?"#f9e04b":"#444",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:(jornadaTurnActive?m.jornadaTurnScored===true:(!jornadaBlocked&&(m.games.length>0||m.seriesHistory.length>0)))?"pointer":"default"}} onClick={e=>{
+                  e.stopPropagation();
+                  const canUndo = jornadaTurnActive ? m.jornadaTurnScored===true : (!jornadaBlocked&&(m.games.length>0||m.seriesHistory.length>0));
+                  if(canUndo) onUndo(m.id);
+                }}>↩ Deshacer</button>
 
           {onPauseToggle && (
             <button onClick={e=>{e.stopPropagation();onPauseToggle(m.id);}}
@@ -2566,7 +2581,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
             {/* Botones en una línea */}
             <div style={{display:"flex",gap:5}}>
               <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReplay(m);}}>↺ Re-crear</button>
-              <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onOpenHistory();}}>📋 Historial</button>
+              <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onOpenHistory(m.id);}}>📋 Historial</button>
               <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReactivar(m.id);}}>↺ Reactivar</button>
             </div>
           </div>
