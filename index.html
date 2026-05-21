@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v171</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v181-debug</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v171</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v181-debug</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -204,8 +204,8 @@ function Acceso({ ok }) {
 
 function BillarApp() {
   const [matches, setMatches] = useState([]);
-  const [activeId, setActiveId] = useState(null);
-  const [screen, setScreen] = useState("lobby");
+  const [activeId, setActiveId] = useState(()=>localStorage.getItem("bg_activeId")||null);
+  const [screen, setScreen] = useState(()=>localStorage.getItem("bg_screen")||"lobby");
   const [playersList, setPlayersList] = useState(()=>{
     try { return JSON.parse(localStorage.getItem("bg_players")||"[]"); } catch{return [];}
   });
@@ -277,18 +277,32 @@ function BillarApp() {
   const [sfFechaHasta, setSfFechaHasta] = useState("");
   const [matchOrder, setMatchOrder] = useState([]);
   const [jornadas, setJornadas] = useState(() => { try { return JSON.parse(localStorage.getItem("bg_jornadas")||"[]"); } catch{return[];} });
-  const [jornadaScreen, setJornadaScreen] = useState(null);
+  const [jornadaScreen, setJornadaScreen] = useState(()=>localStorage.getItem("bg_jornadaScreen")||null);
   const [jornadaHistorialId, setJornadaHistorialId] = useState(null);
   const [turnScoredLocal, setTurnScoredLocal] = useState(false); // estado local para turno actual
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(()=>localStorage.getItem("bg_showHistory")==="1");
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState("active");
   const [ballMenu, setBallMenu] = useState(null); // {k, ji} posición del menú
   const [lobbyBallMenu, setLobbyBallMenu] = useState(null); // {matchId, k, ji}
 
+  // Persistir navegación en sessionStorage para sobrevivir refrescos
+  const setScreenP = (s) => { setScreen(s); localStorage.setItem("bg_screen", s); };
+  const setShowHistoryP = (v) => { setShowHistory(v); if(v) localStorage.setItem("bg_showHistory","1"); else localStorage.removeItem("bg_showHistory"); };
+  const setActiveIdP = (id) => { setActiveId(id); if(id) localStorage.setItem("bg_activeId", id); else localStorage.removeItem("bg_activeId"); };
+  const setJornadaScreenP = (s) => { setJornadaScreen(s); if(s) localStorage.setItem("bg_jornadaScreen", s); else localStorage.removeItem("bg_jornadaScreen"); };
+
+  const [fbLoaded, setFbLoaded] = useState(false);
+
+  // Log de diagnóstico al arrancar
+  useEffect(() => {
+    console.log("INIT: screen="+localStorage.getItem("bg_screen")+" showHistory="+localStorage.getItem("bg_showHistory")+" activeId="+localStorage.getItem("bg_activeId"));
+  }, []);
+
   useEffect(() => {
     const unsub1 = db.collection("billar").doc("partidas").onSnapshot(snap => {
       if (snap.exists) { const d = snap.data(); if (d && d.matches) setMatches(d.matches); }
+      setFbLoaded(true);
     });
     const unsub2 = db.collection("billar").doc("jornadas").onSnapshot(snap => {
       if (snap.exists) { const d = snap.data(); if (d && Array.isArray(d.jornadas)) {
@@ -369,9 +383,9 @@ function BillarApp() {
       saveMatches([...matches, mWithJ]);
       if(pendingJId) {
         saveJornadas(jornadas.map(j=>j.id===pendingJId?{...j,matchOrder:[...(j.matchOrder||[]),mWithJ.id]}:j));
-        setJornadaScreen(pendingJId);
+        setJornadaScreenP(pendingJId);
       } else {
-        setActiveId(mWithJ.id); setScreen("lobby"); setLobbyTab("active");
+        setActiveId(mWithJ.id); setScreenP("lobby"); setLobbyTab("active");
       }
       setWPlayers(["",""]); setWOrder([]); setWCarrera(5); setWModalidad("Bola 8"); setWRondasCR(3); setWSeriesCR(1); setWPenaltyTime(10);
     } else {
@@ -383,9 +397,9 @@ function BillarApp() {
       saveMatches([...matches, mWithJ2]);
       if(pendingJId2) {
         saveJornadas(jornadas.map(j=>j.id===pendingJId2?{...j,matchOrder:[...(j.matchOrder||[]),mWithJ2.id]}:j));
-        setJornadaScreen(pendingJId2);
+        setJornadaScreenP(pendingJId2);
       } else {
-        setActiveId(mWithJ2.id); setScreen("lobby"); setLobbyTab("active");
+        setActiveId(mWithJ2.id); setScreenP("lobby"); setLobbyTab("active");
       }
       setWP1(""); setWP2(""); setWServe(null); setWCarrera(5); setWModalidad("Bola 8");
     }
@@ -413,13 +427,13 @@ function BillarApp() {
         : m.seriesWins;
       return {...m, matchClosed:true, closedAt:Date.now(), seriesWins:finalSeriesWins};
     });
-    setScreen("lobby");
+    setScreenP("lobby");
   };
 
   const deleteMatch = async (id) => {
     const nm = matches.filter(m => m.id !== id);
     await saveMatches(nm);
-    if (activeId === id) { setActiveId(null); setScreen("lobby"); }
+    if (activeId === id) { setActiveIdP(null); setScreenP("lobby"); }
   };
 
   const replayMatch = (m) => {
@@ -433,7 +447,7 @@ function BillarApp() {
       setWP1(m.p1Name); setWP2(m.p2Name);
       setWServe(null);
     }
-    setScreen("newMatch");
+    setScreenP("newMatch");
   };
 
   const activeMatchesRaw = matches.filter(m => !m.matchClosed && !m.jornadaId);
@@ -469,13 +483,13 @@ function BillarApp() {
           <div className="app-scroll" style={{padding:"20px 14px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
               <div style={{fontSize:22,fontWeight:800,color:"#f9e04b"}}>🗓 Jornadas</div>
-              <button onClick={()=>setJornadaScreen(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
+              <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
             </div>
             {/* Crear nueva jornada */}
             <button onClick={()=>{
               const newJ = {id:"j_"+Date.now(), name:"Jornada "+(jornadas.length+1), currentTurn:0, turnStarted:false, turnScored:false, matchOrder:[], finished:false};
               saveJornadas([...jornadas, newJ]);
-              setJornadaScreen(newJ.id);
+              setJornadaScreenP(newJ.id);
             }} style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",fontFamily:"inherit",fontSize:15,fontWeight:800,marginBottom:16,background:"linear-gradient(135deg,#166534,#4ade80)",color:"#fff",cursor:"pointer"}}>
               + Nueva jornada
             </button>
@@ -488,7 +502,7 @@ function BillarApp() {
                   return (
                     <div key={j.id} style={{padding:"12px 14px",borderRadius:12,background:"rgba(255,255,255,0.04)",border:`1px solid ${j.finished?"rgba(255,255,255,0.06)":"rgba(249,224,75,0.2)"}`,marginBottom:8}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                        <div onClick={()=>setJornadaScreen(j.id)} style={{flex:1,cursor:"pointer"}}>
+                        <div onClick={()=>setJornadaScreenP(j.id)} style={{flex:1,cursor:"pointer"}}>
                           <span style={{fontSize:15,fontWeight:700,color:j.finished?"#555":"#f9e04b"}}>{j.name}</span>
                           <span style={{fontSize:11,color:"#888",marginLeft:8}}>{done}/{jms.length} partidas</span>
                         </div>
@@ -505,7 +519,7 @@ function BillarApp() {
                           }} style={{fontSize:11,padding:"4px 8px",borderRadius:6,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",color:"#f87171",fontFamily:"inherit",cursor:"pointer"}}>🗑</button>
                         </div>
                       </div>
-                      <div onClick={()=>setJornadaScreen(j.id)} style={{fontSize:11,color:"#666",cursor:"pointer"}}>{j.finished?"✅ Finalizada":"🟡 En curso"} · Toca para abrir</div>
+                      <div onClick={()=>setJornadaScreenP(j.id)} style={{fontSize:11,color:"#666",cursor:"pointer"}}>{j.finished?"✅ Finalizada":"🟡 En curso"} · Toca para abrir</div>
                     </div>
                   );
                 })
@@ -516,7 +530,7 @@ function BillarApp() {
     }
 
     // ── Pantalla de jornada específica ──
-    if (!currentJ) { setJornadaScreen("list"); return null; }
+    if (!currentJ) { if (jornadas.length > 0 || fbLoaded) setJornadaScreenP("list"); return null; }
 
     const jMatchIds = currentJ.matchOrder || [];
     const currentTurnIdx = currentJ.currentTurn ?? 0;
@@ -544,7 +558,7 @@ function BillarApp() {
         <div className="app-scroll" style={{padding:"14px 12px"}}>
           {/* Header */}
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <button onClick={()=>{setJornadaScreen(null);setScreen("lobby");}} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 10px",fontSize:16,cursor:"pointer",fontFamily:"inherit"}}>🏠</button>
+            <button onClick={()=>{setJornadaScreenP(null);setScreenP("lobby");}} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 10px",fontSize:16,cursor:"pointer",fontFamily:"inherit"}}>🏠</button>
             <div style={{flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <div style={{fontSize:16,fontWeight:800,color:"#f9e04b"}}>{currentJ.name}</div>
@@ -555,11 +569,11 @@ function BillarApp() {
             </div>
             {/* Botón Nueva partida */}
             <button onClick={()=>{
-              setActiveId(null);
+              setActiveIdP(null);
               // Guardar jornadaId pendiente para la nueva partida
               sessionStorage.setItem("pendingJornadaId", currentJ.id);
-              setJornadaScreen(null);
-              setScreen("newMatch");
+              setJornadaScreenP(null);
+              setScreenP("newMatch");
             }} style={{padding:"7px 12px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:800,cursor:"pointer"}}>+ Partida</button>
             {allJDone && (
               <button onClick={()=>{
@@ -568,7 +582,7 @@ function BillarApp() {
                   const updated = matches.map(m => m.jornadaId===currentJ.id ? {...m,jornadaId:null} : m);
                   saveMatches(updated);
                   saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,finished:true}:j));
-                  setJornadaScreen("list");
+                  setJornadaScreenP("list");
                 }
               }} style={{padding:"7px 12px",borderRadius:10,background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>🏁 Fin</button>
             )}
@@ -737,7 +751,7 @@ function BillarApp() {
             <div style={{width:"92%",maxWidth:480,background:"#0f1f0f",borderRadius:16,padding:"18px 14px",border:"1px solid rgba(255,255,255,0.1)"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div style={{fontSize:15,fontWeight:700,color:"#e0e0e0"}}>⏱ Historial · Contrarreloj</div>
-                <button onClick={()=>setShowHistory(false)} style={{background:"rgba(255,255,255,0.07)",border:"none",color:"#ccc",borderRadius:8,padding:"6px 10px",fontFamily:"inherit",cursor:"pointer"}}>✕</button>
+                <button onClick={()=>setShowHistoryP(false)} style={{background:"rgba(255,255,255,0.07)",border:"none",color:"#ccc",borderRadius:8,padding:"6px 10px",fontFamily:"inherit",cursor:"pointer"}}>✕</button>
               </div>
               <div style={{fontSize:10,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Clasificación final</div>
               {standings.map((pidx,pos)=>(
@@ -816,10 +830,10 @@ function BillarApp() {
               <div style={{fontSize:11,color:"#555",marginTop:1}}>Control de partidas</div>
             </div>
             <div style={{display:"flex",gap:8}}>
-              <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreen("stats")}>📊</button>
-              <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreen("players")}>👥</button>
-              <button style={{padding:"8px 10px",borderRadius:10,background:jornadaScreen?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:jornadaScreen?"1px solid rgba(249,224,75,0.3)":"1px solid rgba(255,255,255,0.13)",color:jornadaScreen?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setJornadaScreen("list")}>🗓</button>
-              <button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreen("newMatch");}}>+ Nueva</button>
+              <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreenP("stats")}>📊</button>
+              <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreenP("players")}>👥</button>
+              <button style={{padding:"8px 10px",borderRadius:10,background:jornadaScreen?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:jornadaScreen?"1px solid rgba(249,224,75,0.3)":"1px solid rgba(255,255,255,0.13)",color:jornadaScreen?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setJornadaScreenP("list")}>🗓</button>
+              <button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>+ Nueva</button>
             </div>
           </div>
         </div>
@@ -833,7 +847,7 @@ function BillarApp() {
         </div>
         <div className="app-scroll" style={{padding:"0 14px"}}>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
-          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveId(m.id);setScreen("match");}} onDelete={()=>deleteMatch(m.id)} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveId(id||m.id);setShowHistory(true);}} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={()=>deleteMatch(m.id)} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
                 // Deshacer último juego
@@ -898,9 +912,14 @@ function BillarApp() {
         })()}
 
         {/* Historial desde lobby */}
-        {showHistory && activeId && (() => {
+        {showHistory && activeId && !fbLoaded && (
+          <div style={{position:"fixed",inset:0,background:"#0a1f0a",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{color:"#4ade80",fontSize:14,fontFamily:"Georgia,serif",letterSpacing:1}}>Cargando...</div>
+          </div>
+        )}
+        {showHistory && activeId && fbLoaded && (() => {
           const hm = matches.find(mm=>mm.id===activeId);
-          if (!hm) return null;
+          if (!hm) { setShowHistoryP(false); return null; }
           return <HistorialEditable
             p1Name={hm.p1Name} p2Name={hm.p2Name}
             modalidad={hm.modalidad} carrera={hm.carrera}
@@ -908,14 +927,14 @@ function BillarApp() {
             games={hm.games} seriesCount={hm.seriesCount}
             seriesFinished={hm.seriesFinished} seriesWinner={hm.seriesWinner}
             matchClosed={hm.matchClosed}
-            onClose={()=>setShowHistory(false)}
+            onClose={()=>setShowHistoryP(false)}
             onEditSeriesWinner={(idx,nw)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.map((s,i)=>i!==idx?s:{...s,winner:nw});const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw};});}}
             onEditCurrentGame={(ji,k)=>{updateMatch(activeId,(m)=>{const ng=m.games.map((g,i)=>i===ji?{...g,winner:k}:g);const nww={p1:0,p2:0};ng.forEach(g=>nww[g.winner]++);const sf=nww.p1>=m.carrera||nww.p2>=m.carrera;const sw=nww.p1>=m.carrera?"p1":nww.p2>=m.carrera?"p2":null;return{...m,games:ng,wins:nww,seriesFinished:sf,seriesWinner:sw};});}}
             onDeleteLastSeries={()=>{updateMatch(activeId,(m)=>{if(m.seriesHistory.length===0)return m;const last=m.seriesHistory[m.seriesHistory.length-1];const nh=m.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:last.seriesNum,games:last.games||[],wins:{p1:last.p1wins,p2:last.p2wins},seriesFinished:true,seriesWinner:last.winner};});}}
             onEditHistoryGame={(si,ji,k,fb)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.map((ser,idx)=>{if(idx!==si)return ser;const bg=ser.games||fb;const ng=bg.map((g,i)=>i===ji?{...g,winner:k}:g);const p1=ng.filter(g=>g.winner==="p1").length;const p2=ng.filter(g=>g.winner==="p2").length;const nww=p1>=m.carrera?"p1":p2>=m.carrera?"p2":ser.winner;return{...ser,games:ng,p1wins:p1,p2wins:p2,winner:nww};});const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw};});}}
-            onRestoreLastSeries={(ls,lg)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});const rg=ls.games||lg;const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):m.firstServe;return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:false,seriesWinner:null};});setShowHistory(false);}}
-            onRestoreAnySeries={(si,ls,lg)=>{updateMatch(activeId,(m)=>{const rg=ls.games||lg;const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):m.firstServe;const nh=m.seriesHistory.slice(0,si);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:false,seriesWinner:null};});setShowHistory(false);}}
-            onReactivar={()=>{updateMatch(activeId,m=>({...m,matchClosed:false,closedAt:null}));setShowHistory(false);}}
+            onRestoreLastSeries={(ls,lg)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});const rg=ls.games||lg;const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):m.firstServe;return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:false,seriesWinner:null};});setShowHistoryP(false);}}
+            onRestoreAnySeries={(si,ls,lg)=>{updateMatch(activeId,(m)=>{const rg=ls.games||lg;const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):m.firstServe;const nh=m.seriesHistory.slice(0,si);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:false,seriesWinner:null};});setShowHistoryP(false);}}
+            onReactivar={()=>{updateMatch(activeId,m=>({...m,matchClosed:false,closedAt:null}));setShowHistoryP(false);}}
           />;
         })()}
       {/* Modal historial CR desde lobby */}
@@ -951,7 +970,7 @@ function BillarApp() {
             <div style={{background:"#0f2010",border:"1px solid rgba(74,222,128,0.18)",borderRadius:20,padding:"20px 16px",color:"#fff",width:"100%",maxWidth:420}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div style={{fontSize:15,fontWeight:700}}>⏱ Historial · Contrarreloj</div>
-                <button onClick={()=>setShowHistory(false)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#aaa",borderRadius:8,padding:"4px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                <button onClick={()=>setShowHistoryP(false)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#aaa",borderRadius:8,padding:"4px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
               </div>
               {/* Clasificación */}
               <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Clasificación final</div>
@@ -1025,7 +1044,7 @@ function BillarApp() {
                   })}
                 </>);
               })()}
-              <button onClick={()=>setShowHistory(false)} style={{width:"100%",marginTop:16,padding:"12px 0",borderRadius:12,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#bbb",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer"}}>Cerrar</button>
+              <button onClick={()=>setShowHistoryP(false)} style={{width:"100%",marginTop:16,padding:"12px 0",borderRadius:12,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#bbb",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer"}}>Cerrar</button>
             </div>
           </div>
         );
@@ -1177,7 +1196,7 @@ function BillarApp() {
         <div className="app-scroll" style={{padding:"20px 14px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
             <div style={{fontSize:22,fontWeight:800,color:"#4ade80"}}>📊 Estadísticas</div>
-            <button onClick={()=>setScreen("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
+            <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
           </div>
 
           {/* Filtros */}
@@ -1291,7 +1310,7 @@ function BillarApp() {
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
         <div className="app-scroll" style={{padding:"20px 18px"}}>
-          <button onClick={()=>setScreen("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>← Volver</button>
+          <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>← Volver</button>
           <div style={{fontSize:22,fontWeight:800,color:"#4ade80",marginBottom:20}}>👥 Jugadores</div>
 
           {/* Agregar nuevo */}
@@ -1356,7 +1375,7 @@ function BillarApp() {
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
         <div className="app-scroll" style={{padding:"24px 22px"}}>
-          <button onClick={()=>setScreen("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.11)",color:"#bbb",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit",marginBottom:16}}>← Volver</button>
+          <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.11)",color:"#bbb",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit",marginBottom:16}}>← Volver</button>
           <div style={{fontSize:20,fontWeight:800,color:"#4ade80",marginBottom:18}}>Nueva Partida</div>
 
           {!isCR ? (<>
@@ -1482,7 +1501,7 @@ function BillarApp() {
             <button style={{flex:1,padding:"14px 0",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:700,cursor:"pointer",opacity:ready?1:0.4}} onClick={startNewMatch} disabled={!ready}>Iniciar</button>
             <button style={{padding:"14px 16px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.11)",color:"#aaa",fontFamily:"inherit",fontSize:14,cursor:"pointer"}} onClick={()=>{
               const pj = sessionStorage.getItem("pendingJornadaId");
-              if(pj){setJornadaScreen(pj);}else{setScreen("lobby");}
+              if(pj){setJornadaScreenP(pj);}else{setScreenP("lobby");}
             }}>Cancelar</button>
           </div>
         </div>
@@ -1491,7 +1510,12 @@ function BillarApp() {
   }
 
   // ===== PARTIDA =====
-  if (!activeMatch) { setScreen("lobby"); return null; }
+  if (screen === "match") {
+    if (!activeMatch) {
+      if (!fbLoaded) return <div style={{minHeight:"100vh",background:"#0a1f0a",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#4ade80",fontSize:14,fontFamily:"Georgia,serif",letterSpacing:1}}>Cargando...</div></div>;
+      setScreenP("lobby"); return null;
+    }
+  } else if (!activeMatch) { return null; }
   const isReadOnly = activeMatch.matchClosed;
   const {p1Name, p2Name, currentServe, wins, carrera, modalidad, games, seriesFinished, seriesWinner, seriesWins, seriesCount, seriesHistory} = activeMatch;
 
@@ -1544,12 +1568,12 @@ function BillarApp() {
 
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px 8px",borderBottom:"1px solid rgba(255,255,255,0.07)",background:"rgba(0,0,0,0.4)"}}>
-        <button onClick={()=>setScreen("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.11)",color:"#bbb",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Inicio</button>
+        <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.11)",color:"#bbb",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Inicio</button>
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
           <BallIcon modalidad={modalidad} size={26} />
           <div style={{fontSize:9,color:"#777",letterSpacing:1,textTransform:"uppercase"}}>{modalidad} - C{carrera} - S#{seriesCount}</div>
         </div>
-        <button onClick={()=>setShowHistory(true)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.11)",color:"#bbb",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Hist.</button>
+        <button onClick={()=>setShowHistoryP(true)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.11)",color:"#bbb",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Hist.</button>
       </div>
 
       {/* Series bar */}
@@ -1718,7 +1742,7 @@ function BillarApp() {
             <div style={{background:"#0f2010",border:"1px solid rgba(74,222,128,0.18)",borderRadius:20,padding:"20px 16px",color:"#fff",width:"100%",maxWidth:420}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div style={{fontSize:15,fontWeight:700}}>Historial · Contrarreloj</div>
-                <button onClick={()=>setShowHistory(false)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#aaa",borderRadius:8,padding:"4px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                <button onClick={()=>setShowHistoryP(false)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#aaa",borderRadius:8,padding:"4px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
               </div>
               {/* Clasificación general */}
               <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Clasificación</div>
@@ -1770,7 +1794,7 @@ function BillarApp() {
                   </table>
                 </div>
               </>)}
-              <button onClick={()=>setShowHistory(false)} style={{width:"100%",marginTop:16,padding:"12px 0",borderRadius:12,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#bbb",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer"}}>Cerrar</button>
+              <button onClick={()=>setShowHistoryP(false)} style={{width:"100%",marginTop:16,padding:"12px 0",borderRadius:12,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#bbb",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer"}}>Cerrar</button>
             </div>
           </div>
         );
@@ -1784,7 +1808,7 @@ function BillarApp() {
           games={games} seriesCount={seriesCount}
           seriesFinished={seriesFinished} seriesWinner={seriesWinner}
           matchClosed={isReadOnly}
-          onClose={()=>setShowHistory(false)}
+          onClose={()=>setShowHistoryP(false)}
           onEditCurrentGame={(ji, k) => {
             updateMatch(activeId, m => {
               const ng = m.games.map((g,i) => i===ji ? {...g, winner:k} : g);
@@ -1835,11 +1859,11 @@ function BillarApp() {
               return {...m, seriesHistory:nh, seriesWins:nsw, seriesCount:lastSerie.seriesNum,
                 games:rg, wins:rw, currentServe:ns, seriesFinished:false, seriesWinner:null};
             });
-            setShowHistory(false);
+            setShowHistoryP(false);
           }}
           onReactivar={() => {
             updateMatch(activeId, m => ({...m, matchClosed:false, closedAt:null}));
-            setShowHistory(false);
+            setShowHistoryP(false);
           }}
         />
       )}
