@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v132</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v135</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v132</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v135</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -505,9 +505,7 @@ function BillarApp() {
         if(nm && !nm.matchClosed && !nm.jornadaPaused) break;
         next=(next+1)%jMatchIds.length; tries++;
       }
-      saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,currentTurn:next,turnStarted:false,turnScored:false}:j));
-        // Limpiar jornadaTurnScored de todas las partidas de la jornada
-        jMatchIds.forEach(mid => { updateMatch(mid, mm => ({...mm, jornadaTurnScored:false})); });
+      saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,currentTurn:next,turnStarted:true,turnScored:false}:j));
     };
 
     return (
@@ -565,7 +563,7 @@ function BillarApp() {
                   {canNext?"→ Siguiente":"Anota primero"}
                 </button>
               )}
-              <button onClick={()=>goNextTurn()} style={{padding:"8px 10px",borderRadius:8,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"#888",fontFamily:"inherit",fontSize:11,cursor:"pointer"}}>⏭</button>
+
             </div>
           )}
 
@@ -587,7 +585,7 @@ function BillarApp() {
                       onDelete={id=>saveMatches(matches.filter(m=>m.id!==id))}
                       onReplay={()=>{}}
                       onUpdateMatch={(id,fn)=>updateMatch(id,fn)}
-                      onLobbyBallMenu={(id,k,ji)=>{setLobbyBallMenu({matchId:id,k,ji});}}
+                      onLobbyBallMenu={(obj)=>{setLobbyBallMenu(obj);}}
                       onOpenHistory={id=>{setActiveId(id);setShowHistory(true);}}
                       onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{seriesNum:mm.seriesCount,winner:sw,games:mm.games,partial:false}], seriesWins:{p1:mm.seriesWins.p1+(sw==="p1"?1:0),p2:mm.seriesWins.p2+(sw==="p2"?1:0)}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, currentServe:sw==="p1"?"p2":"p1", seriesFinished:false, seriesWinner:null}; }); }}
                       onUndo={id=>{ updateMatch(id, mm => { if(mm.games.length>0){const last=mm.games[mm.games.length-1];return{...mm,games:mm.games.slice(0,-1),wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1},currentServe:last.serve,seriesFinished:false,seriesWinner:null};} if(mm.seriesHistory.length>0){const ls=mm.seriesHistory[mm.seriesHistory.length-1];const nh=mm.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});const rg=ls.games||[];const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):mm.firstServe;return{...mm,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:true,seriesWinner:ls.winner};}return mm;});}}
@@ -600,7 +598,7 @@ function BillarApp() {
                       onEditName={key=>setEditingNameKey(key)}
                       editingNameKey={editingNameKey}
                       jornadaTurnActive={isTurn}
-                      jornadaBlocked={!isTurn && turnStarted && !mm.matchClosed}
+                      jornadaBlocked={(!isTurn && turnStarted && !mm.matchClosed) || (isTurn && canNext && !mm.matchClosed)}
                       jornadaPaused={mm.jornadaPaused===true}
                       onPauseToggle={(id)=>{ updateMatch(id, m=>({...m, jornadaPaused:!m.jornadaPaused})); }}
                       onJornadaScore={()=>{ if(isTurn) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:true}:j)); }}
@@ -648,6 +646,96 @@ function BillarApp() {
           );
         })()}
       </div>
+    {/* Modales historial en jornada - FUERA del app-screen para z-index correcto */}
+    {showHistory && activeMatch && activeMatch.jornadaId && activeMatch.modalidad === "Contrarreloj" && (()=>{
+        const hm = activeMatch;
+        const players = hm.crPlayers||[];
+        const order = hm.crOrder||[];
+        const roundHistory = hm.crRoundHistory||[];
+        const accumTime = hm.crAccumTime||{};
+        const validRoundsH = hm.crValidRounds||{};
+        const serieWinsH = hm.crSerieWins||{};
+        const serieHistoryH = hm.crSerieHistory||[];
+        const totalSeriesH = hm.crTotalSeries||1;
+        const allRWH2 = {};
+        serieHistoryH.forEach(s => { Object.entries(s.roundWins||{}).forEach(([k,v])=>{ allRWH2[Number(k)]=(allRWH2[Number(k)]||0)+v; }); });
+        if ((hm.crCurrentSerie||1) > serieHistoryH.length) { Object.entries(hm.crRoundWins||{}).forEach(([k,v])=>{ allRWH2[Number(k)]=(allRWH2[Number(k)]||0)+v; }); }
+        const roundWins = allRWH2;
+        const avgTime = (pidx) => validRoundsH[pidx]>0 ? (accumTime[pidx]||0)/validRoundsH[pidx] : Infinity;
+        const standings = [...order].sort((a,b)=>{
+          const sw=(serieWinsH[b]||0)-(serieWinsH[a]||0); if(sw!==0) return sw;
+          const rw=(roundWins[b]||0)-(roundWins[a]||0); if(rw!==0) return rw;
+          return avgTime(a)-avgTime(b);
+        });
+        return (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:20,overflowY:"auto"}}>
+            <div style={{width:"92%",maxWidth:480,background:"#0f1f0f",borderRadius:16,padding:"18px 14px",border:"1px solid rgba(255,255,255,0.1)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                <div style={{fontSize:15,fontWeight:700,color:"#e0e0e0"}}>⏱ Historial · Contrarreloj</div>
+                <button onClick={()=>setShowHistory(false)} style={{background:"rgba(255,255,255,0.07)",border:"none",color:"#ccc",borderRadius:8,padding:"6px 10px",fontFamily:"inherit",cursor:"pointer"}}>✕</button>
+              </div>
+              <div style={{fontSize:10,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Clasificación final</div>
+              {standings.map((pidx,pos)=>(
+                <div key={pidx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:5}}>
+                  <span style={{fontWeight:700,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{pos===0?"👑":pos===1?"🥈":"🥉"} {pos+1}. {players[pidx]}</span>
+                  <div style={{textAlign:"right"}}><div style={{fontSize:12,color:"#f9e04b",fontWeight:700}}>{serieWinsH[pidx]||0}/{totalSeriesH} series</div><div style={{fontSize:11,color:"#888"}}>{roundWins[pidx]||0} rondas · {validRoundsH[pidx]>0?fmtTime(avgTime(pidx))+" prom":"—"}</div></div>
+                </div>
+              ))}
+              {serieHistoryH.length>0 && (()=>{
+                return (<>
+                  <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Resultados por serie</div>
+                  {serieHistoryH.map((s,gi)=>{
+                    const roundsPerSH = hm.crTotalRounds||1;
+                    const sRounds = s.rounds && s.rounds.length>0 ? s.rounds : roundHistory.slice(gi*roundsPerSH,(gi+1)*roundsPerSH);
+                    const serieAvg2 = (pidx) => {
+                      const validR = sRounds.filter(r=>!(r.forfeits||[]).includes(pidx)).length;
+                      const totalT = sRounds.reduce((sum,r)=>{ const t=r.times?.[pidx]; return t!==undefined?sum+t:sum; },0);
+                      return validR>0?totalT/validR:null;
+                    };
+                    return (
+                      <div key={gi} style={{marginBottom:10,background:"rgba(255,255,255,0.02)",borderRadius:10,overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",padding:"6px 10px",background:"rgba(74,222,128,0.06)",borderBottom:"1px solid rgba(74,222,128,0.12)"}}>
+                          <span style={{fontSize:12,fontWeight:700,color:"#4ade80"}}>Serie {gi+1}</span>
+                          <span style={{fontSize:11,color:"#f9e04b",fontWeight:700}}>{s.winner!==null?`🏆 ${players[s.winner]}`:"Sin ganador"}</span>
+                        </div>
+                        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                          <thead><tr style={{borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+                            <td style={{padding:"4px 8px",color:"#555"}}></td>
+                            {sRounds.map((r,ri)=><td key={ri} style={{padding:"4px 6px",textAlign:"center",color:"#888",fontWeight:700}}>R{ri+1}</td>)}
+                            <td style={{padding:"4px 6px",textAlign:"center",color:"#888",fontWeight:700}}>Prom</td>
+                          </tr></thead>
+                          <tbody>{standings.map(pidx=>(
+                            <tr key={pidx} style={{borderTop:"1px solid rgba(255,255,255,0.04)"}}>
+                              <td style={{padding:"5px 8px",fontWeight:700,color:"#e0e0e0"}}>{players[pidx]}</td>
+                              {sRounds.map((r,ri)=>{
+                                const isW=r.winner===pidx; const t=r.times?.[pidx]; const isF=(r.forfeits||[]).includes(pidx);
+                                return <td key={ri} style={{padding:"5px 4px",textAlign:"center",background:isW?"rgba(249,224,75,0.1)":isF?"rgba(239,68,68,0.1)":"transparent",color:isW?"#f9e04b":isF?"#f87171":"#aaa",fontWeight:isW||isF?700:400,fontVariantNumeric:"tabular-nums",fontSize:10}}>{t!==undefined?fmtTime(t):"—"}{isW?" 🏆":""}{isF?" ⚠":""}</td>;
+                              })}
+                              <td style={{padding:"5px 4px",textAlign:"center",color:"#888",fontSize:10}}>{serieAvg2(pidx)!==null?fmtTime(serieAvg2(pidx)):"—"}</td>
+                            </tr>
+                          ))}</tbody>
+                        </table>
+                      </div>
+                    );
+                  })}
+                </>);
+              })()}
+              <button onClick={()=>setShowHistory(false)} style={{width:"100%",padding:"12px 0",marginTop:12,borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"#ccc",fontFamily:"inherit",fontSize:14,cursor:"pointer"}}>Cerrar</button>
+            </div>
+          </div>
+        );
+      })()}
+      {showHistory && activeMatch && activeMatch.jornadaId && activeMatch.modalidad !== "Contrarreloj" && (
+        <HistorialEditable
+          p1Name={activeMatch.p1Name} p2Name={activeMatch.p2Name}
+          modalidad={activeMatch.modalidad} carrera={activeMatch.carrera}
+          seriesHistory={activeMatch.seriesHistory||[]} seriesWins={activeMatch.seriesWins||{p1:0,p2:0}}
+          games={activeMatch.games||[]} wins={activeMatch.wins||{p1:0,p2:0}}
+          currentServe={activeMatch.currentServe} seriesFinished={activeMatch.seriesFinished}
+          onClose={()=>setShowHistory(false)}
+          onReactivar={()=>{ updateMatch(activeMatch.id, m=>({...m,matchClosed:false,closedAt:null})); setShowHistory(false); }}
+        />
+      )}
     );
   }
 
@@ -1444,10 +1532,12 @@ function BillarApp() {
                     const isNext=!seriesFinished&&ji===games.length;
                     const isSaque=isNext&&currentServe===k;
                     // En jornada: bloqueado si no es el turno activo; o si ya se anotó victoria en este turno (turnScored) solo permitir modificar el juego actual
-                    const jornadaBlockCell = jornadaBlocked || (jornadaTurnActive && m.jornadaTurnScored && !hasWon);
+                    // Solo bloquear nuevas victorias (isNext), nunca deshacer (hasWon&&isLastGame)
+                    const jornadaBlockNew = jornadaBlocked;
+                    const jornadaBlockCell = isNext ? jornadaBlockNew : false;
                     const clickable=!isReadOnly&&!jornadaBlockCell&&(isNext||(hasWon&&isLastGame));
                     let pressTimer = null; let longPressed = false;
-                    const onPressStart = () => { longPressed=false; if(isNext&&!isReadOnly) pressTimer = setTimeout(()=>{ longPressed=true; handleCellLongPress(k,ji); }, 600); };
+                    const onPressStart = () => { longPressed=false; if(isNext&&!isReadOnly&&!jornadaBlockCell) pressTimer = setTimeout(()=>{ longPressed=true; handleCellLongPress(k,ji); }, 600); };
                     const onPressEnd = () => { clearTimeout(pressTimer); };
                     return <div key={ji}
                        onClick={()=>{ if(!longPressed) { clickable&&handleCellClick(k,ji); } longPressed=false; }}
@@ -2276,6 +2366,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
       const nextServe = m.currentServe==="p1"?"p2":"p1";
       const willFinish = newWins[k] >= m.carrera;
       onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+      if (onJornadaScore) onJornadaScore();
     } else if (hasWon && isLastGame) {
       // Deshacer último juego — funciona aunque la serie esté terminada
       onUpdateMatch(m.id, mm => {
@@ -2340,10 +2431,10 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                     const isSaque=isNext&&m.currentServe===k;
                     const clickable=isNext||(hasWon&&isLastGame);
                     let lpt=null, lpp=false;
-                    const lps=()=>{ lpp=false; if(isNext) lpt=setTimeout(()=>{ lpp=true; onLobbyBallMenu({matchId:m.id,k,ji}); },600); };
+                    const lps=()=>{ lpp=false; if(isNext&&!jornadaBlocked) lpt=setTimeout(()=>{ lpp=true; onLobbyBallMenu({matchId:m.id,k,ji}); },600); };
                     const lpe=()=>clearTimeout(lpt);
                     return <div key={ji}
-                      onClick={()=>{ if(!lpp) clickable&&handleClick(k,ji); lpp=false; }}
+                      onClick={()=>{ if(!lpp) (clickable&&!jornadaBlocked)&&handleClick(k,ji); lpp=false; }}
                       onMouseDown={lps} onMouseUp={lpe} onMouseLeave={lpe}
                       onTouchStart={lps} onTouchEnd={lpe}
                       style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:isNext?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.01)",position:"relative",cursor:clickable?"pointer":"default"}}>
