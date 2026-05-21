@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v143</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v144</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v143</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v144</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -275,6 +275,7 @@ function BillarApp() {
   const [matchOrder, setMatchOrder] = useState([]);
   const [jornadas, setJornadas] = useState(() => { try { return JSON.parse(localStorage.getItem("bg_jornadas")||"[]"); } catch{return[];} });
   const [jornadaScreen, setJornadaScreen] = useState(null);
+  const [jornadaHistorialId, setJornadaHistorialId] = useState(null);
   const [jornadaHistorialId, setJornadaHistorialId] = useState(null); // null | "list" | jornadaId
   const [showHistory, setShowHistory] = useState(false);
   const [showCloseMatch, setShowCloseMatch] = useState(false);
@@ -601,7 +602,7 @@ function BillarApp() {
                       onReplay={()=>{}}
                       onUpdateMatch={(id,fn)=>updateMatch(id,fn)}
                       onLobbyBallMenu={(obj)=>{setLobbyBallMenu(obj);}}
-                      onOpenHistory={id=>{setActiveId(id); setShowHistory(true);}}
+                      onOpenHistory={id=>{setJornadaHistorialId(id);}}
                       onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{seriesNum:mm.seriesCount,winner:sw,games:mm.games,partial:false}], seriesWins:{p1:mm.seriesWins.p1+(sw==="p1"?1:0),p2:mm.seriesWins.p2+(sw==="p2"?1:0)}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, currentServe:sw==="p1"?"p2":"p1", seriesFinished:false, seriesWinner:null}; }); }}
                       onUndo={id=>{ updateMatch(id, mm => { 
                         if(mm.games.length>0){const last=mm.games[mm.games.length-1];return{...mm,games:mm.games.slice(0,-1),wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1},currentServe:last.serve,seriesFinished:false,seriesWinner:null,jornadaTurnScored:false};}
@@ -618,7 +619,8 @@ function BillarApp() {
                       onEditName={key=>setEditingNameKey(key)}
                       editingNameKey={editingNameKey}
                       jornadaTurnActive={isTurn}
-                      jornadaBlocked={!isTurn && turnStarted && !mm.matchClosed}
+                      jornadaBlocked={turnStarted && !mm.matchClosed && (!isTurn || canNext)}
+                      canNext={canNext}
                       jornadaPaused={mm.jornadaPaused===true}
                       onPauseToggle={(id)=>{ updateMatch(id, m=>({...m, jornadaPaused:!m.jornadaPaused})); }}
                       onJornadaScore={()=>{ if(isTurn) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:true}:j)); }}
@@ -1553,9 +1555,9 @@ function BillarApp() {
                     const isNext=!seriesFinished&&ji===games.length;
                     const isSaque=isNext&&currentServe===k;
                     // En jornada: bloqueado si no es el turno activo; o si ya se anotó victoria en este turno (turnScored) solo permitir modificar el juego actual
-                    // Bloquear nuevas victorias Y deshacer según estado de jornada
-                    const jornadaBlockNew = jornadaBlocked || (jornadaTurnActive && m.jornadaTurnScored===true);
-                    const jornadaBlockUndo = jornadaBlocked || (jornadaTurnActive && m.jornadaTurnScored!==true);
+                    // Bloquear nuevas victorias (jornadaBlocked), permitir deshacer si es turno activo
+                    const jornadaBlockNew = jornadaBlocked;
+                    const jornadaBlockUndo = !jornadaTurnActive ? false : jornadaBlocked && !canNext;
                     const jornadaBlockCell = isNext ? jornadaBlockNew : (hasWon ? jornadaBlockUndo : false);
                     const clickable=!isReadOnly&&!jornadaBlockCell&&(isNext||(hasWon&&isLastGame));
                     let pressTimer = null; let longPressed = false;
@@ -1977,7 +1979,7 @@ function CrTimer({ startTs, base=0, big=false }) {
   return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
 }
 
-function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle}) {
+function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, canNext=false}) {
   const isOpen = !m.matchClosed;
 
   // ── Contrarreloj en lobby ──
