@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v190</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v191</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v190</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v191</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1397,14 +1397,24 @@ function BillarApp() {
                         onKeyDown={e=>{if(e.key==="Enter")e.target.blur();}}
                       />
                     </div>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                      <span style={{fontSize:11,color:"#888"}}>Color del nombre:</span>
-                      {["#ffffff","#4ade80","#f9e04b","#f87171","#60a5fa","#c084fc","#fb923c"].map(col=>(
-                        <div key={col} onClick={()=>{document.getElementById("edit-color-"+i).value=col;}}
-                          style={{width:20,height:20,borderRadius:"50%",background:col,cursor:"pointer",border:(p.color||"#ffffff")===col?"2px solid #fff":"2px solid transparent",flexShrink:0}}/>
-                      ))}
-                      <input type="color" id={"edit-color-"+i} defaultValue={p.color||"#ffffff"}
-                        style={{width:28,height:28,borderRadius:6,border:"none",background:"none",cursor:"pointer",padding:0}}/>
+                    <div style={{marginBottom:10}}>
+                      <span style={{fontSize:11,color:"#888",display:"block",marginBottom:6}}>Color del nombre:</span>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                        {["#ffffff","#4ade80","#f9e04b","#f87171","#60a5fa","#c084fc","#fb923c","#34d399","#fbbf24","#f472b6","#38bdf8","#a78bfa","#86efac","#fde68a","#fca5a5","#93c5fd","#d8b4fe","#fdba74","#6ee7b7","#fef08a"].map(col=>{
+                          const usedBy = playersList.find((pl,j2)=>j2!==i&&typeof pl!=="string"&&pl.color===col);
+                          const isUsed = !!usedBy;
+                          const isSel = (p.color||"#ffffff")===col;
+                          return <div key={col} onClick={()=>{if(!isUsed)document.getElementById("edit-color-"+i).value=col;}}
+                            title={isUsed?`En uso por ${typeof usedBy==="string"?usedBy:usedBy.name}`:`Seleccionar ${col}`}
+                            style={{width:22,height:22,borderRadius:"50%",background:col,cursor:isUsed?"not-allowed":"pointer",
+                              border:isSel?"3px solid #fff":"2px solid transparent",
+                              opacity:isUsed?0.25:1,flexShrink:0,position:"relative"}}>
+                            {isUsed&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:900}}>✕</div>}
+                          </div>;
+                        })}
+                        <input type="color" id={"edit-color-"+i} defaultValue={p.color||"#ffffff"}
+                          style={{width:26,height:26,borderRadius:6,border:"none",background:"none",cursor:"pointer",padding:0}}/>
+                      </div>
                     </div>
                     <div style={{display:"flex",gap:8}}>
                       <button onClick={()=>{
@@ -2637,7 +2647,11 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                       onTouchStart={lps} onTouchEnd={lpe}
                       style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:isNext?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.01)",position:"relative",cursor:clickable?"pointer":"default"}}>
                       {hasWon&&(gr.ballType==="gold"?<SpecialBall type="gold" size={28}/>:gr.ballType==="diamond"?<SpecialBall type="diamond" size={28}/>:<BallIcon modalidad={m.modalidad} size={28}/>)}
-                      {hasWon&&gr.device&&<div style={{position:"absolute",top:4,left:0,right:0,textAlign:"center",fontSize:8,fontWeight:800,color:"#f9e04b",lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",padding:"0 2px",textShadow:"0 1px 3px rgba(0,0,0,0.8)",letterSpacing:0.3}}>{gr.device}</div>}
+                      {hasWon&&gr.device&&(()=>{
+                        const devPlayer = playersList.find(p=>(typeof p==="string"?p:(p.id||p.name))===gr.device);
+                        const devColor = devPlayer&&typeof devPlayer!=="string"&&devPlayer.color ? devPlayer.color : "#f9e04b";
+                        return <div style={{position:"absolute",bottom:4,left:0,right:0,textAlign:"center",fontSize:8,fontWeight:800,color:devColor,lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",padding:"0 2px",textShadow:"0 1px 3px rgba(0,0,0,0.9)",letterSpacing:0.3}}>{gr.device}</div>;
+                      })()}
                       {isSaque&&<div style={{position:"absolute",top:3,left:3}}><CueBallSaque size={14}/></div>}
                     </div>;
                   })}
