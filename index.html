@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v193</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v194</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v193</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v194</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -210,6 +210,10 @@ function BillarApp() {
     try { return JSON.parse(localStorage.getItem("bg_players")||"[]"); } catch{return [];}
   });
   const cleanUndef = (obj) => JSON.parse(JSON.stringify(obj, (k,v) => v === undefined ? null : v));
+  const getPlayerColor = (name) => {
+    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
+    return (p && typeof p!=="string" && p.color) ? p.color : null;
+  };
   const saveJornadas = (list) => {
     setJornadas(list);
     try { localStorage.setItem("bg_jornadas", JSON.stringify(list)); } catch{}
@@ -2616,7 +2620,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               const isSaque=!m.seriesFinished&&m.currentServe===k;
               return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.2)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 10px",overflow:"hidden",boxSizing:"border-box"}}>
                 <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
-                  <div style={{fontSize:20,fontWeight:800,color:isSaque?"#f9e04b":"#e0e0e0",lineHeight:1.2}}>{name}</div>
+                  <div style={{fontSize:20,fontWeight:800,color:getPlayerColor(name)||"#e0e0e0",lineHeight:1.2}}>{name}</div>
                   
                 </div>
                 <div style={{fontSize:18,display:"flex",flexWrap:"wrap",gap:2}}>{Array.from({length:k==="p1"?m.seriesWins.p1:m.seriesWins.p2},(_,i)=><span key={i}>&#127942;</span>)}</div>
@@ -2654,7 +2658,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                       {hasWon&&(gr.ballType==="gold"?<SpecialBall type="gold" size={28}/>:gr.ballType==="diamond"?<SpecialBall type="diamond" size={28}/>:<BallIcon modalidad={m.modalidad} size={28}/>)}
                       {hasWon&&gr.device&&(()=>{
                         const devPlayer = playersList.find(p=>(typeof p==="string"?p:(p.id||p.name))===gr.device);
-                        const devColor = devPlayer&&typeof devPlayer!=="string"&&devPlayer.color ? devPlayer.color : "#f9e04b";
+                        const devColor = devPlayer&&typeof devPlayer!=="string"&&devPlayer.color ? devPlayer.color : "rgba(255,255,255,0.6)";
                         return <div style={{position:"absolute",bottom:4,left:0,right:0,textAlign:"center",fontSize:8,fontWeight:800,color:devColor,lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",padding:"0 2px",textShadow:"0 1px 3px rgba(0,0,0,0.9)",letterSpacing:0.3}}>{gr.device}</div>;
                       })()}
                       {isSaque&&<div style={{position:"absolute",top:3,left:0,right:0,display:"flex",justifyContent:"center"}}><CueBallSaque size={14}/></div>}
