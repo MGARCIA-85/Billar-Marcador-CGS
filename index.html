@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v204</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v205</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v204</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v205</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -210,6 +210,15 @@ function BillarApp() {
     try { return JSON.parse(localStorage.getItem("bg_players")||"[]"); } catch{return [];}
   });
   const cleanUndef = (obj) => JSON.parse(JSON.stringify(obj, (k,v) => v === undefined ? null : v));
+  const saveDispositivosMap = (map) => {
+    setDispositivosMap(map);
+    db.collection("billar").doc("dispositivos").set(cleanUndef(map)).catch(e=>console.error(e));
+  };
+  // Obtener devices de un jugador (por id o nombre)
+  const getJugadorDevices = (p) => {
+    const key = typeof p==="string" ? p : (p.id||p.name);
+    return dispositivosMap[key] || [];
+  };
   const getPlayerColor = (name) => {
     const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
     return (p && typeof p!=="string" && p.color) ? p.color : null;
@@ -299,6 +308,7 @@ function BillarApp() {
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState(()=>localStorage.getItem("bg_lobbyTab")||"active");
   const [deviceName, setDeviceName] = useState(()=>localStorage.getItem("bg_device")||null);
+  const [dispositivosMap, setDispositivosMap] = useState({}); // {jugadorId: [dev1, dev2]}
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [newPId, setNewPId] = useState("");
   const [ballMenu, setBallMenu] = useState(null); // {k, ji} posición del menú
@@ -337,7 +347,10 @@ function BillarApp() {
         try { localStorage.setItem("bg_players", JSON.stringify(d.list)); } catch{}
       }}
     });
-    return () => { unsub1(); unsub2(); unsub3(); };
+    const unsub4 = db.collection("billar").doc("dispositivos").onSnapshot(snap => {
+      if (snap.exists) { const d = snap.data(); if (d) setDispositivosMap(d); }
+    });
+    return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
   }, []);
 
   const moveMatch = (id, dir) => {
@@ -1493,16 +1506,58 @@ function BillarApp() {
                     </div>
                   </div>
                   <div style={{display:"flex",gap:6}}>
-                    <button onClick={()=>{
-                      const dn=p.id||p.name;
-                      if(deviceName && deviceName!==dn) {
-                        if(!window.confirm(`Jugador ya registró celular...\n¿Seguro que quieres cambiar el registro a ${p.name}?`)) return;
-                      }
-                      setDeviceName(dn);localStorage.setItem("bg_device",dn);
-                    }}
-                      style={{flex:1,padding:"7px",borderRadius:8,background:isThisDevice?"rgba(74,222,128,0.2)":"rgba(74,222,128,0.08)",border:`1px solid ${isThisDevice?"rgba(74,222,128,0.5)":"rgba(74,222,128,0.2)"}`,color:"#4ade80",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                      {isThisDevice?"✓ Registrado":"📱 Registrar celular"}
-                    </button>
+                    {(()=>{
+                      const jugKey = p.id||p.name;
+                      const existingDevs = getJugadorDevices(p);
+                      const hasOtherDevs = existingDevs.length > 0 && !existingDevs.includes(deviceName);
+                      const handleReg = () => {
+                        if(hasOtherDevs) {
+                          const choice = window.confirm(`${p.name} ya tiene ${existingDevs.length} dispositivo(s) registrado(s).\n\nOK = Cambiar dispositivo (borra el anterior)\nCancelar = Agregar este dispositivo`);
+                          if(choice) {
+                            // Cambiar: reemplazar todos los anteriores por este
+                            const newMap = {...dispositivosMap, [jugKey]: [deviceName]};
+                            saveDispositivosMap(newMap);
+                          } else {
+                            // Agregar: mantener anteriores + este
+                            const newMap = {...dispositivosMap, [jugKey]: [...existingDevs, deviceName]};
+                            saveDispositivosMap(newMap);
+                          }
+                        } else {
+                          // Sin conflicto: registrar normalmente
+                          const newMap = {...dispositivosMap, [jugKey]: [deviceName]};
+                          saveDispositivosMap(newMap);
+                        }
+                        setDeviceName(deviceName); // ya está seteado
+                        localStorage.setItem("bg_device", deviceName);
+                      };
+                      return (
+                        <button onClick={()=>{
+                          if(!isThisDevice) {
+                            const dn=jugKey;
+                            localStorage.setItem("bg_device",dn);
+                            setDeviceName(dn);
+                            const newDeviceId = dn;
+                            if(hasOtherDevs) {
+                              const choice = window.confirm(`${p.name} ya tiene ${existingDevs.length} dispositivo(s) registrado(s).\n\nOK = Cambiar dispositivo (borra el anterior)\nCancelar = Agregar este dispositivo`);
+                              if(choice) {
+                                saveDispositivosMap({...dispositivosMap, [jugKey]: [dn]});
+                              } else {
+                                saveDispositivosMap({...dispositivosMap, [jugKey]: [...existingDevs, dn]});
+                              }
+                            } else {
+                              saveDispositivosMap({...dispositivosMap, [jugKey]: [...existingDevs.filter(d=>d!==dn), dn]});
+                            }
+                          }
+                        }}
+                          style={{flex:1,padding:"7px",borderRadius:8,
+                            background:isThisDevice?"rgba(74,222,128,0.2)":hasOtherDevs?"rgba(255,255,255,0.04)":"rgba(74,222,128,0.08)",
+                            border:`1px solid ${isThisDevice?"rgba(74,222,128,0.5)":hasOtherDevs?"rgba(255,255,255,0.15)":"rgba(74,222,128,0.2)"}`,
+                            color:isThisDevice?"#4ade80":hasOtherDevs?"#888":"#4ade80",
+                            fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:isThisDevice?"default":"pointer"}}>
+                          {isThisDevice?"✓ Registrado":hasOtherDevs?`📱 Registrado (${existingDevs.length})`:"📱 Registrar celular"}
+                        </button>
+                      );
+                    })()}
                     <button onClick={()=>setEditingNameKey("player:"+i)}
                       style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.13)",color:"#aaa",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                       ✏️
