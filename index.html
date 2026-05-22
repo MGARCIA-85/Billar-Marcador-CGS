@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v181-debug</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v183</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v181-debug</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v183</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -205,7 +205,7 @@ function Acceso({ ok }) {
 function BillarApp() {
   const [matches, setMatches] = useState([]);
   const [activeId, setActiveId] = useState(()=>localStorage.getItem("bg_activeId")||null);
-  const [screen, setScreen] = useState(()=>localStorage.getItem("bg_screen")||"lobby");
+  const [screen, setScreen] = useState(()=>{ const s=localStorage.getItem("bg_screen"); if(!s) localStorage.setItem("bg_screen","lobby"); return s||"lobby"; });
   const [playersList, setPlayersList] = useState(()=>{
     try { return JSON.parse(localStorage.getItem("bg_players")||"[]"); } catch{return [];}
   });
@@ -282,7 +282,7 @@ function BillarApp() {
   const [turnScoredLocal, setTurnScoredLocal] = useState(false); // estado local para turno actual
   const [showHistory, setShowHistory] = useState(()=>localStorage.getItem("bg_showHistory")==="1");
   const [showCloseMatch, setShowCloseMatch] = useState(false);
-  const [lobbyTab, setLobbyTab] = useState("active");
+  const [lobbyTab, setLobbyTab] = useState(()=>localStorage.getItem("bg_lobbyTab")||"active");
   const [ballMenu, setBallMenu] = useState(null); // {k, ji} posición del menú
   const [lobbyBallMenu, setLobbyBallMenu] = useState(null); // {matchId, k, ji}
 
@@ -293,11 +293,6 @@ function BillarApp() {
   const setJornadaScreenP = (s) => { setJornadaScreen(s); if(s) localStorage.setItem("bg_jornadaScreen", s); else localStorage.removeItem("bg_jornadaScreen"); };
 
   const [fbLoaded, setFbLoaded] = useState(false);
-
-  // Log de diagnóstico al arrancar
-  useEffect(() => {
-    console.log("INIT: screen="+localStorage.getItem("bg_screen")+" showHistory="+localStorage.getItem("bg_showHistory")+" activeId="+localStorage.getItem("bg_activeId"));
-  }, []);
 
   useEffect(() => {
     const unsub1 = db.collection("billar").doc("partidas").onSnapshot(snap => {
@@ -691,6 +686,7 @@ function BillarApp() {
           if (!lm) return null;
           const applyBall = (bt) => {
             const {k, ji} = lobbyBallMenu;
+            if (lm.seriesFinished || lm.wins[k] >= lm.carrera) { setLobbyBallMenu(null); return; }
             const newWins = {...lm.wins, [k]: lm.wins[k]+1};
             const nextServe = lm.currentServe==="p1"?"p2":"p1";
             const willFinish = newWins[k] >= lm.carrera;
@@ -839,7 +835,7 @@ function BillarApp() {
         </div>
         <div style={{display:"flex",padding:"12px 16px 0",gap:8}}>
           {["active","closed"].map(tab => (
-            <button key={tab} onClick={()=>setLobbyTab(tab)} style={{flex:1,padding:"9px 0",borderRadius:"10px 10px 0 0",border:lobbyTab===tab?"1px solid rgba(74,222,128,0.25)":"1px solid rgba(255,255,255,0.07)",borderBottom:"none",background:lobbyTab===tab?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.04)",color:lobbyTab===tab?"#4ade80":"#777",fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+            <button key={tab} onClick={()=>{ setLobbyTab(tab); localStorage.setItem("bg_lobbyTab",tab); }} style={{flex:1,padding:"9px 0",borderRadius:"10px 10px 0 0",border:lobbyTab===tab?"1px solid rgba(74,222,128,0.25)":"1px solid rgba(255,255,255,0.07)",borderBottom:"none",background:lobbyTab===tab?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.04)",color:lobbyTab===tab?"#4ade80":"#777",fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer"}}>
               {tab==="active"?"En juego":"Terminadas"}
               {tab==="active" && activeMatches.length > 0 && <span style={{background:"#4ade80",color:"#0a1f0a",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:800,marginLeft:6}}>{activeMatches.length}</span>}
             </button>
@@ -884,6 +880,7 @@ function BillarApp() {
           if (!lm) return null;
           const applyBall = (bt) => {
             const {k, ji} = lobbyBallMenu;
+            if (lm.seriesFinished || lm.wins[k] >= lm.carrera) { setLobbyBallMenu(null); return; }
             const newWins = {...lm.wins, [k]: lm.wins[k]+1};
             const nextServe = lm.currentServe==="p1"?"p2":"p1";
             const willFinish = newWins[k] >= lm.carrera;
@@ -2543,7 +2540,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                     const jBlockCell = isNext ? jBlockAdd : (hasWon ? jBlockUndo : false);
                     const clickable=!jBlockCell&&(isNext||(hasWon&&isLastGame));
                     let lpt=null, lpp=false;
-                    const lps=()=>{ lpp=false; if(isNext&&!jBlockAdd) lpt=setTimeout(()=>{ lpp=true; onLobbyBallMenu({matchId:m.id,k,ji}); },600); };
+                    const lps=()=>{ lpp=false; if(isNext&&!jBlockAdd&&!m.seriesFinished) lpt=setTimeout(()=>{ lpp=true; onLobbyBallMenu({matchId:m.id,k,ji}); },600); };
                     const lpe=()=>clearTimeout(lpt);
                     return <div key={ji}
                       onClick={()=>{ if(!lpp) clickable&&handleClick(k,ji); lpp=false; }}
