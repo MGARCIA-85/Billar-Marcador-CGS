@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v202</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v203</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v202</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v203</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -861,6 +861,7 @@ function BillarApp() {
           currentServe={matches.find(m=>m.id===jornadaHistorialId)?.currentServe} seriesFinished={matches.find(m=>m.id===jornadaHistorialId)?.seriesFinished}
           onClose={()=>setJornadaHistorialId(null)}
           onReactivar={()=>{ updateMatch(jornadaHistorialId, m=>({...m,matchClosed:false,closedAt:null})); setJornadaHistorialId(null); }}
+          playersList={playersList}
         />
       )}
       </>
@@ -996,7 +997,7 @@ function BillarApp() {
             seriesHistory={hm.seriesHistory} seriesWins={hm.seriesWins}
             games={hm.games} seriesCount={hm.seriesCount}
             seriesFinished={hm.seriesFinished} seriesWinner={hm.seriesWinner}
-            matchClosed={hm.matchClosed}
+            matchClosed={hm.matchClosed} playersList={playersList}
             onClose={()=>setShowHistoryP(false)}
             onEditSeriesWinner={(idx,nw)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.map((s,i)=>i!==idx?s:{...s,winner:nw});const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw};});}}
             onEditCurrentGame={(ji,k)=>{updateMatch(activeId,(m)=>{const ng=m.games.map((g,i)=>i===ji?{...g,winner:k}:g);const nww={p1:0,p2:0};ng.forEach(g=>nww[g.winner]++);const sf=nww.p1>=m.carrera||nww.p2>=m.carrera;const sw=nww.p1>=m.carrera?"p1":nww.p2>=m.carrera?"p2":null;return{...m,games:ng,wins:nww,seriesFinished:sf,seriesWinner:sw};});}}
@@ -1927,7 +1928,7 @@ function BillarApp() {
           seriesHistory={seriesHistory} seriesWins={seriesWins}
           games={games} seriesCount={seriesCount}
           seriesFinished={seriesFinished} seriesWinner={seriesWinner}
-          matchClosed={isReadOnly}
+          matchClosed={isReadOnly} playersList={playersList}
           onClose={()=>setShowHistoryP(false)}
           onEditCurrentGame={(ji, k) => {
             updateMatch(activeId, m => {
@@ -1993,7 +1994,11 @@ function BillarApp() {
 
 function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, seriesWins,
   games, seriesCount, seriesFinished, seriesWinner, matchClosed,
-  onClose, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries, onRestoreAnySeries, onReactivar}) {
+  onClose, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries, onRestoreAnySeries, onReactivar, playersList=[]}) {
+  const getPlayerColor = (name) => {
+    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
+    return (p && typeof p!=="string" && p.color) ? p.color : null;
+  };
 
   const sw = seriesWins||{p1:0,p2:0};
   const d1 = sw.p1+(seriesFinished&&seriesWinner==="p1"?1:0);
