@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v183</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v186</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v183</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v186</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -226,7 +226,10 @@ function BillarApp() {
     if (!newName.trim() || oldName === newName.trim()) return;
     const n = newName.trim();
     // Actualizar lista de jugadores
-    savePlayersList(playersList.map(p => p === oldName ? n : p).sort((a,b)=>a.localeCompare(b)));
+    savePlayersList(playersList.map(p => {
+      const pn=typeof p==="string"?p:p.name;
+      return pn===oldName?(typeof p==="string"?n:{...p,name:n}):p;
+    }).sort((a,b)=>{const na=typeof a==="string"?a:a.name;const nb=typeof b==="string"?b:b.name;return na.localeCompare(nb);}));
     // Actualizar TODAS las partidas donde aparece ese nombre
     const updated = matches.map(m => {
       let changed = false;
@@ -253,11 +256,19 @@ function BillarApp() {
     });
     saveMatches(updated);
   };
-  const addPlayerToList = (name) => {
-    const n = name.trim();
-    if (!n || playersList.includes(n)) return;
-    savePlayersList([...playersList, n].sort((a,b)=>a.localeCompare(b)));
+  const addPlayerToList = (input) => {
+    const obj = typeof input==="string" ? {name:input.trim(),id:""} : input;
+    if (!obj.name) return;
+    const norm = playersList.map(p=>typeof p==="string"?{name:p,id:""}:p);
+    if (norm.some(p=>p.name===obj.name)) return;
+    const newList = [...playersList, obj].sort((a,b)=>{
+      const na=typeof a==="string"?a:a.name; const nb=typeof b==="string"?b:b.name;
+      return na.localeCompare(nb);
+    });
+    savePlayersList(newList);
   };
+  // Helper: obtener nombre string de un jugador (compatible con string o {name,id})
+  const plName = (p) => typeof p==="string" ? p : (p?.name||"");
   const [wP1, setWP1] = useState("");
   const [wP2, setWP2] = useState("");
   const [wServe, setWServe] = useState(null);
@@ -283,6 +294,7 @@ function BillarApp() {
   const [showHistory, setShowHistory] = useState(()=>localStorage.getItem("bg_showHistory")==="1");
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState(()=>localStorage.getItem("bg_lobbyTab")||"active");
+  const [deviceName, setDeviceName] = useState(()=>localStorage.getItem("bg_device")||null);
   const [ballMenu, setBallMenu] = useState(null); // {k, ji} posición del menú
   const [lobbyBallMenu, setLobbyBallMenu] = useState(null); // {matchId, k, ji}
 
@@ -293,6 +305,14 @@ function BillarApp() {
   const setJornadaScreenP = (s) => { setJornadaScreen(s); if(s) localStorage.setItem("bg_jornadaScreen", s); else localStorage.removeItem("bg_jornadaScreen"); };
 
   const [fbLoaded, setFbLoaded] = useState(false);
+  const [isOnline, setIsOnline] = useState(()=>navigator.onLine);
+  useEffect(() => {
+    const onOn = () => setIsOnline(true);
+    const onOff = () => setIsOnline(false);
+    window.addEventListener('online', onOn);
+    window.addEventListener('offline', onOff);
+    return () => { window.removeEventListener('online', onOn); window.removeEventListener('offline', onOff); };
+  }, []);
 
   useEffect(() => {
     const unsub1 = db.collection("billar").doc("partidas").onSnapshot(snap => {
@@ -542,7 +562,7 @@ function BillarApp() {
         if(nm && !nm.matchClosed && !nm.jornadaPaused) break;
         next=(next+1)%jMatchIds.length; tries++;
       }
-      setTurnScoredLocal(false); saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,currentTurn:next,turnStarted:true,turnScored:false}:j));
+      saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,currentTurn:next,turnStarted:true,turnScored:false}:j));
         // Limpiar jornadaTurnScored de todas las partidas para permitir anotar en el nuevo turno
         jMatchIds.forEach(mid => updateMatch(mid, mm => mm.jornadaTurnScored ? {...mm, jornadaTurnScored:false} : mm));
     };
@@ -553,7 +573,13 @@ function BillarApp() {
         <div className="app-scroll" style={{padding:"14px 12px"}}>
           {/* Header */}
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <button onClick={()=>{setJornadaScreenP(null);setScreenP("lobby");}} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 10px",fontSize:16,cursor:"pointer",fontFamily:"inherit"}}>🏠</button>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <button onClick={()=>{setJornadaScreenP(null);setScreenP("lobby");}} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 10px",fontSize:16,cursor:"pointer",fontFamily:"inherit"}}>🏠</button>
+              {!isOnline && <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:8,padding:"4px 8px"}}>
+                <div style={{width:7,height:7,borderRadius:"50%",background:"#ef4444",boxShadow:"0 0 5px #ef4444"}}/>
+                <span style={{fontSize:10,color:"#f87171",fontWeight:700,letterSpacing:0.5}}>SIN CONEXIÓN</span>
+              </div>}
+            </div>
             <div style={{flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <div style={{fontSize:16,fontWeight:800,color:"#f9e04b"}}>{currentJ.name}</div>
@@ -653,10 +679,8 @@ function BillarApp() {
                         if(jornadaScreen && jornadaScreen!=="list") {
                           if(undoingNextSeries) {
                             saveJornadas(jornadas.map(j=>j.id===jornadaScreen?{...j,turnScored:true}:j));
-                            setTurnScoredLocal(true);
                           } else {
                             saveJornadas(jornadas.map(j=>j.id===jornadaScreen?{...j,turnScored:false}:j));
-                            setTurnScoredLocal(false);
                           }
                         }
                       }}
@@ -669,11 +693,11 @@ function BillarApp() {
                       onEditName={key=>setEditingNameKey(key)}
                       editingNameKey={editingNameKey}
                       jornadaTurnActive={isTurn}
-                      jornadaBlocked={!mm.matchClosed && (!turnStarted || (turnStarted && (!isTurn || turnScoredLocal)))}
-                      jornadaTurnScored={isTurn ? turnScoredLocal : false}
+                      jornadaBlocked={!mm.matchClosed && (!turnStarted || (turnStarted && (!isTurn || currentJ.turnScored)))}
+                      jornadaTurnScored={isTurn ? (currentJ.turnScored===true) : false}
                       jornadaPaused={mm.jornadaPaused===true}
                       onPauseToggle={(id)=>{ updateMatch(id, m=>({...m, jornadaPaused:!m.jornadaPaused})); }}
-                      onJornadaScore={(action)=>{ setTurnScoredLocal(action==='undo'?false:true); if(currentJ) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:action==='undo'?false:true}:j)); }}
+                      onJornadaScore={(action)=>{ if(currentJ) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:action==='undo'?false:true}:j)); }}
                     />
                   </div>
                 );
@@ -690,10 +714,9 @@ function BillarApp() {
             const newWins = {...lm.wins, [k]: lm.wins[k]+1};
             const nextServe = lm.currentServe==="p1"?"p2":"p1";
             const willFinish = newWins[k] >= lm.carrera;
-            updateMatch(lm.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:lm.currentServe,ballType:bt||"normal"}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null, jornadaTurnScored:true}));
+            updateMatch(lm.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:lm.currentServe,ballType:bt||"normal",device:deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null, jornadaTurnScored:true}));
             if (jornadaScreen && jornadaScreen!=="list") {
               saveJornadas(jornadas.map(j => j.id===jornadaScreen && j.turnStarted ? {...j, turnScored:true} : j));
-              setTurnScoredLocal(true);
             }
             setLobbyBallMenu(null);
           };
@@ -822,7 +845,10 @@ function BillarApp() {
         <div style={{padding:"24px 20px 0",position:"relative",zIndex:10}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div>
-              <div style={{fontSize:24,fontWeight:800,color:"#4ade80",letterSpacing:1}}>Billares García</div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{fontSize:24,fontWeight:800,color:"#4ade80",letterSpacing:1}}>Billares García</div>
+                <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
+              </div>
               <div style={{fontSize:11,color:"#555",marginTop:1}}>Control de partidas</div>
             </div>
             <div style={{display:"flex",gap:8}}>
@@ -884,7 +910,7 @@ function BillarApp() {
             const newWins = {...lm.wins, [k]: lm.wins[k]+1};
             const nextServe = lm.currentServe==="p1"?"p2":"p1";
             const willFinish = newWins[k] >= lm.carrera;
-            updateMatch(lm.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:lm.currentServe,ballType:bt||"normal"}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+            updateMatch(lm.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:lm.currentServe,ballType:bt||"normal",device:deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
             setLobbyBallMenu(null);
           };
           return (
@@ -1055,6 +1081,7 @@ function BillarApp() {
     const closed = matches.filter(m => m.matchClosed && !m.jornadaId);
     const allMods = [...new Set(closed.map(m=>m.modalidad))].sort();
     const allPlayers = [...new Set(closed.flatMap(m=>m.modalidad==="Contrarreloj"?(m.crPlayers||[]):[m.p1Name,m.p2Name]).filter(Boolean))].sort();
+    const plNames = playersList.map(p=>typeof p==="string"?p:p.name);
 
     // Toggle helpers
     const toggleMod = (m) => setSfModalidades(prev => prev.includes(m)?prev.filter(x=>x!==m):[...prev,m]);
@@ -1304,53 +1331,78 @@ function BillarApp() {
 
   // ===== JUGADORES =====
   if (screen === "players") {
+    // Normalizar playersList: puede tener strings o {name,id}
+    const plNorm = playersList.map(p => typeof p==="string" ? {name:p,id:""} : p);
+    const [newPId, setNewPId] = React.useState("");
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
         <div className="app-scroll" style={{padding:"20px 18px"}}>
           <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>← Volver</button>
-          <div style={{fontSize:22,fontWeight:800,color:"#4ade80",marginBottom:20}}>👥 Jugadores</div>
+          <div style={{fontSize:22,fontWeight:800,color:"#4ade80",marginBottom:4}}>👥 Jugadores</div>
+          {deviceName && <div style={{fontSize:11,color:"#4ade80",marginBottom:16,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",borderRadius:8,padding:"5px 10px",display:"inline-block"}}>📱 Este dispositivo: <b>{deviceName}</b></div>}
+          {!deviceName && <div style={{fontSize:11,color:"#888",marginBottom:16}}>Ningún jugador registrado en este dispositivo</div>}
 
           {/* Agregar nuevo */}
-          <div style={{display:"flex",gap:8,marginBottom:20}}>
-            <input
-              style={{flex:1,padding:"11px 14px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none"}}
-              value={newPlayerName} onChange={e=>setNewPlayerName(e.target.value)}
-              placeholder="Nombre del jugador"
-              onKeyDown={e=>{if(e.key==="Enter"&&newPlayerName.trim()){addPlayerToList(newPlayerName);setNewPlayerName("");}}}
-            />
+          <div style={{marginBottom:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:"14px",border:"1px solid rgba(255,255,255,0.07)"}}>
+            <div style={{fontSize:11,color:"#888",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Nuevo jugador</div>
+            <div style={{display:"flex",gap:8,marginBottom:8}}>
+              <input
+                style={{flex:1,padding:"11px 14px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none"}}
+                value={newPlayerName} onChange={e=>setNewPlayerName(e.target.value)}
+                placeholder="Nombre"
+                onKeyDown={e=>{if(e.key==="Enter"&&newPlayerName.trim()){addPlayerToList({name:newPlayerName.trim(),id:newPId.trim().toUpperCase()});setNewPlayerName("");setNewPId("");}}}
+              />
+              <input
+                style={{width:70,padding:"11px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#f9e04b",fontFamily:"inherit",fontSize:14,fontWeight:700,outline:"none",textAlign:"center"}}
+                value={newPId} onChange={e=>setNewPId(e.target.value.toUpperCase().slice(0,4))}
+                placeholder="ID"
+                maxLength={4}
+              />
+            </div>
             <button
-              onClick={()=>{if(newPlayerName.trim()){addPlayerToList(newPlayerName);setNewPlayerName("");}}}
-              style={{padding:"11px 16px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>
+              onClick={()=>{if(newPlayerName.trim()){addPlayerToList({name:newPlayerName.trim(),id:newPId.trim().toUpperCase()});setNewPlayerName("");setNewPId("");}}}
+              style={{width:"100%",padding:"11px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>
               + Agregar
             </button>
           </div>
 
           {/* Lista */}
-          {playersList.length === 0
+          {plNorm.length === 0
             ? <div style={{color:"#444",fontSize:13,textAlign:"center",padding:"30px 0"}}>No hay jugadores guardados aún</div>
-            : playersList.map((p,i) => {
+            : plNorm.map((p,i) => {
+              const isThisDevice = deviceName === (p.id||p.name);
               if (editingNameKey===("player:"+i)) return (
                 <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
                   <input autoFocus
                     style={{flex:1,padding:"11px 14px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(74,222,128,0.3)",color:"#fff",fontFamily:"inherit",fontSize:14,outline:"none"}}
-                    defaultValue={p}
-                    onBlur={e=>{const v=e.target.value.trim();if(v&&v!==p)renamePlayer(p,v);setEditingNameKey(null);}}
+                    defaultValue={p.name}
+                    onBlur={e=>{const v=e.target.value.trim();if(v&&v!==p.name)renamePlayer(p.name,v);setEditingNameKey(null);}}
                     onKeyDown={e=>{if(e.key==="Enter")e.target.blur();if(e.key==="Escape")setEditingNameKey(null);}}
                   />
                   <button onClick={()=>setEditingNameKey(null)} style={{padding:"10px 12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:12,cursor:"pointer"}}>✕</button>
                 </div>
               );
               return (
-                <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",borderRadius:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",marginBottom:8}}>
-                  <span style={{fontSize:15,fontWeight:600,color:"#e0e0e0"}}>🎱 {p}</span>
+                <div key={i} style={{padding:"12px 14px",borderRadius:12,background:isThisDevice?"rgba(74,222,128,0.08)":"rgba(255,255,255,0.04)",border:`1px solid ${isThisDevice?"rgba(74,222,128,0.35)":"rgba(255,255,255,0.08)"}`,marginBottom:8}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontSize:15,fontWeight:700,color:isThisDevice?"#4ade80":"#e0e0e0"}}>🎱 {p.name}</span>
+                      {p.id && <span style={{fontSize:11,fontWeight:800,color:"#f9e04b",background:"rgba(249,224,75,0.12)",border:"1px solid rgba(249,224,75,0.25)",borderRadius:6,padding:"2px 7px"}}>{p.id}</span>}
+                      {isThisDevice && <span style={{fontSize:10,color:"#4ade80"}}>📱 Este dispositivo</span>}
+                    </div>
+                  </div>
                   <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>{const dn=p.id||p.name;setDeviceName(dn);localStorage.setItem("bg_device",dn);}}
+                      style={{flex:1,padding:"7px",borderRadius:8,background:isThisDevice?"rgba(74,222,128,0.2)":"rgba(74,222,128,0.08)",border:`1px solid ${isThisDevice?"rgba(74,222,128,0.5)":"rgba(74,222,128,0.2)"}`,color:"#4ade80",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                      {isThisDevice?"✓ Registrado":"📱 Registrar celular"}
+                    </button>
                     <button onClick={()=>setEditingNameKey("player:"+i)}
-                      style={{background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-                      ✏️ Editar
+                      style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.13)",color:"#aaa",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                      ✏️
                     </button>
                     <button onClick={()=>savePlayersList(playersList.filter((_,j)=>j!==i))}
-                      style={{background:"rgba(255,80,80,0.12)",border:"1px solid rgba(255,80,80,0.25)",color:"#f87171",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-                      Eliminar
+                      style={{background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.22)",color:"#f87171",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                      🗑
                     </button>
                   </div>
                 </div>
@@ -1387,15 +1439,15 @@ function BillarApp() {
                 />
                 {playersList.length>0 && (
                   <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:4}}>
-                    {playersList.map((p,i)=>(
-                      <button key={i} onClick={()=>setVal(p)}
+                    {playersList.map((p,i)=>{ const pn=plName(p); return (
+                      <button key={i} onClick={()=>setVal(pn)}
                         style={{padding:"5px 12px",borderRadius:20,fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",
-                          background:val===p?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",
-                          border:val===p?"none":"1px solid rgba(255,255,255,0.11)",
-                          color:val===p?"#fff":"#aaa"}}>
-                        {p}
+                          background:val===pn?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",
+                          border:val===pn?"none":"1px solid rgba(255,255,255,0.11)",
+                          color:val===pn?"#fff":"#aaa"}}>
+                        {pn}
                       </button>
-                    ))}
+                    ); })}
                   </div>
                 )}
               </React.Fragment>);
@@ -1411,15 +1463,15 @@ function BillarApp() {
                     placeholder={`Jugador ${i+1}`} />
                   {playersList.length>0 && (
                     <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-                      {playersList.filter(pl=>!wPlayers.some((wp,wi)=>wp===pl&&wi!==i)).map((pl,pi)=>(
-                        <button key={pi} onClick={()=>{const n=[...wPlayers];n[i]=pl;setWPlayers(n);setWOrder([]);addPlayerToList(pl);}}
+                      {playersList.filter(pl=>!wPlayers.some((wp,wi)=>wp===plName(pl)&&wi!==i)).map((pl,pi)=>{ const plStr=plName(pl); return (
+                        <button key={pi} onClick={()=>{const n=[...wPlayers];n[i]=plStr;setWPlayers(n);setWOrder([]);}}
                           style={{padding:"3px 10px",borderRadius:20,fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer",
-                            background:p===pl?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",
-                            border:p===pl?"none":"1px solid rgba(255,255,255,0.11)",
-                            color:p===pl?"#fff":"#aaa"}}>
-                          {pl}
+                            background:wPlayers[i]===plStr?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",
+                            border:wPlayers[i]===plStr?"none":"1px solid rgba(255,255,255,0.11)",
+                            color:wPlayers[i]===plStr?"#fff":"#aaa"}}>
+                          {plStr}
                         </button>
-                      ))}
+                      ); })}
                     </div>
                   )}
                 </div>
@@ -1533,7 +1585,7 @@ function BillarApp() {
       const newWins = {...wins, [k]: wins[k]+1};
       const nextServe = currentServe==="p1"?"p2":"p1";
       const willFinish = newWins[k] >= carrera;
-      updateMatch(activeId, m => ({...m, wins:newWins, games:[...m.games,{winner:k,serve:currentServe,ballType:bt}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+      updateMatch(activeId, m => ({...m, wins:newWins, games:[...m.games,{winner:k,serve:currentServe,ballType:bt,device:deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
       // Marcar turno anotado si la partida pertenece a una jornada activa
       if (jornadaScreen && jornadaScreen!=="list") {
         saveJornadas(jornadas.map(j => j.id===jornadaScreen && j.turnStarted ? {...j, turnScored:true} : j));
@@ -1549,7 +1601,6 @@ function BillarApp() {
       // Resetear turnScored en jornada activa
       if (jornadaScreen && jornadaScreen!=="list") {
         saveJornadas(jornadas.map(j => j.id===jornadaScreen ? {...j, turnScored:false} : j));
-        setTurnScoredLocal && setTurnScoredLocal(false);
       }
     }
     setBallMenu(null);
@@ -2465,7 +2516,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
       const newWins = {...m.wins, [k]: m.wins[k]+1};
       const nextServe = m.currentServe==="p1"?"p2":"p1";
       const willFinish = newWins[k] >= m.carrera;
-      onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe,ballType:"normal"}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null, jornadaTurnScored: jornadaTurnActive ? true : mm.jornadaTurnScored}));
+      onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe,ballType:"normal",device:deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null, jornadaTurnScored: jornadaTurnActive ? true : mm.jornadaTurnScored}));
       if (onJornadaScore) onJornadaScore();
     } else if (hasWon && isLastGame) {
       // Deshacer último juego — funciona aunque la serie esté terminada
@@ -2548,6 +2599,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                       onTouchStart={lps} onTouchEnd={lpe}
                       style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:isNext?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.01)",position:"relative",cursor:clickable?"pointer":"default"}}>
                       {hasWon&&(gr.ballType==="gold"?<SpecialBall type="gold" size={28}/>:gr.ballType==="diamond"?<SpecialBall type="diamond" size={28}/>:<BallIcon modalidad={m.modalidad} size={28}/>)}
+                      {hasWon&&gr.device&&<div style={{position:"absolute",bottom:2,left:0,right:0,textAlign:"center",fontSize:7,color:"rgba(255,255,255,0.5)",lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",padding:"0 2px"}}>{gr.device}</div>}
                       {isSaque&&<div style={{position:"absolute",top:3,left:3}}><CueBallSaque size={14}/></div>}
                     </div>;
                   })}
