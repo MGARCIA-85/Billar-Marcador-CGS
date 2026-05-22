@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v192</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v193</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v192</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v193</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1435,7 +1435,7 @@ function BillarApp() {
                 <div key={i} style={{padding:"12px 14px",borderRadius:12,background:isThisDevice?"rgba(74,222,128,0.08)":"rgba(255,255,255,0.04)",border:`1px solid ${isThisDevice?"rgba(74,222,128,0.35)":"rgba(255,255,255,0.08)"}`,marginBottom:8}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <span style={{fontSize:15,fontWeight:700,color:isThisDevice?"#4ade80":(p.color||"#e0e0e0")}}>🎱 {p.name}</span>
+                      <span style={{fontSize:15,fontWeight:700,color:p.color||"#e0e0e0"}}>🎱 {p.name}</span>
                       {p.id && <span style={{fontSize:11,fontWeight:800,color:"#f9e04b",background:"rgba(249,224,75,0.12)",border:"1px solid rgba(249,224,75,0.25)",borderRadius:6,padding:"2px 7px"}}>{p.id}</span>}
                       {isThisDevice && <span style={{fontSize:10,color:"#4ade80"}}>📱 Este dispositivo</span>}
                     </div>
@@ -1745,7 +1745,7 @@ function BillarApp() {
                        onTouchStart={onPressStart} onTouchEnd={()=>{ onPressEnd(); }}
                       style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:isNext?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.02)",position:"relative",cursor:clickable?"pointer":"default",boxShadow:(seriesFinished&&hasWon&&isLastGame)?"inset 0 0 0 2px rgba(249,115,22,0.5)":"none"}}>
                        {hasWon && (gr.ballType==="gold" ? <SpecialBall type="gold" size={28}/> : gr.ballType==="diamond" ? <SpecialBall type="diamond" size={28}/> : <BallIcon modalidad={modalidad} size={28}/>)}
-                      {isSaque && <div style={{position:"absolute",top:4,left:4}}><CueBallSaque size={16} /></div>}
+                      {isSaque && <div style={{position:"absolute",top:4,left:0,right:0,display:"flex",justifyContent:"center"}}><CueBallSaque size={16} /></div>}
                     </div>;
                   })}
                 </div>
@@ -1989,7 +1989,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
             const sw=k==="p1"?p1wins:p2wins;
             const trophyFS=sw<=5?22:sw<=10?19:sw<=15?16:13;
             return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.3)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 8px 6px",overflow:"hidden",boxSizing:"border-box"}}>
-              <div style={{fontSize:24,fontWeight:800,color:"#e0e0e0",lineHeight:1.2,wordBreak:"break-word",marginBottom:5}}>{k==="p1"?p1Name:p2Name}</div>
+              {(()=>{ const nm=k==="p1"?p1Name:p2Name; const col=getPlayerColor(nm); return <div style={{fontSize:24,fontWeight:800,color:col||"#e0e0e0",lineHeight:1.2,wordBreak:"break-word",marginBottom:5}}>{nm}</div>; })()}
               <div style={{display:"flex",flexWrap:"wrap",gap:1}}>
                 {Array.from({length:sw},(_,i)=><span key={i} style={{fontSize:trophyFS,lineHeight:1.1}}>&#127942;</span>)}
               </div>
@@ -2156,6 +2156,10 @@ function CrTimer({ startTs, base=0, big=false }) {
 }
 
 function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[]}) {
+  const getPlayerColor = (name) => {
+    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
+    return (p && typeof p!=="string" && p.color) ? p.color : null;
+  };
   const isOpen = !m.matchClosed;
 
   // ── Contrarreloj en lobby ──
@@ -2653,7 +2657,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                         const devColor = devPlayer&&typeof devPlayer!=="string"&&devPlayer.color ? devPlayer.color : "#f9e04b";
                         return <div style={{position:"absolute",bottom:4,left:0,right:0,textAlign:"center",fontSize:8,fontWeight:800,color:devColor,lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",padding:"0 2px",textShadow:"0 1px 3px rgba(0,0,0,0.9)",letterSpacing:0.3}}>{gr.device}</div>;
                       })()}
-                      {isSaque&&<div style={{position:"absolute",top:3,left:3}}><CueBallSaque size={14}/></div>}
+                      {isSaque&&<div style={{position:"absolute",top:3,left:0,right:0,display:"flex",justifyContent:"center"}}><CueBallSaque size={14}/></div>}
                     </div>;
                   })}
                 </div>
