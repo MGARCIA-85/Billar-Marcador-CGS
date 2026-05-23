@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v222</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v224</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v222</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v224</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -668,6 +668,15 @@ function BillarApp() {
                 return (
                   <div key={mid} style={{border:`2px solid ${borderColor}`,borderRadius:14,marginBottom:10,background:bgColor,opacity:mm.matchClosed?0.6:1,boxShadow,transition:"box-shadow 0.3s"}}>
                     {/* Controles de turno dentro de la tarjeta */}
+                    {/* Si la partida del turno actual se cerró, mostrar botón para avanzar */}
+                    {mm.matchClosed && mid===currentMatchId && !allJDone && (
+                      <div style={{padding:"8px 10px 0 10px"}}>
+                        <button onClick={()=>goNextTurn()}
+                          style={{width:"100%",padding:"10px",borderRadius:10,border:"none",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer",background:"linear-gradient(135deg,#1e3a8a,#3b82f6)",color:"#fff"}}>
+                          → Siguiente turno
+                        </button>
+                      </div>
+                    )}
                     {!mm.matchClosed && mid===currentMatchId && (
                       <div style={{padding:"8px 10px 0 10px"}}>
                         {!turnStarted ? (
@@ -2248,12 +2257,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
            })}
         </>}
 
-        {matchClosed && (
-          <button onClick={onReactivar}
-            style={{marginTop:8,width:"100%",padding:"12px 0",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
-            &#9654; Reactivar partida
-          </button>
-        )}
+{/* Reactivar eliminado */}
         <button style={{marginTop:8,width:"100%",padding:"12px 0",borderRadius:12,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#ccc",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={onClose}>Cerrar</button>
       </div>
     </div>
@@ -2749,7 +2753,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                   <div style={{fontSize:20,fontWeight:800,color:getPlayerColor(name)||"#e0e0e0",lineHeight:1.2}}>{name}</div>
                   
                 </div>
-                <div style={{fontSize:18,display:"flex",flexWrap:"wrap",gap:2}}>{Array.from({length:k==="p1"?m.seriesWins.p1:m.seriesWins.p2},(_,i)=><span key={i}>&#127942;</span>)}</div>
+                <div style={{fontSize:18,display:"flex",flexWrap:"wrap",gap:2}}>{Array.from({length:k==="p1"?sw1:sw2},(_,i)=><span key={i}>&#127942;</span>)}</div>
               </div>;
             })}
           </div>
@@ -2928,7 +2932,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
             <div style={{display:"flex",gap:5}}>
               <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReplay(m);}}>↺ Re-crear</button>
               <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onOpenHistory(m.id);}}>📋 Historial</button>
-              <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReactivar(m.id);}}>↺ Reactivar</button>
+{/* Reactivar eliminado */}
             </div>
           </div>
         );
