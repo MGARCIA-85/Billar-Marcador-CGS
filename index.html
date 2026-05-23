@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v217</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v222</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v217</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v222</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -457,10 +457,11 @@ function BillarApp() {
   const closeMatch = () => {
     setShowCloseMatch(false);
     updateMatch(activeId, m => {
-      const finalSeriesWins = m.seriesFinished
+      const shouldSum2 = (!m.matchClosed && m.seriesFinished && m.seriesWinner);
+      const finalSeriesWins = shouldSum2
         ? {...m.seriesWins, [m.seriesWinner]: m.seriesWins[m.seriesWinner]+1}
         : m.seriesWins;
-      return {...m, matchClosed:true, closedAt:Date.now(), seriesWins:finalSeriesWins};
+      return {...m, matchClosed:true, closedAt:Date.now(), seriesWins:finalSeriesWins, closedSeriesWins:shouldSum2?m.seriesWins:null};
     });
     setScreenP("lobby");
   };
@@ -728,7 +729,7 @@ function BillarApp() {
                         }
                       }}
                       onReactivar={()=>{}}
-                      onTerminar={id=>{ updateMatch(id, m=>{ const fsw=m.seriesFinished?{...m.seriesWins,[m.seriesWinner]:m.seriesWins[m.seriesWinner]+1}:m.seriesWins; return {...m,matchClosed:true,closedAt:Date.now(),seriesWins:fsw}; });
+                      onTerminar={id=>{ updateMatch(id, m=>{ const shouldSum=(!m.matchClosed&&m.seriesFinished&&m.seriesWinner); const fsw=shouldSum?{...m.seriesWins,[m.seriesWinner]:m.seriesWins[m.seriesWinner]+1}:m.seriesWins; return {...m,matchClosed:true,closedAt:Date.now(),seriesWins:fsw,closedSeriesWins:shouldSum?m.seriesWins:null}; });
                         // Si hay turno activo marcar turnScored
                         if(isTurn) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:true}:j));
                       }}
@@ -874,7 +875,11 @@ function BillarApp() {
           games={matches.find(m=>m.id===jornadaHistorialId)?.games||[]} wins={matches.find(m=>m.id===jornadaHistorialId)?.wins||{p1:0,p2:0}}
           currentServe={matches.find(m=>m.id===jornadaHistorialId)?.currentServe} seriesFinished={matches.find(m=>m.id===jornadaHistorialId)?.seriesFinished}
           onClose={()=>setJornadaHistorialId(null)}
-          onReactivar={()=>{ updateMatch(jornadaHistorialId, m=>({...m,matchClosed:false,closedAt:null})); setJornadaHistorialId(null); }}
+          onReactivar={()=>{ updateMatch(jornadaHistorialId, m=>{
+      // Al reactivar: deshacer la suma de la última serie si fue sumada al cerrar
+      const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
+      return {...m,matchClosed:false,closedAt:null,seriesWins:correctedSW};
+    }); setJornadaHistorialId(null); }}
           playersList={playersList}
         />
       )}
@@ -950,8 +955,13 @@ function BillarApp() {
               }
               return mm;
             }); }}
-            onReactivar={(id)=>{ updateMatch(id, m=>({...m,matchClosed:false,closedAt:null})); }}
-            onTerminar={(id)=>{ updateMatch(id, m=>{ const fsw=m.seriesFinished?{...m.seriesWins,[m.seriesWinner]:m.seriesWins[m.seriesWinner]+1}:m.seriesWins; return {...m,matchClosed:true,closedAt:Date.now(),seriesWins:fsw}; }); }}
+            onReactivar={(id)=>{ updateMatch(id, m => {
+      // Restaurar seriesWins previo al cierre (antes de que closeMatch sumara la última serie)
+      const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
+      // No tocar seriesFinished — si era true, "Sig. serie" quedará activo para continuar
+      return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null};
+    }); }}
+            onTerminar={(id)=>{ updateMatch(id, m=>{ const shouldSum=(!m.matchClosed&&m.seriesFinished&&m.seriesWinner); const fsw=shouldSum?{...m.seriesWins,[m.seriesWinner]:m.seriesWins[m.seriesWinner]+1}:m.seriesWins; return {...m,matchClosed:true,closedAt:Date.now(),seriesWins:fsw,closedSeriesWins:shouldSum?m.seriesWins:null}; }); }}
             onMoveUp={lobbyTab==="active"?(id)=>moveMatch(id,-1):null}
             onMoveDown={lobbyTab==="active"?(id)=>moveMatch(id,1):null}
             isFirst={lobbyTab==="active"&&activeMatches.indexOf(activeMatches.find(x=>x.id===m.id))===0}
@@ -1019,7 +1029,12 @@ function BillarApp() {
             onEditHistoryGame={(si,ji,k,fb)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.map((ser,idx)=>{if(idx!==si)return ser;const bg=ser.games||fb;const ng=bg.map((g,i)=>i===ji?{...g,winner:k}:g);const p1=ng.filter(g=>g.winner==="p1").length;const p2=ng.filter(g=>g.winner==="p2").length;const nww=p1>=m.carrera?"p1":p2>=m.carrera?"p2":ser.winner;return{...ser,games:ng,p1wins:p1,p2wins:p2,winner:nww};});const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw};});}}
             onRestoreLastSeries={(ls,lg)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});const rg=ls.games||lg;const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):m.firstServe;return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:false,seriesWinner:null};});setShowHistoryP(false);}}
             onRestoreAnySeries={(si,ls,lg)=>{updateMatch(activeId,(m)=>{const rg=ls.games||lg;const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):m.firstServe;const nh=m.seriesHistory.slice(0,si);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:false,seriesWinner:null};});setShowHistoryP(false);}}
-            onReactivar={()=>{updateMatch(activeId,m=>({...m,matchClosed:false,closedAt:null}));setShowHistoryP(false);}}
+            onReactivar={()=>{updateMatch(activeId,m => {
+      // Restaurar seriesWins previo al cierre (antes de que closeMatch sumara la última serie)
+      const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
+      // No tocar seriesFinished — si era true, "Sig. serie" quedará activo para continuar
+      return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null};
+    });setShowHistoryP(false);}}
           />;
         })()}
       {/* Modal historial CR desde lobby */}
@@ -2061,7 +2076,12 @@ function BillarApp() {
             setShowHistoryP(false);
           }}
           onReactivar={() => {
-            updateMatch(activeId, m => ({...m, matchClosed:false, closedAt:null}));
+            updateMatch(activeId, m => {
+      // Restaurar seriesWins previo al cierre (antes de que closeMatch sumara la última serie)
+      const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
+      // No tocar seriesFinished — si era true, "Sig. serie" quedará activo para continuar
+      return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null};
+    });
             setShowHistoryP(false);
           }}
         />
@@ -2846,7 +2866,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                   {standings.map((pidx,pos)=>(
                     <div key={pidx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:8,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:4}}>
                       <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{fontSize:13}}>{pos===0?"👑":pos===1?"🥈":"🥉"}</span>
+                        <span style={{fontSize:13}}>{pos===0?"🏆":pos===1?"🥈":"🥉"}</span>
                         <span style={{fontSize:14,fontWeight:800,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{pos+1}. {players[pidx]}</span>
                       </div>
                       <div style={{textAlign:"right"}}>
