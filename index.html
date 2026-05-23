@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v210</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v213</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v210</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v213</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -401,7 +401,7 @@ function BillarApp() {
         crTimes: {},
         crRound: 1,
         crTotalRounds: wRondasCR,
-        crTotalSeries: wSeriesCR,
+        crTotalSeries: 1,
         crCurrentSerie: 1,
         crSerieWins: {},
         crSerieHistory: [],
@@ -728,7 +728,7 @@ function BillarApp() {
                         }
                       }}
                       onReactivar={()=>{}}
-                      onTerminar={id=>{ updateMatch(id, m=>({...m,matchClosed:true,closedAt:Date.now()}));
+                      onTerminar={id=>{ updateMatch(id, m=>{ const fsw=m.seriesFinished?{...m.seriesWins,[m.seriesWinner]:m.seriesWins[m.seriesWinner]+1}:m.seriesWins; return {...m,matchClosed:true,closedAt:Date.now(),seriesWins:fsw}; });
                         // Si hay turno activo marcar turnScored
                         if(isTurn) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:true}:j));
                       }}
@@ -951,7 +951,7 @@ function BillarApp() {
               return mm;
             }); }}
             onReactivar={(id)=>{ updateMatch(id, m=>({...m,matchClosed:false,closedAt:null})); }}
-            onTerminar={(id)=>{ updateMatch(id, m=>({...m,matchClosed:true,closedAt:Date.now()})); }}
+            onTerminar={(id)=>{ updateMatch(id, m=>{ const fsw=m.seriesFinished?{...m.seriesWins,[m.seriesWinner]:m.seriesWins[m.seriesWinner]+1}:m.seriesWins; return {...m,matchClosed:true,closedAt:Date.now(),seriesWins:fsw}; }); }}
             onMoveUp={lobbyTab==="active"?(id)=>moveMatch(id,-1):null}
             onMoveDown={lobbyTab==="active"?(id)=>moveMatch(id,1):null}
             isFirst={lobbyTab==="active"&&activeMatches.indexOf(activeMatches.find(x=>x.id===m.id))===0}
@@ -1653,14 +1653,9 @@ function BillarApp() {
             </div>
           </>)}
           {isCR && (<>
-            <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:18}}>Número de series</div>
-            <div style={{color:"#555",fontSize:10,marginBottom:6}}>Una serie = {wRondasCR} ronda{wRondasCR!==1?"s":""} · Gana el que gane más series</div>
-            <div style={{display:"flex",gap:8,marginTop:4,flexWrap:"wrap",marginBottom:6}}>
-              {[1,2,3,5,7].map(s => <button key={s} onClick={()=>setWSeriesCR(s)} style={chip(wSeriesCR===s)}>{s}</button>)}
-            </div>
-            <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:18}}>Rondas por serie</div>
+            <div style={{color:"#666",font            <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:18}}>Carrera</div>
             <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
-              {[1,2,3,5,7,10].map(r => <button key={r} onClick={()=>setWRondasCR(r)} style={chip(wRondasCR===r)}>{r}</button>)}
+              {[3,5,7,9,11,15].map(r => <button key={r} onClick={()=>setWRondasCR(r)} style={chip(wRondasCR===r)}>{r}</button>)}
             </div>
             <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:18}}>Penalización por falta (segundos)</div>
             <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
@@ -2083,8 +2078,8 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
   };
 
   const sw = seriesWins||{p1:0,p2:0};
-  const d1 = sw.p1+(seriesFinished&&seriesWinner==="p1"?1:0);
-  const d2 = sw.p2+(seriesFinished&&seriesWinner==="p2"?1:0);
+  const d1 = sw.p1+(seriesFinished&&!matchClosed&&seriesWinner==="p1"?1:0);
+  const d2 = sw.p2+(seriesFinished&&!matchClosed&&seriesWinner==="p2"?1:0);
   const CELL_W=38, CELL_H=60, NAM_W=90;
   const BORDER="1px solid rgba(255,255,255,0.15)";
   const BORDER_THIN="1px solid rgba(255,255,255,0.08)";
