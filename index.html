@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v230</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v231</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v230</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v231</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -210,20 +210,19 @@ function BillarApp() {
     try { return JSON.parse(localStorage.getItem("bg_players")||"[]"); } catch{return [];}
   });
   const cleanUndef = (obj) => JSON.parse(JSON.stringify(obj, (k,v) => v === undefined ? null : v));
-  const saveDispositivosMap = (map) => { setDispositivosMap(map); db.collection("billar").doc("dispositivos").set(cleanUndef(map)).catch(e=>console.error(e)); };
-  const getJugadorDevices = (p) => { const key = typeof p==="string"?p:(p.id||p.name); return dispositivosMap[key]||[]; };
-  const getPlayerColor = (name) => { const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name); return (p&&typeof p!=="string"&&p.color)?p.color:null; };
-  const deviceRole = React.useMemo(() => {
-    if (!deviceName) return "espectador";
-    const p = playersList.find(pl => { const pn=typeof pl==="string"?pl:pl.name; const pid=typeof pl==="string"?"":pl.id||""; return pn===deviceName||pid===deviceName; });
-    if (!p||typeof p==="string") return "jugador";
-    return p.role||"jugador";
-  }, [deviceName, playersList]);
-  const isAdmin = deviceRole==="admin";
-  const isOperario = deviceRole==="operario"||isAdmin;
-  const isJugador = deviceRole==="jugador"||isOperario;
-
-
+  const saveDispositivosMap = (map) => {
+    setDispositivosMap(map);
+    db.collection("billar").doc("dispositivos").set(cleanUndef(map)).catch(e=>console.error(e));
+  };
+  // Obtener devices de un jugador (por id o nombre)
+  const getJugadorDevices = (p) => {
+    const key = typeof p==="string" ? p : (p.id||p.name);
+    return dispositivosMap[key] || [];
+  };
+  const getPlayerColor = (name) => {
+    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
+    return (p && typeof p!=="string" && p.color) ? p.color : null;
+  };
   const saveJornadas = (list) => {
     setJornadas(list);
     try { localStorage.setItem("bg_jornadas", JSON.stringify(list)); } catch{}
@@ -309,6 +308,20 @@ function BillarApp() {
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState(()=>localStorage.getItem("bg_lobbyTab")||"active");
   const [deviceName, setDeviceName] = useState(()=>localStorage.getItem("bg_device")||null);
+  // Rol del dispositivo actual: espectador | jugador | operario | admin
+  const deviceRole = React.useMemo(() => {
+    if (!deviceName) return "jugador";
+    const p = playersList.find(pl => {
+      const pn = typeof pl==="string"?pl:pl.name;
+      const pid = typeof pl==="string"?"":pl.id||"";
+      return pn===deviceName || pid===deviceName;
+    });
+    if (!p || typeof p==="string") return "jugador";
+    return p.role||"jugador";
+  }, [deviceName, playersList]);
+  const isAdmin = deviceRole==="admin";
+  const isOperario = deviceRole==="operario" || isAdmin;
+  const isJugador = deviceRole==="jugador" || isOperario;
   const [dispositivosMap, setDispositivosMap] = useState({}); // {jugadorId: [dev1, dev2]}
   const [devDialog, setDevDialog] = useState(null); // {jugKey, jugName, existingDevs, newDev}
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -525,14 +538,13 @@ function BillarApp() {
               <div style={{fontSize:22,fontWeight:800,color:"#f9e04b"}}>🗓 Jornadas</div>
               <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
             </div>
-            {/* Crear nueva jornada */}
-            {isJugador&&<button onClick={()=>{
+            {isOperario && <button onClick={()=>{
               const newJ = {id:"j_"+Date.now(), name:"Jornada "+(jornadas.length+1), currentTurn:0, turnStarted:false, turnScored:false, matchOrder:[], finished:false, createdAt:Date.now()};
               saveJornadas([...jornadas, newJ]);
               setJornadaScreenP(newJ.id);
             }} style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",fontFamily:"inherit",fontSize:15,fontWeight:800,marginBottom:16,background:"linear-gradient(135deg,#166534,#4ade80)",color:"#fff",cursor:"pointer"}}>
               + Nueva jornada
-            </button>}}
+            </button>}
             {/* Lista de jornadas existentes */}
             {jornadas.length===0
               ? <div style={{color:"#444",textAlign:"center",padding:"40px 0",fontSize:13}}>No hay jornadas creadas</div>
@@ -633,7 +645,12 @@ function BillarApp() {
               <div style={{fontSize:11,color:"#888"}}>{jMatchIds.filter(id=>matches.find(m=>m.id===id)?.matchClosed).length}/{jMatchIds.length} terminadas</div>
             </div>
             {/* Botón Nueva partida */}
-{isJugador&&<button onClick={()=>{setActiveIdP(null);sessionStorage.setItem("pendingJornadaId",currentJ.id);setJornadaScreenP(null);setScreenP("newMatch");}} style={{padding:"7px 12px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:800,cursor:"pointer"}}>+ Partida</button>}
+            {isOperario && <button onClick={()=>{
+              setActiveIdP(null);
+              sessionStorage.setItem("pendingJornadaId", currentJ.id);
+              setJornadaScreenP(null);
+              setScreenP("newMatch");
+            }} style={{padding:"7px 12px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:800,cursor:"pointer"}}>+ Partida</button>}
             {allJDone && (
               <button onClick={()=>{
                 if(window.confirm("¿Finalizar jornada? Las partidas pasarán a Terminadas.")) {
@@ -712,14 +729,13 @@ function BillarApp() {
                       deviceName={deviceName}
                       playersList={playersList}
                       isAdminMode={isAdmin}
-                      isJugador={isJugador}
                       onOpen={id=>{setActiveId(id);}}
                       onDelete={id=>deleteMatch(id)}
                       onReplay={()=>{}}
                       onUpdateMatch={(id,fn)=>updateMatch(id,fn)}
                       onLobbyBallMenu={(obj)=>{setLobbyBallMenu(obj);}}
                       onOpenHistory={id=>{setJornadaHistorialId(id);}}
-                      onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{seriesNum:mm.seriesCount,winner:sw,games:mm.games,partial:false}], seriesWins:{p1:mm.seriesWins.p1+(sw==="p1"?1:0),p2:mm.seriesWins.p2+(sw==="p2"?1:0)}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, currentServe:sw==="p1"?"p2":"p1", seriesFinished:false, seriesWinner:null}; }); }:null}
+                      onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{seriesNum:mm.seriesCount,winner:sw,games:mm.games,partial:false}], seriesWins:{p1:mm.seriesWins.p1+(sw==="p1"?1:0),p2:mm.seriesWins.p2+(sw==="p2"?1:0)}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, currentServe:sw==="p1"?"p2":"p1", seriesFinished:false, seriesWinner:null}; }); }}
                       onUndo={id=>{ 
                         const mmPrev = matches.find(x=>x.id===id);
                         const undoingNextSeries = mmPrev && mmPrev.games.length === 0 && mmPrev.seriesHistory.length > 0;
@@ -886,7 +902,7 @@ function BillarApp() {
       // Al reactivar: deshacer la suma de la última serie si fue sumada al cerrar
       const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
       return {...m,matchClosed:false,closedAt:null,seriesWins:correctedSW};
-    }); setJornadaHistorialId(null); }}
+    }); setJornadaHistorialId(null); }:null}
           playersList={playersList}
         />
       )}
@@ -894,7 +910,8 @@ function BillarApp() {
     );
   }
 
-    if (showRegisterPrompt && fbLoaded) {
+    // Modal de registro al entrar por primera vez
+  if (showRegisterPrompt && fbLoaded) {
     const plNorm2 = playersList.map(p=>typeof p==="string"?{name:p,id:"",role:"jugador"}:p);
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
@@ -906,19 +923,18 @@ function BillarApp() {
             {plNorm2.map((p,i)=>(
               <button key={i} onClick={()=>{
                 const dn=p.id||p.name;
-                setDeviceName(dn); localStorage.setItem("bg_device",dn);
+                setDeviceName(dn);
+                localStorage.setItem("bg_device",dn);
                 saveDispositivosMap({...dispositivosMap,[dn]:[...(dispositivosMap[dn]||[]),dn].filter((v,i,a)=>a.indexOf(v)===i)});
                 setShowRegisterPrompt(false);
               }} style={{padding:"12px 16px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.12)",color:p.color||"#e0e0e0",fontFamily:"inherit",fontSize:15,fontWeight:700,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
-                <span>🎱</span><span>{p.name}</span>
+                <span>🎱</span>
+                <span>{p.name}</span>
                 {p.id&&<span style={{fontSize:11,color:"#f9e04b",background:"rgba(249,224,75,0.1)",border:"1px solid rgba(249,224,75,0.2)",borderRadius:5,padding:"2px 6px"}}>{p.id}</span>}
               </button>
             ))}
           </div>
-          <button onClick={()=>{localStorage.setItem("bg_skipRegister","1");setShowRegisterPrompt(false);}}
-            style={{width:"100%",padding:"11px",borderRadius:10,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",color:"#666",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>
-            Continuar como espectador
-          </button>
+
         </div>
       </div>
     );
@@ -952,8 +968,10 @@ function BillarApp() {
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <div style={{fontSize:24,fontWeight:800,color:"#4ade80",letterSpacing:1}}>Billares García</div>
                 <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
-                <div style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:6,background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":deviceName?"rgba(255,255,255,0.07)":"transparent",color:isAdmin?"#f9e04b":isOperario?"#4ade80":deviceName?"#888":"#555"}}>
-                  {isAdmin?"👑 ADMIN":isOperario?"⚙️ OPERARIO":deviceName?"🎱 JUGADOR":"👁 ESPECTADOR"}
+                <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 6px",borderRadius:6,
+                  background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":deviceName?"rgba(255,255,255,0.07)":"transparent",
+                  color:isAdmin?"#f9e04b":isOperario?"#4ade80":"#888"}}>
+                  {isAdmin?"👑 ADMIN":isOperario?"⚙️ OPERARIO":"🎱 JUGADOR"}
                 </div>
               </div>
               <div style={{fontSize:11,color:"#555",marginTop:1}}>Control de partidas</div>
@@ -962,7 +980,7 @@ function BillarApp() {
               <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreenP("stats")}>📊</button>
               <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreenP("players")}>👥</button>
               <button style={{padding:"8px 10px",borderRadius:10,background:jornadaScreen?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:jornadaScreen?"1px solid rgba(249,224,75,0.3)":"1px solid rgba(255,255,255,0.13)",color:jornadaScreen?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setJornadaScreenP("list")}>🗓</button>
-{isJugador&&<button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>+ Nueva</button>}
+              {isJugador && <button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>+ Nueva</button>}
             </div>
           </div>
         </div>
@@ -976,7 +994,7 @@ function BillarApp() {
         </div>
         <div className="app-scroll" style={{padding:"0 14px"}}>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
-          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} isJugador={isJugador} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
                 // Deshacer último juego
@@ -1000,7 +1018,7 @@ function BillarApp() {
       const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
       // No tocar seriesFinished — si era true, "Sig. serie" quedará activo para continuar
       return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null};
-    }); }}
+    }); }:null}
             onTerminar={(id)=>{ updateMatch(id, m=>{ const shouldSum=(!m.matchClosed&&m.seriesFinished&&m.seriesWinner); const fsw=shouldSum?{...m.seriesWins,[m.seriesWinner]:m.seriesWins[m.seriesWinner]+1}:m.seriesWins; return {...m,matchClosed:true,closedAt:Date.now(),seriesWins:fsw,closedSeriesWins:shouldSum?m.seriesWins:null}; }); }}
             onMoveUp={lobbyTab==="active"?(id)=>moveMatch(id,-1):null}
             onMoveDown={lobbyTab==="active"?(id)=>moveMatch(id,1):null}
@@ -1074,7 +1092,7 @@ function BillarApp() {
       const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
       // No tocar seriesFinished — si era true, "Sig. serie" quedará activo para continuar
       return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null};
-    });setShowHistoryP(false);}}
+    });setShowHistoryP(false);}:null}
           />;
         })()}
       {/* Modal historial CR desde lobby */}
@@ -1486,7 +1504,8 @@ function BillarApp() {
           {deviceName && <div style={{fontSize:11,color:"#4ade80",marginBottom:16,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",borderRadius:8,padding:"5px 10px",display:"inline-block"}}>📱 Este dispositivo: <b>{deviceName}</b></div>}
           {!deviceName && <div style={{fontSize:11,color:"#888",marginBottom:16}}>Ningún jugador registrado en este dispositivo</div>}
 
-          {isOperario&&<div style={{marginBottom:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:"14px",border:"1px solid rgba(255,255,255,0.07)"}}>
+          {/* Agregar nuevo - solo Operario y Admin */}
+          {isOperario && <div style={{marginBottom:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:"14px",border:"1px solid rgba(255,255,255,0.07)"}}>
             <div style={{fontSize:11,color:"#888",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Nuevo jugador</div>
             <div style={{display:"flex",gap:8,marginBottom:8}}>
               <input
@@ -1512,13 +1531,13 @@ function BillarApp() {
           {/* Lista */}
           {plNorm.length === 0
             ? <div style={{color:"#444",fontSize:13,textAlign:"center",padding:"30px 0"}}>No hay jugadores guardados aún</div>
-            : plNorm.filter(p=>isOperario||((p.id||p.name)===deviceName||p.name===deviceName)).map((p,i_f) => {
-              const i=plNorm.indexOf(p);
+            : plNorm.filter(p => isOperario || (deviceRole==="jugador" && ((p.id||p.name)===deviceName||p.name===deviceName))).map((p,i_filtered) => {
+              const i = plNorm.indexOf(p);
               const isThisDevice = deviceName === (p.id||p.name);
               if (editingNameKey===("player:"+i)) {
-                const saveEdit = (newName, newId, newColor) => {
+                const saveEdit = (newName, newId, newColor, newRole) => {
                   const nm = newName.trim()||p.name;
-                  const updatedList = playersList.map((pl,j2)=>j2===i?{...p,name:nm,id:newId.toUpperCase().slice(0,4),color:newColor||undefined}:pl);
+                  const updatedList = playersList.map((pl,j2)=>j2===i?{...p,name:nm,id:newId.toUpperCase().slice(0,4),color:newColor||undefined,role:newRole||p.role||"jugador"}:pl);
                   savePlayersList(updatedList);
                   if(nm!==p.name) renamePlayer(p.name,nm);
                   setEditingNameKey(null);
@@ -1558,17 +1577,20 @@ function BillarApp() {
                           style={{width:26,height:26,borderRadius:6,border:"none",background:"none",cursor:"pointer",padding:0}}/>
                       </div>
                     </div>
-                    {isAdmin&&(
+                    {isAdmin && (
                       <div style={{marginBottom:10}}>
                         <span style={{fontSize:11,color:"#888",display:"block",marginBottom:6}}>Rol:</span>
                         <div style={{display:"flex",gap:6}}>
                           {["jugador","operario","admin"].map(r=>(
                             <button key={r} id={"edit-role-"+i+"-"+r}
+                              onClick={()=>{
+                                document.querySelectorAll(`[id^="edit-role-"+i+"-"]`).forEach(b=>b.style.background="rgba(255,255,255,0.06)");
+                                document.getElementById("edit-role-"+i+"-"+r).style.background="rgba(74,222,128,0.2)";
+                              }}
                               style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid rgba(255,255,255,0.15)",
                                 background:(p.role||"jugador")===r?"rgba(74,222,128,0.2)":"rgba(255,255,255,0.06)",
-                                color:(p.role||"jugador")===r?"#4ade80":"#888",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}
-                              onClick={()=>{ document.querySelectorAll('[id^="edit-role-'+i+'-"]').forEach(b=>{b.style.background="rgba(255,255,255,0.06)";b.style.color="#888";}); document.getElementById("edit-role-"+i+"-"+r).style.background="rgba(74,222,128,0.2)"; document.getElementById("edit-role-"+i+"-"+r).style.color="#4ade80"; }}>
-                              {r==="jugador"?"🎱":r==="operario"?"⚙️":"👑"} {r.charAt(0).toUpperCase()+r.slice(1)}
+                                color:(p.role||"jugador")===r?"#4ade80":"#888",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                              {r=="jugador"?"🎱":r=="operario"?"⚙️":"👑"} {r.charAt(0).toUpperCase()+r.slice(1)}
                             </button>
                           ))}
                         </div>
@@ -1579,7 +1601,7 @@ function BillarApp() {
                         const nm=document.getElementById("edit-name-"+i)?.value||p.name;
                         const nid=document.getElementById("edit-id-"+i)?.value||"";
                         const ncol=document.getElementById("edit-color-"+i)?.value||p.color||"";
-                        const selRole=isAdmin?(["jugador","operario","admin"].find(r=>{const el=document.getElementById("edit-role-"+i+"-"+r);return el&&el.style.background.includes("0.2");})||(p.role||"jugador")):(p.role||"jugador");
+                        const selRole = ["jugador","operario","admin"].find(r=>document.getElementById("edit-role-"+i+"-"+r)?.style?.background?.includes("0.2"))||(p.role||"jugador");
                         saveEdit(nm,nid,ncol,selRole);
                       }} style={{flex:1,padding:"9px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
                         ✓ Guardar
@@ -1628,7 +1650,7 @@ function BillarApp() {
                       style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.13)",color:"#aaa",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                       ✏️
                     </button>
-                    {isOperario&&<button onClick={()=>savePlayersList(playersList.filter((_,j)=>j!==i))}
+                    {isOperario && <button onClick={()=>savePlayersList(playersList.filter((_,j)=>j!==i))}
                       style={{background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.22)",color:"#f87171",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                       🗑
                     </button>}
@@ -1794,7 +1816,7 @@ function BillarApp() {
       setScreenP("lobby"); return null;
     }
   } else if (!activeMatch) { return null; }
-  const isReadOnly = activeMatch.matchClosed || !isJugador;
+  const isReadOnly = activeMatch.matchClosed;
   const {p1Name, p2Name, currentServe, wins, carrera, modalidad, games, seriesFinished, seriesWinner, seriesWins, seriesCount, seriesHistory} = activeMatch;
 
   const CELL_W=44, CELL_H=130, NAM_W=290, HDR_H=18;
@@ -1920,7 +1942,7 @@ function BillarApp() {
                     const onPressStart = () => { longPressed=false; if(isNext&&!isReadOnly&&!jornadaBlockCell) pressTimer = setTimeout(()=>{ longPressed=true; handleCellLongPress(k,ji); }, 600); };
                     const onPressEnd = () => { clearTimeout(pressTimer); };
                     return <div key={ji}
-                       onClick={()=>{ if(!longPressed) { clickable&&isJugador&&handleCellClick(k,ji); } longPressed=false; }}
+                       onClick={()=>{ if(!longPressed) { clickable&&handleCellClick(k,ji); } longPressed=false; }}
                       onMouseDown={onPressStart} onMouseUp={onPressEnd} onMouseLeave={onPressEnd}
                        onTouchStart={onPressStart} onTouchEnd={()=>{ onPressEnd(); }}
                       style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:isNext?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.02)",position:"relative",cursor:clickable?"pointer":"default",boxShadow:(seriesFinished&&hasWon&&isLastGame)?"inset 0 0 0 2px rgba(249,115,22,0.5)":"none"}}>
@@ -2146,7 +2168,7 @@ function BillarApp() {
       return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null};
     });
             setShowHistoryP(false);
-          }}
+          }:null}
         />
       )}
     </div>
@@ -2156,7 +2178,10 @@ function BillarApp() {
 function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, seriesWins,
   games, seriesCount, seriesFinished, seriesWinner, matchClosed,
   onClose, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries, onRestoreAnySeries, onReactivar, playersList=[]}) {
-
+  const getPlayerColor = (name) => {
+    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
+    return (p && typeof p!=="string" && p.color) ? p.color : null;
+  };
 
   const sw = seriesWins||{p1:0,p2:0};
   const d1 = sw.p1+(seriesFinished&&!matchClosed&&seriesWinner==="p1"?1:0);
@@ -2341,8 +2366,11 @@ function CrTimer({ startTs, base=0, big=false }) {
   return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
 }
 
-function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false, isJugador=false}) {
-
+function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false}) {
+  const getPlayerColor = (name) => {
+    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
+    return (p && typeof p!=="string" && p.color) ? p.color : null;
+  };
   const isOpen = !m.matchClosed;
 
   // ── Contrarreloj en lobby ──
@@ -2732,7 +2760,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               Serie {currentSerie+1} →
             </button>
           )}
-          {isJugador&&<button onClick={e=>{e.stopPropagation();onTerminar(m.id);}} style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.25)",color:"#f87171",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>Terminar</button>}
+          <button onClick={e=>{e.stopPropagation();onTerminar(m.id);}} style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.25)",color:"#f87171",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>Terminar</button>
         </div>
       </div>
     );
@@ -2834,7 +2862,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                     const lps=()=>{ lpp=false; if(isNext&&!jBlockAdd&&!m.seriesFinished) lpt=setTimeout(()=>{ lpp=true; onLobbyBallMenu({matchId:m.id,k,ji}); },600); };
                     const lpe=()=>clearTimeout(lpt);
                     return <div key={ji}
-                      onClick={()=>{ if(!lpp) clickable&&isJugador&&handleClick(k,ji); lpp=false; }}
+                      onClick={()=>{ if(!lpp) clickable&&handleClick(k,ji); lpp=false; }}
                       onMouseDown={lps} onMouseUp={lpe} onMouseLeave={lpe}
                       onTouchStart={lps} onTouchEnd={lpe}
                       style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:isNext?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.01)",position:"relative",cursor:clickable?"pointer":"default"}}>
@@ -2876,7 +2904,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               {jornadaPaused?"▶ Reanudar":"⏸ Pausa"}
             </button>
           )}
-          {isJugador&&<button style={{flex:1,padding:"8px 0",borderRadius:10,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.25)",color:"#f87171",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onTerminar(m.id);}}>Terminar</button>}
+          <button style={{flex:1,padding:"8px 0",borderRadius:10,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.25)",color:"#f87171",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onTerminar(m.id);}}>Terminar</button>
         </div>
       </>}
 
