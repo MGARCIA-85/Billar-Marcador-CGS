@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v239</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v240</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v239</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v240</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -911,28 +911,69 @@ function BillarApp() {
     // Modal de registro al entrar por primera vez
   if (showRegisterPrompt && fbLoaded) {
     const plNorm2 = playersList.map(p=>typeof p==="string"?{name:p,id:"",role:"jugador"}:p);
+    const thisDeviceId = localStorage.getItem("bg_device");
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+        {devDialog && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
+            <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:320,width:"100%"}}>
+              <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:8,textAlign:"center"}}>📱 Registrar dispositivo</div>
+              <div style={{fontSize:13,color:"#ccc",textAlign:"center",marginBottom:20,lineHeight:1.6}}>
+                <b style={{color:"#4ade80"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[devDialog.newDev]});setDevDialog(null);setShowRegisterPrompt(false);}}
+                  style={{padding:"13px",borderRadius:10,background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
+                  🔄 Cambiar dispositivo
+                  <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Borra el dispositivo anterior</div>
+                </button>
+                <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[...devDialog.existingDevs,devDialog.newDev]});setDevDialog(null);setShowRegisterPrompt(false);}}
+                  style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#4ade80",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
+                  ➕ Agregar dispositivo
+                  <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Mantiene el anterior también</div>
+                </button>
+                <button onClick={()=>{setDevDialog(null);}}
+                  style={{padding:"13px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#666",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                  ✕ No hacer nada
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div style={{background:"#1a2e1a",borderRadius:18,padding:"28px 22px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:340,width:"100%"}}>
           <div style={{fontSize:28,textAlign:"center",marginBottom:4}}>🎱</div>
           <div style={{fontSize:20,fontWeight:800,color:"#4ade80",textAlign:"center",marginBottom:6}}>Billares García</div>
           <div style={{fontSize:13,color:"#888",textAlign:"center",marginBottom:24,lineHeight:1.5}}>¿Eres uno de los jugadores registrados?</div>
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-            {plNorm2.map((p,i)=>(
-              <button key={i} onClick={()=>{
-                const dn=p.id||p.name;
-                setDeviceName(dn);
-                localStorage.setItem("bg_device",dn);
-                saveDispositivosMap({...dispositivosMap,[dn]:[...(dispositivosMap[dn]||[]),dn].filter((v,i,a)=>a.indexOf(v)===i)});
-                setShowRegisterPrompt(false);
-              }} style={{padding:"12px 16px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.12)",color:p.color||"#e0e0e0",fontFamily:"inherit",fontSize:15,fontWeight:700,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
-                <span>🎱</span>
-                <span>{p.name}</span>
-                {p.id&&<span style={{fontSize:11,color:"#f9e04b",background:"rgba(249,224,75,0.1)",border:"1px solid rgba(249,224,75,0.2)",borderRadius:5,padding:"2px 6px"}}>{p.id}</span>}
-              </button>
-            ))}
+            {plNorm2.map((p,i)=>{
+              const jugKey = p.id||p.name;
+              const existingDevs = dispositivosMap[jugKey]||[];
+              const yaRegistrado = existingDevs.length > 0;
+              return (
+                <button key={i} onClick={()=>{
+                  const dn = jugKey;
+                  if (yaRegistrado) {
+                    // Mostrar devDialog dentro del mismo modal
+                    setDevDialog({jugKey, jugName:p.name, existingDevs, newDev:dn});
+                  } else {
+                    // Sin registro: entrar directo con rol predeterminado
+                    setDeviceName(dn);
+                    localStorage.setItem("bg_device", dn);
+                    saveDispositivosMap({...dispositivosMap,[dn]:[dn]});
+                    setShowRegisterPrompt(false);
+                  }
+                }} style={{padding:"12px 16px",borderRadius:10,
+                  background:yaRegistrado?"rgba(249,224,75,0.06)":"rgba(74,222,128,0.06)",
+                  border:`1px solid ${yaRegistrado?"rgba(249,224,75,0.25)":"rgba(74,222,128,0.15)"}`,
+                  color:p.color||"#e0e0e0",fontFamily:"inherit",fontSize:15,fontWeight:700,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
+                  <span>{yaRegistrado?"📱":"🎱"}</span>
+                  <span style={{flex:1}}>{p.name}</span>
+                  {p.id&&<span style={{fontSize:11,color:"#f9e04b",background:"rgba(249,224,75,0.1)",border:"1px solid rgba(249,224,75,0.2)",borderRadius:5,padding:"2px 6px"}}>{p.id}</span>}
+                  {yaRegistrado&&<span style={{fontSize:10,color:"#f9e04b",fontWeight:600}}>Ya registrado</span>}
+                </button>
+              );
+            })}
           </div>
-
         </div>
       </div>
     );
