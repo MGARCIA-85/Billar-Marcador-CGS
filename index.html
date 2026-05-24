@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v243</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v244</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v243</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v244</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -338,6 +338,7 @@ function BillarApp() {
   const [fbLoaded, setFbLoaded] = useState(false);
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(()=>!localStorage.getItem("bg_device")&&!localStorage.getItem("bg_skipRegister"));
   const [registroBorrado, setRegistroBorrado] = useState(false);
+  const [pinPrompt, setPinPrompt] = useState(null); // {jugKey,jugName,pin,existingDevs,newDev,onSuccess}
   const [isOnline, setIsOnline] = useState(()=>navigator.onLine);
   useEffect(() => {
     const onOn = () => setIsOnline(true);
@@ -941,16 +942,39 @@ function BillarApp() {
                 <b style={{color:"#4ade80"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[devDialog.newDev]});setDevDialog(null);setShowRegisterPrompt(false);}}
-                  style={{padding:"13px",borderRadius:10,background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
-                  🔄 Cambiar dispositivo
-                  <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Borra el dispositivo anterior</div>
-                </button>
-                <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[...devDialog.existingDevs,devDialog.newDev]});setDevDialog(null);setShowRegisterPrompt(false);}}
-                  style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#4ade80",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
-                  ➕ Agregar dispositivo
-                  <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Mantiene el anterior también</div>
-                </button>
+                {(()=>{
+                  const pDev = plNorm2.find(p=>(p.id||p.name)===devDialog.jugKey);
+                  const pinDev = pDev?.pin||"";
+                  const rolDev = pDev?.role||"jugador";
+                  const needPin = (rolDev==="admin"||rolDev==="operario") && pinDev;
+                  const doChange = (modo) => {
+                    if (modo==="cambiar") {
+                      localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);
+                      saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[devDialog.newDev]});
+                    } else {
+                      localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);
+                      saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[...devDialog.existingDevs,devDialog.newDev]});
+                    }
+                    setDevDialog(null);setShowRegisterPrompt(false);
+                  };
+                  const tryAction = (modo) => {
+                    if (needPin) {
+                      setPinPrompt({jugKey:devDialog.jugKey,jugName:devDialog.jugName,pin:pinDev,existingDevs:devDialog.existingDevs,newDev:devDialog.newDev,onSuccess:()=>doChange(modo)});
+                    } else { doChange(modo); }
+                  };
+                  return (<>
+                    <button onClick={()=>tryAction("cambiar")}
+                      style={{padding:"13px",borderRadius:10,background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
+                      🔄 Cambiar dispositivo
+                      <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Borra el dispositivo anterior</div>
+                    </button>
+                    <button onClick={()=>tryAction("agregar")}
+                      style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#4ade80",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
+                      ➕ Agregar dispositivo
+                      <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Mantiene el anterior también</div>
+                    </button>
+                  </>);
+                })()}
                 <button onClick={()=>{setDevDialog(null);}}
                   style={{padding:"13px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#666",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
                   ✕ No hacer nada
@@ -974,13 +998,22 @@ function BillarApp() {
                 <button key={i} disabled={bloqueado} onClick={()=>{
                   if (bloqueado) return;
                   const dn = jugKey;
-                  if (yaRegistrado) {
-                    setDevDialog({jugKey, jugName:p.name, existingDevs, newDev:dn});
+                  const rolElevado2 = (p.role||"jugador")==="admin"||(p.role||"jugador")==="operario";
+                  const necesitaPin = rolElevado2 && p.pin;
+                  const doRegistro = () => {
+                    if (yaRegistrado) {
+                      setDevDialog({jugKey, jugName:p.name, existingDevs, newDev:dn});
+                    } else {
+                      setDeviceName(dn);
+                      localStorage.setItem("bg_device", dn);
+                      saveDispositivosMap({...dispositivosMap,[dn]:[dn]});
+                      setShowRegisterPrompt(false);
+                    }
+                  };
+                  if (necesitaPin) {
+                    setPinPrompt({jugKey, jugName:p.name, pin:p.pin, existingDevs, newDev:dn, onSuccess:doRegistro});
                   } else {
-                    setDeviceName(dn);
-                    localStorage.setItem("bg_device", dn);
-                    saveDispositivosMap({...dispositivosMap,[dn]:[dn]});
-                    setShowRegisterPrompt(false);
+                    doRegistro();
                   }
                 }} style={{padding:"12px 16px",borderRadius:10,
                   background:bloqueado?"rgba(255,255,255,0.02)":yaRegistrado?"rgba(249,224,75,0.06)":"rgba(74,222,128,0.06)",
@@ -996,6 +1029,31 @@ function BillarApp() {
               );
             })}
           </div>
+        {pinPrompt && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
+            <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(249,224,75,0.3)",maxWidth:300,width:"100%",textAlign:"center"}}>
+              <div style={{fontSize:28,marginBottom:8}}>🔑</div>
+              <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:6}}>PIN requerido</div>
+              <div style={{fontSize:13,color:"#aaa",marginBottom:16}}>Ingresa el PIN para <b style={{color:"#4ade80"}}>{pinPrompt.jugName}</b></div>
+              <input id="pin-input-reg" type="password" inputMode="numeric" maxLength={6} autoFocus
+                style={{width:"100%",padding:"12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(249,224,75,0.3)",color:"#f9e04b",fontFamily:"inherit",fontSize:22,fontWeight:800,outline:"none",letterSpacing:8,textAlign:"center",boxSizing:"border-box",marginBottom:12}}
+                onInput={e=>e.target.value=e.target.value.replace(/[^0-9]/g,"")}
+                onKeyDown={e=>{if(e.key==="Enter"){const v=document.getElementById("pin-input-reg")?.value;if(v===pinPrompt.pin){pinPrompt.onSuccess();setPinPrompt(null);}else{document.getElementById("pin-error-reg").style.display="block";}}}}
+              />
+              <div id="pin-error-reg" style={{display:"none",color:"#f87171",fontSize:12,marginBottom:10}}>PIN incorrecto, intenta de nuevo.</div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{const v=document.getElementById("pin-input-reg")?.value;if(v===pinPrompt.pin){pinPrompt.onSuccess();setPinPrompt(null);}else{document.getElementById("pin-error-reg").style.display="block";}}}
+                  style={{flex:1,padding:"11px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
+                  Entrar
+                </button>
+                <button onClick={()=>setPinPrompt(null)}
+                  style={{padding:"11px 16px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:"#aaa",fontFamily:"inherit",fontSize:14,cursor:"pointer"}}>
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
       </div>
     );
@@ -1670,9 +1728,9 @@ function BillarApp() {
               const i = plNorm.indexOf(p);
               const isThisDevice = deviceName === (p.id||p.name);
               if (editingNameKey===("player:"+i)) {
-                const saveEdit = (newName, newId, newColor, newRole) => {
+                const saveEdit = (newName, newId, newColor, newRole, newPin) => {
                   const nm = newName.trim()||p.name;
-                  const updatedList = playersList.map((pl,j2)=>j2===i?{...p,name:nm,id:newId.toUpperCase().slice(0,4),color:newColor||undefined,role:newRole||p.role||"jugador"}:pl);
+                  const updatedList = playersList.map((pl,j2)=>j2===i?{...p,name:nm,id:newId.toUpperCase().slice(0,4),color:newColor||undefined,role:newRole||p.role||"jugador",pin:newPin||p.pin||""}:pl);
                   savePlayersList(updatedList);
                   if(nm!==p.name) renamePlayer(p.name,nm);
                   setEditingNameKey(null);
@@ -1731,13 +1789,25 @@ function BillarApp() {
                         </div>
                       </div>
                     )}
+                    {isAdmin && (
+                      <div style={{marginBottom:10}}>
+                        <span style={{fontSize:11,color:"#888",display:"block",marginBottom:6}}>PIN de acceso (Admin/Operario):</span>
+                        <input id={"edit-pin-"+i}
+                          style={{width:"100%",padding:"9px 12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(249,224,75,0.2)",color:"#f9e04b",fontFamily:"inherit",fontSize:15,fontWeight:700,outline:"none",letterSpacing:4,textAlign:"center",boxSizing:"border-box"}}
+                          defaultValue={p.pin||""} placeholder="---- sin PIN" maxLength={6}
+                          onInput={e=>e.target.value=e.target.value.replace(/[^0-9]/g,"")}
+                        />
+                        <div style={{fontSize:10,color:"#555",marginTop:4}}>Solo requerido para roles Admin y Operario. Dejar vacío = sin restricción.</div>
+                      </div>
+                    )}
                     <div style={{display:"flex",gap:8}}>
                       <button onClick={()=>{
                         const nm=document.getElementById("edit-name-"+i)?.value||p.name;
                         const nid=document.getElementById("edit-id-"+i)?.value||"";
                         const ncol=document.getElementById("edit-color-"+i)?.value||p.color||"";
                         const selRole = ["jugador","operario","admin"].find(r=>document.getElementById("edit-role-"+i+"-"+r)?.style?.background?.includes("0.2"))||(p.role||"jugador");
-                        saveEdit(nm,nid,ncol,selRole);
+                        const npin = document.getElementById("edit-pin-"+i)?.value||"";
+                        saveEdit(nm,nid,ncol,selRole,npin);
                       }} style={{flex:1,padding:"9px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
                         ✓ Guardar
                       </button>
@@ -1758,6 +1828,13 @@ function BillarApp() {
                         color:(p.role||"jugador")==="admin"?"#f9e04b":(p.role||"jugador")==="operario"?"#4ade80":"#888"}}>
                         {(p.role||"jugador")==="admin"?"👑 Admin":(p.role||"jugador")==="operario"?"⚙️ Operario":"🎱 Jugador"}
                       </span>}
+                      {isAdmin && ((p.role||"jugador")==="admin"||(p.role||"jugador")==="operario") && (
+                        <span style={{fontSize:10,padding:"2px 7px",borderRadius:5,
+                          background:p.pin?"rgba(74,222,128,0.08)":"rgba(239,68,68,0.08)",
+                          color:p.pin?"#4ade80":"#f87171"}}>
+                          {p.pin?"🔑 PIN":"⚠️ Sin PIN"}
+                        </span>
+                      )}
                     </div>
                   </div>
                   {isAdmin && (
