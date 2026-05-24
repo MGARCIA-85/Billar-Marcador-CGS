@@ -523,7 +523,7 @@ function BillarApp() {
           <div className="app-scroll" style={{padding:"20px 14px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
               <div style={{fontSize:22,fontWeight:800,color:"#f9e04b"}}>🗓 Jornadas</div>
-{isJugador&&              <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
+              <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
             </div>
             {/* Crear nueva jornada */}
             {isJugador&&<button onClick={()=>{
@@ -962,7 +962,7 @@ function BillarApp() {
               <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreenP("stats")}>📊</button>
               <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreenP("players")}>👥</button>
               <button style={{padding:"8px 10px",borderRadius:10,background:jornadaScreen?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:jornadaScreen?"1px solid rgba(249,224,75,0.3)":"1px solid rgba(255,255,255,0.13)",color:jornadaScreen?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setJornadaScreenP("list")}>🗓</button>
-{isJugador&&{isJugador&&<button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>+ Nueva</button>}}
+{isJugador&&<button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>+ Nueva</button>}
             </div>
           </div>
         </div>
