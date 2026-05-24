@@ -222,19 +222,8 @@ function BillarApp() {
   const isAdmin = deviceRole==="admin";
   const isOperario = deviceRole==="operario"||isAdmin;
   const isJugador = deviceRole==="jugador"||isOperario;
-  const saveDispositivosMap = (map) => {
-    setDispositivosMap(map);
-    db.collection("billar").doc("dispositivos").set(cleanUndef(map)).catch(e=>console.error(e));
-  };
-  // Obtener devices de un jugador (por id o nombre)
-  const getJugadorDevices = (p) => {
-    const key = typeof p==="string" ? p : (p.id||p.name);
-    return dispositivosMap[key] || [];
-  };
-  const getPlayerColor = (name) => {
-    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
-    return (p && typeof p!=="string" && p.color) ? p.color : null;
-  };
+
+
   const saveJornadas = (list) => {
     setJornadas(list);
     try { localStorage.setItem("bg_jornadas", JSON.stringify(list)); } catch{}
@@ -2169,10 +2158,7 @@ function BillarApp() {
 function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, seriesWins,
   games, seriesCount, seriesFinished, seriesWinner, matchClosed,
   onClose, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries, onRestoreAnySeries, onReactivar, playersList=[]}) {
-  const getPlayerColor = (name) => {
-    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
-    return (p && typeof p!=="string" && p.color) ? p.color : null;
-  };
+
 
   const sw = seriesWins||{p1:0,p2:0};
   const d1 = sw.p1+(seriesFinished&&!matchClosed&&seriesWinner==="p1"?1:0);
@@ -2358,10 +2344,7 @@ function CrTimer({ startTs, base=0, big=false }) {
 }
 
 function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false, isJugador=false}) {
-  const getPlayerColor = (name) => {
-    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
-    return (p && typeof p!=="string" && p.color) ? p.color : null;
-  };
+
   const isOpen = !m.matchClosed;
 
   // ── Contrarreloj en lobby ──
