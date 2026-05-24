@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v240</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v241</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v240</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v241</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1653,18 +1653,41 @@ function BillarApp() {
               return (
                 <div key={i} style={{padding:"12px 14px",borderRadius:12,background:isThisDevice?"rgba(74,222,128,0.08)":"rgba(255,255,255,0.04)",border:`1px solid ${isThisDevice?"rgba(74,222,128,0.35)":"rgba(255,255,255,0.08)"}`,marginBottom:8}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                       <span style={{fontSize:15,fontWeight:700,color:p.color||"#e0e0e0"}}>🎱 {p.name}</span>
                       {p.id && <span style={{fontSize:11,fontWeight:800,color:"#f9e04b",background:"rgba(249,224,75,0.12)",border:"1px solid rgba(249,224,75,0.25)",borderRadius:6,padding:"2px 7px"}}>{p.id}</span>}
                       {isThisDevice && <span style={{fontSize:10,color:"#4ade80"}}>📱 Este dispositivo</span>}
+                      {isAdmin && <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:5,
+                        background:(p.role||"jugador")==="admin"?"rgba(249,224,75,0.15)":(p.role||"jugador")==="operario"?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
+                        color:(p.role||"jugador")==="admin"?"#f9e04b":(p.role||"jugador")==="operario"?"#4ade80":"#888"}}>
+                        {(p.role||"jugador")==="admin"?"👑 Admin":(p.role||"jugador")==="operario"?"⚙️ Operario":"🎱 Jugador"}
+                      </span>}
                     </div>
                   </div>
+                  {isAdmin && (
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:10,color:"#555",marginBottom:5,letterSpacing:0.5}}>ROL</div>
+                      <div style={{display:"flex",gap:5}}>
+                        {["jugador","operario","admin"].map(r=>(
+                          <button key={r} onClick={()=>{
+                            const updated = playersList.map((pl,j2)=>j2===i?{...pl,role:r}:pl);
+                            savePlayersList(updated);
+                          }} style={{flex:1,padding:"6px 0",borderRadius:8,fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer",
+                            background:(p.role||"jugador")===r?r==="admin"?"rgba(249,224,75,0.2)":r==="operario"?"rgba(74,222,128,0.2)":"rgba(255,255,255,0.12)":"rgba(255,255,255,0.04)",
+                            border:`1px solid ${(p.role||"jugador")===r?r==="admin"?"rgba(249,224,75,0.4)":r==="operario"?"rgba(74,222,128,0.4)":"rgba(255,255,255,0.3)":"rgba(255,255,255,0.1)"}`,
+                            color:(p.role||"jugador")===r?r==="admin"?"#f9e04b":r==="operario"?"#4ade80":"#ccc":"#555"}}>
+                            {r==="admin"?"👑":r==="operario"?"⚙️":"🎱"} {r.charAt(0).toUpperCase()+r.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div style={{display:"flex",gap:6}}>
                     {(()=>{
                       const jugKey = p.id||p.name;
                       const existingDevs = getJugadorDevices(p);
                       const hasOtherDevs = existingDevs.length > 0 && !existingDevs.includes(deviceName);
-                      return (
+                      return (<>
                         <button onClick={()=>{
                           if(!isThisDevice) {
                             const dn=jugKey;
@@ -1681,9 +1704,22 @@ function BillarApp() {
                             background:isThisDevice?"rgba(74,222,128,0.2)":hasOtherDevs?"rgba(255,255,255,0.04)":"rgba(74,222,128,0.08)",
                             border:`1px solid ${isThisDevice?"rgba(74,222,128,0.5)":hasOtherDevs?"rgba(255,255,255,0.15)":"rgba(74,222,128,0.2)"}`,
                             color:isThisDevice?"#4ade80":hasOtherDevs?"#888":"#4ade80",
-                            fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:isThisDevice?"default":"pointer"}}>                          {isThisDevice?"✓ Registrado":hasOtherDevs?`📱 Registrado (${existingDevs.length})`:"📱 Registrar celular"}
+                            fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:isThisDevice?"default":"pointer"}}>
+                          {isThisDevice?"✓ Registrado":hasOtherDevs?`📱 Registrado (${existingDevs.length})`:"📱 Registrar celular"}
                         </button>
-                      );
+                        {isAdmin && existingDevs.length > 0 && (
+                          <button onClick={()=>{
+                            if(window.confirm(`¿Eliminar registro de dispositivo de ${p.name}?`)) {
+                              const newMap = {...dispositivosMap};
+                              delete newMap[jugKey];
+                              saveDispositivosMap(newMap);
+                              if(deviceName===jugKey){setDeviceName(null);localStorage.removeItem("bg_device");}
+                            }
+                          }} style={{padding:"7px 10px",borderRadius:8,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.25)",color:"#f87171",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}} title="Eliminar registro">
+                            📵
+                          </button>
+                        )}
+                      </>);
                     })()}
                     <button onClick={()=>setEditingNameKey("player:"+i)}
                       style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.13)",color:"#aaa",borderRadius:8,padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
