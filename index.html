@@ -324,8 +324,6 @@ function BillarApp() {
 
   const [fbLoaded, setFbLoaded] = useState(false);
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(()=>!localStorage.getItem("bg_device")&&!localStorage.getItem("bg_skipRegister"));
-  const [dispositivosMap, setDispositivosMap] = useState({});
-  const [devDialog, setDevDialog] = useState(null);
   const [isOnline, setIsOnline] = useState(()=>navigator.onLine);
   useEffect(() => {
     const onOn = () => setIsOnline(true);
