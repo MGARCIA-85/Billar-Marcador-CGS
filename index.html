@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v248</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v249</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v248</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v249</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -560,7 +560,9 @@ function BillarApp() {
               <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
             </div>
             {isJugador && <button onClick={()=>{
-              const newJ = {id:"j_"+Date.now(), name:"Jornada "+(jornadas.length+1), currentTurn:0, turnStarted:false, turnScored:false, matchOrder:[], finished:false, createdAt:Date.now()};
+              const newJNombre = prompt("Nombre para la jornada:", "Jornada "+(jornadas.length+1));
+              if(!newJNombre?.trim()) return;
+              const newJ = {id:"j_"+Date.now(), name:newJNombre.trim(), currentTurn:0, turnStarted:false, turnScored:false, matchOrder:[], finished:false, createdAt:Date.now()};
               saveJornadas([...jornadas, newJ]);
               setJornadaScreenP(newJ.id);
             }} style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",fontFamily:"inherit",fontSize:15,fontWeight:800,marginBottom:16,background:"linear-gradient(135deg,#166534,#4ade80)",color:"#fff",cursor:"pointer"}}>
@@ -598,8 +600,10 @@ function BillarApp() {
                         if(!window.confirm(`¿Re-crear "${j.name}" como nueva jornada? Se copiarán las partidas con los mismos jugadores.`)) return;
                         const jornadaMtchs = matches.filter(m=>m.jornadaId===j.id&&m.modalidad!=="Contrarreloj");
                         if(jornadaMtchs.length===0){alert("No hay partidas para re-crear.");return;}
+                        const newJName = prompt("Nombre para la nueva jornada:", j.name);
+                        if(!newJName?.trim()) return;
                         const newJId = "j_"+Date.now();
-                        const newJ = {id:newJId, name:j.name+" (copia)", currentTurn:0, turnStarted:false, turnScored:false, matchOrder:[], finished:false, createdAt:Date.now()};
+                        const newJ = {id:newJId, name:newJName.trim(), currentTurn:0, turnStarted:false, turnScored:false, matchOrder:[], finished:false, createdAt:Date.now()};
                         const newMs = jornadaMtchs.map(m=>{
                           const nm = createMatch(m.p1Name, m.p2Name, null, m.carrera, m.modalidad);
                           return {...nm, jornadaId:newJId, needsServeSelection:true};
@@ -779,6 +783,15 @@ function BillarApp() {
                         )}
                       </div>
                     )}
+                    {mm.needsServeSelection && mm.games.length===0 && !mm.matchClosed && !saqueModal && (
+                      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:998,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}
+                        onClick={()=>setSaqueModal({matchId:mm.id,p1Name:mm.p1Name,p2Name:mm.p2Name})}>
+                      </div>
+                    )}
+                    {mm.needsServeSelection && mm.games.length===0 && !mm.matchClosed && setSaqueModal && !saqueModal && (() => {
+                      setTimeout(()=>setSaqueModal({matchId:mm.id,p1Name:mm.p1Name,p2Name:mm.p2Name}),50);
+                      return null;
+                    })()}
                     <LobbyCard
                       m={mm}
                       deviceName={deviceName}
