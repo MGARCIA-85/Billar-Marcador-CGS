@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v224</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v229</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v224</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v229</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -296,7 +296,7 @@ function BillarApp() {
   const [editingNameKey, setEditingNameKey] = useState(null); // "matchId:field" e.g. "abc:p1" or "abc:cr:2"
   const [sfModalidades, setSfModalidades] = useState([]);
   const [sfJugadores, setSfJugadores] = useState([]);
-  const [sfPeriod, setSfPeriod] = useState("Todo");
+  const [sfPeriod, setSfPeriod] = useState("Este mes");
   const [sfFechaDesde, setSfFechaDesde] = useState("");
   const [sfFechaHasta, setSfFechaHasta] = useState("");
   const [matchOrder, setMatchOrder] = useState([]);
@@ -308,6 +308,20 @@ function BillarApp() {
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState(()=>localStorage.getItem("bg_lobbyTab")||"active");
   const [deviceName, setDeviceName] = useState(()=>localStorage.getItem("bg_device")||null);
+  // Rol del dispositivo actual: espectador | jugador | operario | admin
+  const deviceRole = React.useMemo(() => {
+    if (!deviceName) return "espectador";
+    const p = playersList.find(pl => {
+      const pn = typeof pl==="string"?pl:pl.name;
+      const pid = typeof pl==="string"?"":pl.id||"";
+      return pn===deviceName || pid===deviceName;
+    });
+    if (!p || typeof p==="string") return "jugador";
+    return p.role||"jugador";
+  }, [deviceName, playersList]);
+  const isAdmin = deviceRole==="admin";
+  const isOperario = deviceRole==="operario" || isAdmin;
+  const isJugador = deviceRole==="jugador" || isOperario;
   const [dispositivosMap, setDispositivosMap] = useState({}); // {jugadorId: [dev1, dev2]}
   const [devDialog, setDevDialog] = useState(null); // {jugKey, jugName, existingDevs, newDev}
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -322,6 +336,7 @@ function BillarApp() {
   const setJornadaScreenP = (s) => { setJornadaScreen(s); if(s) localStorage.setItem("bg_jornadaScreen", s); else localStorage.removeItem("bg_jornadaScreen"); };
 
   const [fbLoaded, setFbLoaded] = useState(false);
+  const [showRegisterPrompt, setShowRegisterPrompt] = useState(()=>!localStorage.getItem("bg_device")&&!localStorage.getItem("bg_skipRegister"));
   const [isOnline, setIsOnline] = useState(()=>navigator.onLine);
   useEffect(() => {
     const onOn = () => setIsOnline(true);
@@ -521,7 +536,7 @@ function BillarApp() {
           <div className="app-scroll" style={{padding:"20px 14px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
               <div style={{fontSize:22,fontWeight:800,color:"#f9e04b"}}>🗓 Jornadas</div>
-              <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
+{isOperario &&               <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
             </div>
             {/* Crear nueva jornada */}
             <button onClick={()=>{
@@ -530,7 +545,7 @@ function BillarApp() {
               setJornadaScreenP(newJ.id);
             }} style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",fontFamily:"inherit",fontSize:15,fontWeight:800,marginBottom:16,background:"linear-gradient(135deg,#166534,#4ade80)",color:"#fff",cursor:"pointer"}}>
               + Nueva jornada
-            </button>
+            </button>}}
             {/* Lista de jornadas existentes */}
             {jornadas.length===0
               ? <div style={{color:"#444",textAlign:"center",padding:"40px 0",fontSize:13}}>No hay jornadas creadas</div>
@@ -631,13 +646,12 @@ function BillarApp() {
               <div style={{fontSize:11,color:"#888"}}>{jMatchIds.filter(id=>matches.find(m=>m.id===id)?.matchClosed).length}/{jMatchIds.length} terminadas</div>
             </div>
             {/* Botón Nueva partida */}
-            <button onClick={()=>{
+            {isOperario && <button onClick={()=>{
               setActiveIdP(null);
-              // Guardar jornadaId pendiente para la nueva partida
               sessionStorage.setItem("pendingJornadaId", currentJ.id);
               setJornadaScreenP(null);
               setScreenP("newMatch");
-            }} style={{padding:"7px 12px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:800,cursor:"pointer"}}>+ Partida</button>
+            }} style={{padding:"7px 12px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:800,cursor:"pointer"}}>+ Partida</button>}
             {allJDone && (
               <button onClick={()=>{
                 if(window.confirm("¿Finalizar jornada? Las partidas pasarán a Terminadas.")) {
@@ -715,6 +729,7 @@ function BillarApp() {
                       m={mm}
                       deviceName={deviceName}
                       playersList={playersList}
+                      isAdminMode={isAdmin}
                       onOpen={id=>{setActiveId(id);}}
                       onDelete={id=>deleteMatch(id)}
                       onReplay={()=>{}}
@@ -896,7 +911,40 @@ function BillarApp() {
     );
   }
 
-    if (screen === "lobby") {
+    // Modal de registro al entrar por primera vez
+  if (showRegisterPrompt && fbLoaded) {
+    const plNorm2 = playersList.map(p=>typeof p==="string"?{name:p,id:"",role:"jugador"}:p);
+    return (
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+        <div style={{background:"#1a2e1a",borderRadius:18,padding:"28px 22px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:340,width:"100%"}}>
+          <div style={{fontSize:28,textAlign:"center",marginBottom:4}}>🎱</div>
+          <div style={{fontSize:20,fontWeight:800,color:"#4ade80",textAlign:"center",marginBottom:6}}>Billares García</div>
+          <div style={{fontSize:13,color:"#888",textAlign:"center",marginBottom:24,lineHeight:1.5}}>¿Eres uno de los jugadores registrados?</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {plNorm2.map((p,i)=>(
+              <button key={i} onClick={()=>{
+                const dn=p.id||p.name;
+                setDeviceName(dn);
+                localStorage.setItem("bg_device",dn);
+                saveDispositivosMap({...dispositivosMap,[dn]:[...(dispositivosMap[dn]||[]),dn].filter((v,i,a)=>a.indexOf(v)===i)});
+                setShowRegisterPrompt(false);
+              }} style={{padding:"12px 16px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.12)",color:p.color||"#e0e0e0",fontFamily:"inherit",fontSize:15,fontWeight:700,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
+                <span>🎱</span>
+                <span>{p.name}</span>
+                {p.id&&<span style={{fontSize:11,color:"#f9e04b",background:"rgba(249,224,75,0.1)",border:"1px solid rgba(249,224,75,0.2)",borderRadius:5,padding:"2px 6px"}}>{p.id}</span>}
+              </button>
+            ))}
+          </div>
+          <button onClick={()=>{localStorage.setItem("bg_skipRegister","1");setShowRegisterPrompt(false);}}
+            style={{width:"100%",padding:"11px",borderRadius:10,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",color:"#666",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>
+            Continuar como espectador
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "lobby") {
     const list = lobbyTab === "active" ? activeMatches : closedMatches;
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
@@ -924,6 +972,11 @@ function BillarApp() {
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <div style={{fontSize:24,fontWeight:800,color:"#4ade80",letterSpacing:1}}>Billares García</div>
                 <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
+                <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 6px",borderRadius:6,
+                  background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":deviceName?"rgba(255,255,255,0.07)":"transparent",
+                  color:isAdmin?"#f9e04b":isOperario?"#4ade80":deviceName?"#888":"#555"}}>
+                  {isAdmin?"👑 ADMIN":isOperario?"⚙️ OPERARIO":deviceName?"🎱 JUGADOR":"👁 ESPECTADOR"}
+                </div>
               </div>
               <div style={{fontSize:11,color:"#555",marginTop:1}}>Control de partidas</div>
             </div>
@@ -931,7 +984,7 @@ function BillarApp() {
               <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreenP("stats")}>📊</button>
               <button style={{padding:"8px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setScreenP("players")}>👥</button>
               <button style={{padding:"8px 10px",borderRadius:10,background:jornadaScreen?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:jornadaScreen?"1px solid rgba(249,224,75,0.3)":"1px solid rgba(255,255,255,0.13)",color:jornadaScreen?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={()=>setJornadaScreenP("list")}>🗓</button>
-              <button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>+ Nueva</button>
+              {isOperario && <button style={{padding:"8px 14px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>+ Nueva</button>}
             </div>
           </div>
         </div>
@@ -945,7 +998,7 @@ function BillarApp() {
         </div>
         <div className="app-scroll" style={{padding:"0 14px"}}>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
-          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={()=>deleteMatch(m.id)} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
                 // Deshacer último juego
@@ -1394,6 +1447,8 @@ function BillarApp() {
                       <td style={{padding:"7px 3px",textAlign:"center",color:"#f9e04b",fontWeight:700}} title="Juegos Ganados">JG</td>
                       <td style={{padding:"7px 3px",textAlign:"center",color:"#f9e04b",fontWeight:700}} title="Golden Breaks">🟡</td>
                       <td style={{padding:"7px 3px",textAlign:"center",color:"#4ade80",fontWeight:700}} title="Barridas">🧹</td>
+                      <td style={{padding:"7px 3px",textAlign:"center",color:"#888",fontWeight:700}} title="Juegos Jugados">JJ</td>
+                      <td style={{padding:"7px 3px",textAlign:"center",color:"#888",fontWeight:700}} title="Porcentaje de victorias">%</td>
                       {showCR&&<td style={{padding:"7px 3px",textAlign:"center",color:"#4ade80",fontWeight:700}} title="Tiempo promedio CR por ronda">⏱</td>}
                     </tr>
                   </thead>
@@ -1407,6 +1462,8 @@ function BillarApp() {
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#4ade80",fontWeight:600}}>{r.juegosW}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#4ade80",fontWeight:700}}>{r.goldenBreaks}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#4ade80",fontWeight:700}}>{r.mesas}</td>
+                        <td style={{padding:"8px 3px",textAlign:"center",color:"#888",fontWeight:600}}>{r.juegos}</td>
+                        <td style={{padding:"8px 3px",textAlign:"center",color:r.juegos>0&&(r.juegosW/r.juegos)>=0.5?"#4ade80":"#888",fontWeight:700}}>{r.juegos>0?Math.round(r.juegosW/r.juegos*100)+"%":"—"}</td>
                         {showCR&&<td style={{padding:"8px 3px",textAlign:"center",color:"#888",fontSize:10,fontVariantNumeric:"tabular-nums"}}>{r.crTimes.length>0?fmtTime(r.crTimes.reduce((a,b)=>a+b,0)/r.crTimes.length):"—"}</td>}
                       </tr>
                     ))}
@@ -1419,6 +1476,8 @@ function BillarApp() {
                 <span style={{color:"#4ade80",fontWeight:600}}>JG</span><span>=Juegos</span>
                 <span style={{color:"#4ade80",fontWeight:600}}>🟡</span><span>=Golden Break</span>
                 <span style={{color:"#4ade80",fontWeight:600}}>🧹</span><span>=Barrida</span>
+                <span style={{color:"#888",fontWeight:600}}>JJ</span><span>=Juegos Jugados</span>
+                <span style={{color:"#888",fontWeight:600}}>%</span><span>=Promedio de victorias</span>
                 {showCR&&<><span style={{color:"#4ade80",fontWeight:600}}>⏱</span><span>=T.prom CR</span></>}
               </div>
             </>)
@@ -1439,7 +1498,7 @@ function BillarApp() {
           <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>← Volver</button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
             <div style={{fontSize:22,fontWeight:800,color:"#4ade80"}}>👥 Jugadores</div>
-            {deviceName && (
+            {deviceName && isAdmin && (
               <button onClick={()=>{if(window.confirm("¿Borrar el registro de este celular?")){setDeviceName(null);localStorage.removeItem("bg_device");}}}
                 style={{padding:"6px 12px",borderRadius:8,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
                 🗑 Borrar registro
@@ -1449,8 +1508,8 @@ function BillarApp() {
           {deviceName && <div style={{fontSize:11,color:"#4ade80",marginBottom:16,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",borderRadius:8,padding:"5px 10px",display:"inline-block"}}>📱 Este dispositivo: <b>{deviceName}</b></div>}
           {!deviceName && <div style={{fontSize:11,color:"#888",marginBottom:16}}>Ningún jugador registrado en este dispositivo</div>}
 
-          {/* Agregar nuevo */}
-          <div style={{marginBottom:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:"14px",border:"1px solid rgba(255,255,255,0.07)"}}>
+          {/* Agregar nuevo - solo Operario y Admin */}
+          {isOperario && <div style={{marginBottom:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:"14px",border:"1px solid rgba(255,255,255,0.07)"}}>
             <div style={{fontSize:11,color:"#888",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Nuevo jugador</div>
             <div style={{display:"flex",gap:8,marginBottom:8}}>
               <input
@@ -1471,17 +1530,18 @@ function BillarApp() {
               style={{width:"100%",padding:"11px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>
               + Agregar
             </button>
-          </div>
+          </div>}
 
           {/* Lista */}
           {plNorm.length === 0
             ? <div style={{color:"#444",fontSize:13,textAlign:"center",padding:"30px 0"}}>No hay jugadores guardados aún</div>
-            : plNorm.map((p,i) => {
+            : plNorm.filter(p => isOperario || (deviceRole==="jugador" && ((p.id||p.name)===deviceName||p.name===deviceName))).map((p,i_filtered) => {
+              const i = plNorm.indexOf(p);
               const isThisDevice = deviceName === (p.id||p.name);
               if (editingNameKey===("player:"+i)) {
-                const saveEdit = (newName, newId, newColor) => {
+                const saveEdit = (newName, newId, newColor, newRole) => {
                   const nm = newName.trim()||p.name;
-                  const updatedList = playersList.map((pl,j2)=>j2===i?{...p,name:nm,id:newId.toUpperCase().slice(0,4),color:newColor||undefined}:pl);
+                  const updatedList = playersList.map((pl,j2)=>j2===i?{...p,name:nm,id:newId.toUpperCase().slice(0,4),color:newColor||undefined,role:newRole||p.role||"jugador"}:pl);
                   savePlayersList(updatedList);
                   if(nm!==p.name) renamePlayer(p.name,nm);
                   setEditingNameKey(null);
@@ -1521,12 +1581,32 @@ function BillarApp() {
                           style={{width:26,height:26,borderRadius:6,border:"none",background:"none",cursor:"pointer",padding:0}}/>
                       </div>
                     </div>
+                    {isAdmin && (
+                      <div style={{marginBottom:10}}>
+                        <span style={{fontSize:11,color:"#888",display:"block",marginBottom:6}}>Rol:</span>
+                        <div style={{display:"flex",gap:6}}>
+                          {["jugador","operario","admin"].map(r=>(
+                            <button key={r} id={"edit-role-"+i+"-"+r}
+                              onClick={()=>{
+                                document.querySelectorAll(`[id^="edit-role-"+i+"-"]`).forEach(b=>b.style.background="rgba(255,255,255,0.06)");
+                                document.getElementById("edit-role-"+i+"-"+r).style.background="rgba(74,222,128,0.2)";
+                              }}
+                              style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid rgba(255,255,255,0.15)",
+                                background:(p.role||"jugador")===r?"rgba(74,222,128,0.2)":"rgba(255,255,255,0.06)",
+                                color:(p.role||"jugador")===r?"#4ade80":"#888",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                              {r=="jugador"?"🎱":r=="operario"?"⚙️":"👑"} {r.charAt(0).toUpperCase()+r.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div style={{display:"flex",gap:8}}>
                       <button onClick={()=>{
                         const nm=document.getElementById("edit-name-"+i)?.value||p.name;
                         const nid=document.getElementById("edit-id-"+i)?.value||"";
                         const ncol=document.getElementById("edit-color-"+i)?.value||p.color||"";
-                        saveEdit(nm,nid,ncol);
+                        const selRole = ["jugador","operario","admin"].find(r=>document.getElementById("edit-role-"+i+"-"+r)?.style?.background?.includes("0.2"))||(p.role||"jugador");
+                        saveEdit(nm,nid,ncol,selRole);
                       }} style={{flex:1,padding:"9px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
                         ✓ Guardar
                       </button>
@@ -2257,7 +2337,12 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
            })}
         </>}
 
-{/* Reactivar eliminado */}
+        {matchClosed && onReactivar && (
+          <button onClick={onReactivar}
+            style={{marginTop:8,width:"100%",padding:"12px 0",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
+            ▶ Reactivar partida
+          </button>
+        )}
         <button style={{marginTop:8,width:"100%",padding:"12px 0",borderRadius:12,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"#ccc",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={onClose}>Cerrar</button>
       </div>
     </div>
@@ -2285,7 +2370,7 @@ function CrTimer({ startTs, base=0, big=false }) {
   return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
 }
 
-function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[]}) {
+function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false}) {
   const getPlayerColor = (name) => {
     const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
     return (p && typeof p!=="string" && p.color) ? p.color : null;
@@ -2808,7 +2893,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
         </div>
 
         <div style={{display:"flex",gap:5,marginTop:6}}>
-          <button style={{flex:2,padding:"8px 0",borderRadius:10,background:m.seriesFinished?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",border:m.seriesFinished?"none":"1px solid rgba(255,255,255,0.1)",color:m.seriesFinished?"#fff":"#555",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:m.seriesFinished?"pointer":"default"}} onClick={e=>{e.stopPropagation();if(m.seriesFinished)onNextSeries(m.id);}}>Sig. serie →</button>
+          <button style={{flex:2,padding:"8px 0",borderRadius:10,background:m.seriesFinished?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",border:m.seriesFinished?"none":"1px solid rgba(255,255,255,0.1)",color:m.seriesFinished?"#fff":"#555",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:m.seriesFinished?"pointer":"default"}} onClick={e=>{e.stopPropagation();if(m.seriesFinished)onNextSeries(m.id);}}>Confirmar ✓</button>
           {(()=>{ const scored3 = jornadaTurnScored===true; const cu3 = jornadaTurnActive ? scored3 : (jornadaBlocked ? false : (m.games.length>0||m.seriesHistory.length>0)); return (
           <button style={{flex:1,padding:"8px 0",borderRadius:10,background:cu3?"rgba(255,200,50,0.1)":"rgba(255,255,255,0.04)",border:cu3?"1px solid rgba(255,200,50,0.25)":"1px solid rgba(255,255,255,0.08)",color:cu3?"#f9e04b":"#444",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:cu3?"pointer":"default"}} onClick={e=>{
                   e.stopPropagation();
@@ -2932,7 +3017,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
             <div style={{display:"flex",gap:5}}>
               <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReplay(m);}}>↺ Re-crear</button>
               <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onOpenHistory(m.id);}}>📋 Historial</button>
-{/* Reactivar eliminado */}
+              <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReactivar(m.id);}}>↺ Reactivar</button>
             </div>
           </div>
         );
