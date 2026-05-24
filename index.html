@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v251</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v252</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v251</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v252</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -339,7 +339,8 @@ function BillarApp() {
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(()=>!localStorage.getItem("bg_device")&&!localStorage.getItem("bg_skipRegister"));
   const [registroBorrado, setRegistroBorrado] = useState(false);
   const [pinPrompt, setPinPrompt] = useState(null);
-  const [saqueModal, setSaqueModal] = useState(null); // {matchId, p1Name, p2Name} // {jugKey,jugName,pin,existingDevs,newDev,onSuccess}
+  const [saqueModal, setSaqueModal] = useState(null);
+  const [jornadaFinModal, setJornadaFinModal] = useState(null); // {jornadaId, matches} // {matchId, p1Name, p2Name} // {jugKey,jugName,pin,existingDevs,newDev,onSuccess}
   const [isOnline, setIsOnline] = useState(()=>navigator.onLine);
   useEffect(() => {
     const onOn = () => setIsOnline(true);
@@ -671,6 +672,55 @@ function BillarApp() {
             </div>
           </div>
         )}
+        {jornadaFinModal && jornadaFinModal.jornadaId===jornadaScreen && (()=>{
+          const jFin = jornadas.find(j=>j.id===jornadaFinModal.jornadaId);
+          const jMs = matches.filter(m=>m.jornadaId===jornadaFinModal.jornadaId&&m.modalidad!=="Contrarreloj");
+          return (
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:999,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px 12px",overflowY:"auto"}}>
+              <div style={{background:"#0f1f0f",borderRadius:18,padding:"20px 16px",border:"1px solid rgba(74,222,128,0.3)",maxWidth:420,width:"100%"}}>
+                <div style={{fontSize:28,textAlign:"center",marginBottom:6}}>🏆</div>
+                <div style={{fontSize:17,fontWeight:800,color:"#f9e04b",textAlign:"center",marginBottom:4}}>¡Todas las partidas han terminado!</div>
+                <div style={{fontSize:12,color:"#888",textAlign:"center",marginBottom:16}}>¿Deseas finalizar la jornada?</div>
+                {/* Resumen en 2 columnas */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:18}}>
+                  {jMs.map(m=>{
+                    const sw1=m.seriesWins?.p1||0, sw2=m.seriesWins?.p2||0;
+                    const winner=sw1>sw2?"p1":sw2>sw1?"p2":null;
+                    return (
+                      <div key={m.id} style={{background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"10px 8px",border:"1px solid rgba(255,255,255,0.08)"}}>
+                        <div style={{fontSize:9,color:"#555",marginBottom:6,textAlign:"center"}}>{m.modalidad} · C{m.carrera}</div>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:4}}>
+                          <div style={{flex:1,textAlign:"center"}}>
+                            <div style={{fontSize:11,fontWeight:800,color:winner==="p1"?"#f9e04b":"#aaa",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{winner==="p1"?"🏆 ":""}{m.p1Name}</div>
+                            <div style={{fontSize:18,fontWeight:900,color:winner==="p1"?"#f9e04b":"#888"}}>{sw1}</div>
+                          </div>
+                          <div style={{fontSize:11,color:"#444",fontWeight:700}}>-</div>
+                          <div style={{flex:1,textAlign:"center"}}>
+                            <div style={{fontSize:11,fontWeight:800,color:winner==="p2"?"#f9e04b":"#aaa",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{winner==="p2"?"🏆 ":""}{m.p2Name}</div>
+                            <div style={{fontSize:18,fontWeight:900,color:winner==="p2"?"#f9e04b":"#888"}}>{sw2}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  <button onClick={()=>{
+                    saveJornadas(jornadas.map(j=>j.id===jornadaFinModal.jornadaId?{...j,finished:true}:j));
+                    setJornadaFinModal(null);
+                    setJornadaScreenP("list");
+                  }} style={{padding:"13px",borderRadius:12,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
+                    🏁 Finalizar jornada
+                  </button>
+                  <button onClick={()=>setJornadaFinModal(null)}
+                    style={{padding:"13px",borderRadius:12,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:"#aaa",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>
+                    ← Regresar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
         {confirmDeleteId && (
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
             <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(255,80,80,0.3)",maxWidth:320,width:"100%"}}>
@@ -833,8 +883,12 @@ function BillarApp() {
                       }}
                       onReactivar={isOperario?id=>{ updateMatch(id, m => { const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins; return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null}; }); }:null}
                       onTerminar={id=>{ updateMatch(id, m=>{ const shouldSum=(!m.matchClosed&&m.seriesFinished&&m.seriesWinner); const fsw=shouldSum?{...m.seriesWins,[m.seriesWinner]:m.seriesWins[m.seriesWinner]+1}:m.seriesWins; return {...m,matchClosed:true,closedAt:Date.now(),seriesWins:fsw,closedSeriesWins:shouldSum?m.seriesWins:null}; });
-                        // Si hay turno activo marcar turnScored
                         if(isTurn) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:true}:j));
+                        // Verificar si todas las partidas de la jornada quedaron cerradas
+                        const otrasAbiertas = jMatchIds.filter(mid=>mid!==id).some(mid=>{ const mx=matches.find(x=>x.id===mid); return mx&&!mx.matchClosed; });
+                        if(!otrasAbiertas) {
+                          setTimeout(()=>setJornadaFinModal({jornadaId:currentJ.id}), 300);
+                        }
                       }}
                       onMoveUp={null} onMoveDown={null} isFirst={true} isLast={true}
                       onEditName={key=>setEditingNameKey(key)}
