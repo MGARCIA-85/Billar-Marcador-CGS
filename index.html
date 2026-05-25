@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v257</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v259</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v257</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v259</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -297,6 +297,8 @@ function BillarApp() {
   const [sfModalidades, setSfModalidades] = useState([]);
   const [sfJugadores, setSfJugadores] = useState([]);
   const [sfPeriod, setSfPeriod] = useState("Este mes");
+  const [sortCol, setSortCol] = useState("partidasW");
+  const [sortDir, setSortDir] = useState("desc");
   const [sfFechaDesde, setSfFechaDesde] = useState("");
   const [sfFechaHasta, setSfFechaHasta] = useState("");
   const [matchOrder, setMatchOrder] = useState([]);
@@ -1830,6 +1832,16 @@ function BillarApp() {
           {rows.length===0
             ? <div style={{color:"#444",textAlign:"center",padding:"40px 0",fontSize:13}}>No hay datos para los filtros seleccionados</div>
             : (<>
+              {/* Título Ranking */}
+              {(()=>{
+                const now = new Date();
+                const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+                const tituloRanking = sfPeriod==="Hoy"?`Ranking · Hoy ${now.getDate()} ${meses[now.getMonth()]}`:sfPeriod==="Esta semana"?`Ranking · Esta semana`:sfPeriod==="Este mes"?`Ranking · ${meses[now.getMonth()]} ${now.getFullYear()}`:sfPeriod==="Rango"?`Ranking · Rango personalizado`:`Ranking · Todo el tiempo`;
+                return <div style={{textAlign:"center",marginBottom:12}}>
+                  <div style={{fontSize:15,fontWeight:800,color:"#4ade80",letterSpacing:1}}>{tituloRanking}</div>
+                  <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,transparent,#06b6d4,transparent)",marginTop:6}}></div>
+                </div>;
+              })()}
               {/* Podio */}
               <div style={{display:"flex",gap:8,marginBottom:14}}>
                 {rows.slice(0,3).map((r,i)=>(
@@ -1844,22 +1856,31 @@ function BillarApp() {
               {/* Tabla */}
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-                  <thead>
-                    <tr style={{borderBottom:"1px solid rgba(74,222,128,0.2)"}}>
-                      <td style={{padding:"7px 4px",color:"#4ade80",fontWeight:700}}>#</td>
-                      <td style={{padding:"7px 4px",color:"#4ade80",fontWeight:700}}>Jugador</td>
-                      <td style={{padding:"7px 3px",textAlign:"center",color:"#f9e04b",fontWeight:700}} title="Partidas Ganadas">👑</td>
-                      <td style={{padding:"7px 3px",textAlign:"center",color:"#f9e04b",fontWeight:700}} title="Series Ganadas">🏆</td>
-                      <td style={{padding:"7px 3px",textAlign:"center",color:"#f9e04b",fontWeight:700}} title="Juegos Ganados">JG</td>
-                      <td style={{padding:"7px 3px",textAlign:"center",color:"#f9e04b",fontWeight:700}} title="Golden Breaks">🟡</td>
-                      <td style={{padding:"7px 3px",textAlign:"center",color:"#4ade80",fontWeight:700}} title="Barridas">🧹</td>
-                      <td style={{padding:"7px 3px",textAlign:"center",color:"#888",fontWeight:700}} title="Juegos Jugados">JJ</td>
-                      <td style={{padding:"7px 3px",textAlign:"center",color:"#888",fontWeight:700}} title="Porcentaje de victorias">%</td>
-                      {showCR&&<td style={{padding:"7px 3px",textAlign:"center",color:"#4ade80",fontWeight:700}} title="Tiempo promedio CR por ronda">⏱</td>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r,i)=>(
+                  {(()=>{
+                    const colMap = {partidasW:"👑",seriesW:"🏆",juegosW:"JG",goldenBreaks:"🟡",mesas:"🧹",juegos:"JJ",pct:"%"};
+                    const rowsConPct = rows.map(r=>({...r, pct:r.juegos>0?r.juegosW/r.juegos:0, crAvg:r.crTimes.length>0?r.crTimes.reduce((a,b)=>a+b,0)/r.crTimes.length:Infinity}));
+                    const sortedRows = [...rowsConPct].sort((a,b)=>{ const v=sortCol==="crAvg"?((a.crAvg===Infinity?9e9:a.crAvg)-(b.crAvg===Infinity?9e9:b.crAvg)):(a[sortCol]||0)-(b[sortCol]||0); return sortDir==="desc"?-v:v; });
+                    const thStyle = (col) => ({padding:"7px 3px",textAlign:"center",fontWeight:700,cursor:"pointer",userSelect:"none",
+                      color:sortCol===col?"#fff":"#f9e04b",
+                      background:sortCol===col?"rgba(74,222,128,0.15)":"transparent",
+                      borderRadius:4});
+                    const toggleSort = (col) => { if(sortCol===col){setSortDir(d=>d==="desc"?"asc":"desc");}else{setSortCol(col);setSortDir("desc");} };
+                    const arrow = (col) => sortCol===col?(sortDir==="desc"?"↓":"↑"):"";
+                    return (<>
+                      <thead>
+                        <tr style={{borderBottom:"1px solid rgba(74,222,128,0.2)"}}>
+                          <td style={{padding:"7px 4px",color:"#4ade80",fontWeight:700}}>#</td>
+                          <td style={{padding:"7px 4px",color:"#4ade80",fontWeight:700}}>Jugador</td>
+                          {Object.entries(colMap).map(([col,label])=>(
+                            <td key={col} style={thStyle(col)} onClick={()=>toggleSort(col)} title={col}>
+                              {label}{arrow(col)}
+                            </td>
+                          ))}
+                          {showCR&&<td style={{...thStyle("crAvg"),color:sortCol==="crAvg"?"#fff":"#4ade80"}} onClick={()=>toggleSort("crAvg")} title="Tiempo promedio CR por ronda">⏱{arrow("crAvg")}</td>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedRows.map((r,i)=>(
                       <tr key={r.name} style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:i%2===0?"transparent":"rgba(255,255,255,0.01)"}}>
                         <td style={{padding:"8px 4px",color:i===0?"#f9e04b":i===1?"#ccc":i===2?"#cd7f32":"#555",fontWeight:700}}>{i+1}</td>
                         <td style={{padding:"8px 4px",fontWeight:700,color:"#e0e0e0",whiteSpace:"nowrap"}}>{r.name}</td>
@@ -1873,7 +1894,9 @@ function BillarApp() {
                         {showCR&&<td style={{padding:"8px 3px",textAlign:"center",color:"#888",fontSize:10,fontVariantNumeric:"tabular-nums"}}>{r.crTimes.length>0?fmtTime(r.crTimes.reduce((a,b)=>a+b,0)/r.crTimes.length):"—"}</td>}
                       </tr>
                     ))}
-                  </tbody>
+                        </tbody>
+                      </>);
+                  })()}
                 </table>
               </div>
               <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:12,fontSize:11,color:"#888"}}>
