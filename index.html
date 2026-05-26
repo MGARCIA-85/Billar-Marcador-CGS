@@ -27,6 +27,8 @@
       display: flex; flex-direction: column; overflow: hidden;
     }
     .app-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .ptr-indicator { display:flex; align-items:center; justify-content:center; height:0; overflow:hidden; transition:height 0.2s; color:#63b3ed; font-size:13px; font-weight:700; }
+    .ptr-indicator.ptr-visible { height:40px; }
   </style>
 </head>
 <body>
@@ -318,6 +320,8 @@ function BillarApp() {
   const [sfJugadores, setSfJugadores] = useState([]);
   const [sfPeriod, setSfPeriod] = useState("Este mes");
   const [sortCol, setSortCol] = useState("partidasW");
+  const [ptrActive, setPtrActive] = useState(false);
+  const ptrRef = React.useRef({startY:0, active:false});
   const [sortDir, setSortDir] = useState("desc");
   const [sfFechaDesde, setSfFechaDesde] = useState("");
   const [sfFechaHasta, setSfFechaHasta] = useState("");
@@ -578,7 +582,12 @@ function BillarApp() {
     if (jornadaScreen === "list") {
       return (
         <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
-          <div className="app-scroll" style={{padding:"20px 14px"}}>
+          <div className="app-scroll"
+          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
+          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>70){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
+          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
+          style={{padding:"20px 14px"}}>
+          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
               <div style={{fontSize:22,fontWeight:800,color:"#f9e04b"}}>🗓 Jornadas</div>
               <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
@@ -843,7 +852,12 @@ function BillarApp() {
             </div>
           </div>
         )}
-        <div className="app-scroll" style={{padding:"14px 12px"}}>
+        <div className="app-scroll"
+          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
+          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>70){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
+          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
+          style={{padding:"14px 12px"}}>
+          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
           {/* Header */}
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -1435,7 +1449,12 @@ function BillarApp() {
             </button>
           ))}
         </div>
-        <div className="app-scroll" style={{padding:"0 14px"}}>
+        <div className="app-scroll"
+          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
+          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>70){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
+          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
+          style={{padding:"0 14px"}}>
+          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
           {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
@@ -1813,7 +1832,12 @@ function BillarApp() {
 
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
-        <div className="app-scroll" style={{padding:"20px 14px"}}>
+        <div className="app-scroll"
+          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
+          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>70){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
+          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
+          style={{padding:"20px 14px"}}>
+          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
             <div style={{fontSize:22,fontWeight:800,color:"#63b3ed"}}>📊 Estadísticas</div>
             <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
@@ -1963,10 +1987,18 @@ function BillarApp() {
     const plNorm = playersList.map(p => typeof p==="string" ? {name:p,id:""} : p);
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
-        <div className="app-scroll" style={{padding:"20px 18px"}}>
+        <div className="app-scroll"
+          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
+          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>70){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
+          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
+          style={{padding:"20px 18px"}}>
+          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
           <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>← Volver</button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-            <div style={{fontSize:22,fontWeight:800,color:"#63b3ed"}}>👥 Jugadores</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{fontSize:22,fontWeight:800,color:"#63b3ed"}}>👥 Jugadores</div>
+              <button onClick={()=>window.location.reload()} style={{padding:"5px 12px",borderRadius:8,background:"rgba(99,179,237,0.1)",border:"1px solid rgba(99,179,237,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔄 Actualizar</button>
+            </div>
             {deviceName && isAdmin && (
               <button onClick={()=>{if(window.confirm("¿Borrar el registro de este celular?")){setDeviceName(null);localStorage.removeItem("bg_device");}}}
                 style={{padding:"6px 12px",borderRadius:8,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
@@ -2006,7 +2038,9 @@ function BillarApp() {
             ? <div style={{color:"#444",fontSize:13,textAlign:"center",padding:"30px 0"}}>No hay jugadores guardados aún</div>
             : plNorm.filter(p => isOperario || (deviceRole==="jugador" && ((p.id||p.name)===deviceName||p.name===deviceName))).map((p,i_filtered) => {
               const i = plNorm.indexOf(p);
-              const isThisDevice = deviceName === (p.id||p.name);
+              const jugKeyP = p.id||p.name;
+              const existingDevsP = getJugadorDevices(p);
+              const isThisDevice = deviceName === jugKeyP || existingDevsP.includes(deviceName);
               if (editingNameKey===("player:"+i)) {
                 const saveEdit = (newName, newId, newColor, newRole, newPin) => {
                   const nm = newName.trim()||p.name;
@@ -2227,7 +2261,12 @@ function BillarApp() {
       : wP1.trim() && wP2.trim() && wServe;
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
-        <div className="app-scroll" style={{padding:"24px 22px"}}>
+        <div className="app-scroll"
+          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
+          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>70){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
+          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
+          style={{padding:"24px 22px"}}>
+          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
           <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.11)",color:"#bbb",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit",marginBottom:16}}>← Volver</button>
           <div style={{fontSize:20,fontWeight:800,color:"#63b3ed",marginBottom:18}}>Nueva Partida</div>
 
