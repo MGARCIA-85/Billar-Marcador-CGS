@@ -17,10 +17,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Billares García" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <meta name="theme-color" content="#0a1f0a" />
+  <meta name="theme-color" content="#081530" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { background: #0a1f0a; font-family: Georgia, serif; }
+    html, body { background: #081530; font-family: Georgia, serif; }
     #root { min-height: 100vh; }
     .app-screen { 
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -31,10 +31,10 @@
 </head>
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
-  <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v260</div>
+  <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v262</div>
 </div>
-<div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#1a4a1a,#0a1f0a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
+<div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
     <defs>
       <radialGradient id="b8g" cx="35%" cy="30%" r="60%"><stop offset="0%" stop-color="#555"/><stop offset="100%" stop-color="#050505"/></radialGradient>
@@ -60,8 +60,8 @@
   </svg>
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
-  <div style="font-size:11px;color:#3a6a3a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#2a4a2a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v260</div>
+  <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v262</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -184,17 +184,17 @@ function Acceso({ ok }) {
   };
 
   return (
-    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 50% 35%,#1a4a1a,#0a1f0a)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
+    <div style={{minHeight:"100vh",background:"radial-gradient(ellipse at 50% 35%,#0f2a5a,#081530)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
       <div style={{fontSize:11,color:"#c9a227",letterSpacing:4,textTransform:"uppercase"}}>Billares</div>
       <div style={{fontSize:34,fontWeight:900,color:"#fff",letterSpacing:2,lineHeight:1,marginBottom:6}}>García</div>
-      <div style={{fontSize:10,color:"#3a6a3a",letterSpacing:2,marginBottom:36}}>Control de partidas</div>
+      <div style={{fontSize:10,color:"#2a4a8a",letterSpacing:2,marginBottom:36}}>Control de partidas</div>
       <div style={{width:"100%",maxWidth:300}}>
         <input type="password" value={c} onChange={e=>setC(e.target.value)}
           onKeyDown={e=>e.key==="Enter"&&!loading&&go()} placeholder="Código de acceso" autoFocus
           style={{width:"100%",padding:"13px 16px",borderRadius:12,background:err?"rgba(255,80,80,0.1)":"rgba(255,255,255,0.07)",border:err?"1px solid rgba(255,80,80,0.5)":"1px solid rgba(255,255,255,0.15)",color:"#fff",fontFamily:"inherit",fontSize:16,outline:"none",textAlign:"center",letterSpacing:4,boxSizing:"border-box"}}/>
         {err && <div style={{color:"#f87171",fontSize:12,textAlign:"center",marginTop:6}}>Código incorrecto</div>}
         <button onClick={go} disabled={loading}
-          style={{marginTop:12,width:"100%",padding:"13px 0",borderRadius:12,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer",opacity:loading?0.7:1}}>
+          style={{marginTop:12,width:"100%",padding:"13px 0",borderRadius:12,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer",opacity:loading?0.7:1}}>
           {loading?"Verificando...":"Entrar"}
         </button>
       </div>
@@ -543,7 +543,7 @@ function BillarApp() {
 
   const chip = (sel) => ({
     padding:"8px 14px", borderRadius:20, fontFamily:"inherit", fontSize:13, fontWeight:600,
-    cursor:"pointer", background:sel?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.05)",
+    cursor:"pointer", background:sel?"linear-gradient(135deg,#1e3a8a,#4ade80)":"rgba(255,255,255,0.05)",
     border:sel?"none":"1px solid rgba(255,255,255,0.1)", color:sel?"#fff":"#999",
     boxShadow:sel?"0 3px 10px rgba(74,222,128,0.28)":"none"
   });
@@ -557,7 +557,7 @@ function BillarApp() {
     // ── Lista de jornadas ──
     if (jornadaScreen === "list") {
       return (
-        <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
+        <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
           <div className="app-scroll" style={{padding:"20px 14px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
               <div style={{fontSize:22,fontWeight:800,color:"#f9e04b"}}>🗓 Jornadas</div>
@@ -569,7 +569,7 @@ function BillarApp() {
               const newJ = {id:"j_"+Date.now(), name:newJNombre.trim(), currentTurn:0, turnStarted:false, turnScored:false, matchOrder:[], finished:false, createdAt:Date.now()};
               saveJornadas([...jornadas, newJ]);
               setJornadaScreenP(newJ.id);
-            }} style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",fontFamily:"inherit",fontSize:15,fontWeight:800,marginBottom:16,background:"linear-gradient(135deg,#166534,#4ade80)",color:"#fff",cursor:"pointer"}}>
+            }} style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",fontFamily:"inherit",fontSize:15,fontWeight:800,marginBottom:16,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",color:"#fff",cursor:"pointer"}}>
               + Nueva jornada
             </button>}
             {/* Lista de jornadas existentes */}
@@ -589,7 +589,7 @@ function BillarApp() {
                           <button onClick={()=>{
                             const newName = prompt("Nuevo nombre:", j.name);
                             if(newName?.trim()) saveJornadas(jornadas.map(x=>x.id===j.id?{...x,name:newName.trim()}:x));
-                          }} style={{fontSize:11,padding:"4px 8px",borderRadius:6,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",cursor:"pointer"}}>✏️</button>
+                          }} style={{fontSize:11,padding:"4px 8px",borderRadius:6,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",cursor:"pointer"}}>✏️</button>
                           {isAdmin && <button onClick={()=>{
                             if(window.confirm(`¿Eliminar "${j.name}"? También se eliminarán sus partidas.`)){
                               saveMatches(matches.filter(m=>m.jornadaId!==j.id));
@@ -619,7 +619,7 @@ function BillarApp() {
                         saveMatches([...matches, ...newMs]);
                         saveJornadas([...jornadas, {...newJ, matchOrder:newMs.map(m=>m.id)}]);
                         setJornadaScreenP(newJId);
-                      }} style={{marginTop:8,width:"100%",padding:"8px 0",borderRadius:9,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                      }} style={{marginTop:8,width:"100%",padding:"8px 0",borderRadius:9,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                         ↺ Re-crear jornada
                       </button>
                     </div>
@@ -717,19 +717,19 @@ function BillarApp() {
 
     return (
       <>
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
         {saqueModal && (
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
             <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.3)",maxWidth:320,width:"100%",textAlign:"center"}}>
               <div style={{fontSize:26,marginBottom:8}}>🎱</div>
-              <div style={{fontSize:16,fontWeight:800,color:"#4ade80",marginBottom:16}}>¿Quién saca primero?</div>
+              <div style={{fontSize:16,fontWeight:800,color:"#63b3ed",marginBottom:16}}>¿Quién saca primero?</div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {[{key:"p1",name:saqueModal.p1Name},{key:"p2",name:saqueModal.p2Name}].map(pl=>(
                   <button key={pl.key} onClick={()=>{
                     updateMatch(saqueModal.matchId, m=>({...m, firstServe:pl.key, currentServe:pl.key, needsServeSelection:false}));
                     setActiveId(saqueModal.matchId);
                     setSaqueModal(null);
-                  }} style={{padding:"14px",borderRadius:12,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#4ade80",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer"}}>
+                  }} style={{padding:"14px",borderRadius:12,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer"}}>
                     🎱 {pl.name}
                   </button>
                 ))}
@@ -793,7 +793,7 @@ function BillarApp() {
                     setJornadaFinModal(null);
                     setJornadaScreenP("list");
                     setTimeout(()=>setJornadaResumenId(finId), 150);
-                  }} style={{padding:"13px",borderRadius:12,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
+                  }} style={{padding:"13px",borderRadius:12,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
                     🏁 Finalizar jornada
                   </button>
                   <button onClick={()=>setJornadaFinModal(null)}
@@ -837,7 +837,7 @@ function BillarApp() {
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <div style={{fontSize:"clamp(13px,3.5vw,16px)",fontWeight:800,color:"#f9e04b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"38vw"}}>{currentJ.name}</div>
                 <button onClick={()=>{const n=prompt("Nuevo nombre:",currentJ.name);if(n?.trim())saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,name:n.trim()}:j));}}
-                  style={{fontSize:11,padding:"3px 6px",borderRadius:5,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",cursor:"pointer"}}>✏️</button>
+                  style={{fontSize:11,padding:"3px 6px",borderRadius:5,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",cursor:"pointer"}}>✏️</button>
               </div>
               <div style={{fontSize:11,color:"#888"}}>{jMatchIds.filter(id=>matches.find(m=>m.id===id)?.matchClosed).length}/{jMatchIds.length} terminadas</div>
             </div>
@@ -847,7 +847,7 @@ function BillarApp() {
               sessionStorage.setItem("pendingJornadaId", currentJ.id);
               setJornadaScreenP(null);
               setScreenP("newMatch");
-            }} style={{padding:"7px 12px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:800,cursor:"pointer"}}>+ Partida</button>}
+            }} style={{padding:"7px 12px",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:800,cursor:"pointer"}}>+ Partida</button>}
             {allJDone && (
               <button onClick={()=>{
                 if(window.confirm("¿Finalizar jornada? Las partidas quedarán dentro de la jornada.")) {
@@ -890,7 +890,7 @@ function BillarApp() {
                         {!turnStarted ? (
                           <div style={{display:"flex",gap:8}}>
                             <button onClick={()=>saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnStarted:true,turnScored:false}:j))}
-                              style={{flex:1,padding:"10px",borderRadius:10,border:"none",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer",background:"linear-gradient(135deg,#166534,#4ade80)",color:"#fff",letterSpacing:1}}>
+                              style={{flex:1,padding:"10px",borderRadius:10,border:"none",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer",background:"linear-gradient(135deg,#1e3a8a,#4ade80)",color:"#fff",letterSpacing:1}}>
                               🎱 Iniciar turno
                             </button>
                             {jMatchIds.filter(id=>{ const m2=matches.find(x=>x.id===id); return m2&&!m2.matchClosed&&!m2.jornadaPaused; }).length>1 && (
@@ -1057,7 +1057,7 @@ function BillarApp() {
                 <div style={{fontSize:15,fontWeight:700,color:"#e0e0e0"}}>⏱ Historial · Contrarreloj</div>
                 <button onClick={()=>setShowHistoryP(false)} style={{background:"rgba(255,255,255,0.07)",border:"none",color:"#ccc",borderRadius:8,padding:"6px 10px",fontFamily:"inherit",cursor:"pointer"}}>✕</button>
               </div>
-              <div style={{fontSize:10,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Clasificación final</div>
+              <div style={{fontSize:10,color:"#63b3ed",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Clasificación final</div>
               {standings.map((pidx,pos)=>(
                 <div key={pidx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:5}}>
                   <span style={{fontWeight:700,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{pos===0?"🏆":pos===1?"🥈":"🥉"} {pos+1}. {players[pidx]}</span>
@@ -1066,7 +1066,7 @@ function BillarApp() {
               ))}
               {serieHistoryH.length>0 && (()=>{
                 return (<>
-                  <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Resultados por serie</div>
+                  <div style={{fontSize:11,color:"#63b3ed",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Resultados por serie</div>
                   {serieHistoryH.map((s,gi)=>{
                     const roundsPerSH = hm.crTotalRounds||1;
                     const sRounds = s.rounds && s.rounds.length>0 ? s.rounds : roundHistory.slice(gi*roundsPerSH,(gi+1)*roundsPerSH);
@@ -1078,7 +1078,7 @@ function BillarApp() {
                     return (
                       <div key={gi} style={{marginBottom:10,background:"rgba(255,255,255,0.02)",borderRadius:10,overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)"}}>
                         <div style={{display:"flex",justifyContent:"space-between",padding:"6px 10px",background:"rgba(74,222,128,0.06)",borderBottom:"1px solid rgba(74,222,128,0.12)"}}>
-                          <span style={{fontSize:12,fontWeight:700,color:"#4ade80"}}>Serie {gi+1}</span>
+                          <span style={{fontSize:12,fontWeight:700,color:"#63b3ed"}}>Serie {gi+1}</span>
                           <span style={{fontSize:11,color:"#f9e04b",fontWeight:700}}>{s.winner!==null?`🏆 ${players[s.winner]}`:"Sin ganador"}</span>
                         </div>
                         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
@@ -1133,13 +1133,13 @@ function BillarApp() {
     const plNorm2 = playersList.map(p=>typeof p==="string"?{name:p,id:"",role:"jugador"}:p);
     const thisDeviceId = localStorage.getItem("bg_device");
     return (
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
         {devDialog && (
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
             <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:320,width:"100%"}}>
               <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:8,textAlign:"center"}}>📱 Registrar dispositivo</div>
               <div style={{fontSize:13,color:"#ccc",textAlign:"center",marginBottom:20,lineHeight:1.6}}>
-                <b style={{color:"#4ade80"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
+                <b style={{color:"#63b3ed"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {(()=>{
@@ -1169,7 +1169,7 @@ function BillarApp() {
                       <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Borra el dispositivo anterior</div>
                     </button>
                     <button onClick={()=>tryAction("agregar")}
-                      style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#4ade80",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
+                      style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
                       ➕ Agregar dispositivo
                       <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Mantiene el anterior también</div>
                     </button>
@@ -1185,7 +1185,7 @@ function BillarApp() {
         )}
         <div style={{background:"#1a2e1a",borderRadius:18,padding:"28px 22px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:340,width:"100%"}}>
           <div style={{fontSize:28,textAlign:"center",marginBottom:4}}>🎱</div>
-          <div style={{fontSize:20,fontWeight:800,color:"#4ade80",textAlign:"center",marginBottom:6}}>Billares García</div>
+          <div style={{fontSize:20,fontWeight:800,color:"#63b3ed",textAlign:"center",marginBottom:6}}>Billares García</div>
           <div style={{fontSize:13,color:"#888",textAlign:"center",marginBottom:24,lineHeight:1.5}}>¿Eres uno de los jugadores registrados?</div>
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
             {plNorm2.map((p,i)=>{
@@ -1233,7 +1233,7 @@ function BillarApp() {
             <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(249,224,75,0.3)",maxWidth:300,width:"100%",textAlign:"center"}}>
               <div style={{fontSize:28,marginBottom:8}}>🔑</div>
               <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:6}}>PIN requerido</div>
-              <div style={{fontSize:13,color:"#aaa",marginBottom:16}}>Ingresa el PIN para <b style={{color:"#4ade80"}}>{pinPrompt.jugName}</b></div>
+              <div style={{fontSize:13,color:"#aaa",marginBottom:16}}>Ingresa el PIN para <b style={{color:"#63b3ed"}}>{pinPrompt.jugName}</b></div>
               <input id="pin-input-reg" type="password" inputMode="numeric" maxLength={6} autoFocus
                 style={{width:"100%",padding:"12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(249,224,75,0.3)",color:"#f9e04b",fontFamily:"inherit",fontSize:22,fontWeight:800,outline:"none",letterSpacing:8,textAlign:"center",boxSizing:"border-box",marginBottom:12}}
                 onInput={e=>e.target.value=e.target.value.replace(/[^0-9]/g,"")}
@@ -1242,7 +1242,7 @@ function BillarApp() {
               <div id="pin-error-reg" style={{display:"none",color:"#f87171",fontSize:12,marginBottom:10}}>PIN incorrecto, intenta de nuevo.</div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={()=>{const v=document.getElementById("pin-input-reg")?.value;if(v===pinPrompt.pin){pinPrompt.onSuccess();setPinPrompt(null);}else{document.getElementById("pin-error-reg").style.display="block";}}}
-                  style={{flex:1,padding:"11px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
+                  style={{flex:1,padding:"11px",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
                   Entrar
                 </button>
                 <button onClick={()=>setPinPrompt(null)}
@@ -1261,7 +1261,7 @@ function BillarApp() {
   if (registroBorrado) {
     const plNorm3 = playersList.map(p=>typeof p==="string"?{name:p,id:"",role:"jugador"}:p);
     return (
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
         <div style={{background:"#1a2e1a",borderRadius:18,padding:"28px 22px",border:"1px solid rgba(239,68,68,0.3)",maxWidth:340,width:"100%",textAlign:"center"}}>
           <div style={{fontSize:36,marginBottom:12}}>📵</div>
           <div style={{fontSize:18,fontWeight:800,color:"#f87171",marginBottom:8}}>Registro eliminado</div>
@@ -1306,7 +1306,7 @@ function BillarApp() {
               <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:320,width:"100%"}}>
                 <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:8,textAlign:"center"}}>📱 Registrar dispositivo</div>
                 <div style={{fontSize:13,color:"#ccc",textAlign:"center",marginBottom:20,lineHeight:1.6}}>
-                  <b style={{color:"#4ade80"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
+                  <b style={{color:"#63b3ed"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[devDialog.newDev]});setDevDialog(null);setRegistroBorrado(false);}}
@@ -1315,7 +1315,7 @@ function BillarApp() {
                     <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Borra el dispositivo anterior</div>
                   </button>
                   <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[...devDialog.existingDevs,devDialog.newDev]});setDevDialog(null);setRegistroBorrado(false);}}
-                    style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#4ade80",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
+                    style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
                     ➕ Agregar dispositivo
                     <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Mantiene el anterior también</div>
                   </button>
@@ -1335,19 +1335,19 @@ function BillarApp() {
   if (screen === "lobby") {
     const list = lobbyTab === "active" ? activeMatches : closedMatches;
     return (
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
         {saqueModal && (
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
             <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.3)",maxWidth:320,width:"100%",textAlign:"center"}}>
               <div style={{fontSize:26,marginBottom:8}}>🎱</div>
-              <div style={{fontSize:16,fontWeight:800,color:"#4ade80",marginBottom:16}}>¿Quién saca primero?</div>
+              <div style={{fontSize:16,fontWeight:800,color:"#63b3ed",marginBottom:16}}>¿Quién saca primero?</div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {[{key:"p1",name:saqueModal.p1Name},{key:"p2",name:saqueModal.p2Name}].map(pl=>(
                   <button key={pl.key} onClick={()=>{
                     updateMatch(saqueModal.matchId, m=>({...m, firstServe:pl.key, currentServe:pl.key, needsServeSelection:false}));
                     setActiveId(saqueModal.matchId);
                     setSaqueModal(null);
-                  }} style={{padding:"14px",borderRadius:12,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#4ade80",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer"}}>
+                  }} style={{padding:"14px",borderRadius:12,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer"}}>
                     🎱 {pl.name}
                   </button>
                 ))}
@@ -1376,7 +1376,7 @@ function BillarApp() {
         )}
         <div style={{padding:"14px 14px 0",position:"relative",zIndex:10}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-            <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#4ade80",letterSpacing:1,lineHeight:1}}>Billares García</div>
+            <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
               background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
@@ -1397,7 +1397,7 @@ function BillarApp() {
               <div style={{fontSize:15,lineHeight:1}}>🗓</div>
               <div style={{fontSize:9,marginTop:3,color:jornadaScreen?"#f9e04b":"#888",fontWeight:600}}>Jornadas</div>
             </button>
-            {isJugador && <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>
+            {isJugador && <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>
               <div style={{fontSize:15,lineHeight:1,fontWeight:800}}>+</div>
               <div style={{fontSize:9,marginTop:3,fontWeight:700}}>Nueva</div>
             </button>}
@@ -1407,7 +1407,7 @@ function BillarApp() {
           {["active","closed"].map(tab => (
             <button key={tab} onClick={()=>{ setLobbyTab(tab); localStorage.setItem("bg_lobbyTab",tab); }} style={{flex:1,padding:"9px 0",borderRadius:"10px 10px 0 0",border:lobbyTab===tab?"1px solid rgba(74,222,128,0.25)":"1px solid rgba(255,255,255,0.07)",borderBottom:"none",background:lobbyTab===tab?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.04)",color:lobbyTab===tab?"#4ade80":"#777",fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer"}}>
               {tab==="active"?"En juego":"Terminadas"}
-              {tab==="active" && activeMatches.length > 0 && <span style={{background:"#4ade80",color:"#0a1f0a",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:800,marginLeft:6}}>{activeMatches.length}</span>}
+              {tab==="active" && activeMatches.length > 0 && <span style={{background:"#4ade80",color:"#081530",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:800,marginLeft:6}}>{activeMatches.length}</span>}
             </button>
           ))}
         </div>
@@ -1485,8 +1485,8 @@ function BillarApp() {
 
         {/* Historial desde lobby */}
         {showHistory && activeId && !fbLoaded && (
-          <div style={{position:"fixed",inset:0,background:"#0a1f0a",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <div style={{color:"#4ade80",fontSize:14,fontFamily:"Georgia,serif",letterSpacing:1}}>Cargando...</div>
+          <div style={{position:"fixed",inset:0,background:"#081530",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{color:"#63b3ed",fontSize:14,fontFamily:"Georgia,serif",letterSpacing:1}}>Cargando...</div>
           </div>
         )}
         {showHistory && activeId && fbLoaded && (() => {
@@ -1550,7 +1550,7 @@ function BillarApp() {
                 <button onClick={()=>setShowHistoryP(false)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#aaa",borderRadius:8,padding:"4px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
               </div>
               {/* Clasificación */}
-              <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Clasificación final</div>
+              <div style={{fontSize:11,color:"#63b3ed",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Clasificación final</div>
               {standings.map((pidx,pos)=>(
                 <div key={pidx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:6}}>
                   <span style={{fontWeight:700,fontSize:15,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{pos===0?"🏆":pos===1?"🥈":"🥉"} {pos+1}. {players[pidx]}</span>
@@ -1563,7 +1563,7 @@ function BillarApp() {
               {/* Tabla rondas */}
               {serieHistoryH.length>0 && (()=>{
                 return (<>
-                  <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Resultados por serie</div>
+                  <div style={{fontSize:11,color:"#63b3ed",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Resultados por serie</div>
                   {serieHistoryH.map((s,gi)=>{
                     // Compatibilidad: usar s.rounds si existe, si no reconstruir del roundHistory global
                     const roundsPerSH = hm.crTotalRounds || 1;
@@ -1583,7 +1583,7 @@ function BillarApp() {
                     return (
                       <div key={gi} style={{marginBottom:12,background:"rgba(255,255,255,0.02)",borderRadius:10,overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)"}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",background:"rgba(74,222,128,0.06)",borderBottom:"1px solid rgba(74,222,128,0.12)"}}>
-                          <span style={{fontSize:13,fontWeight:700,color:"#4ade80"}}>Serie {gi+1}</span>
+                          <span style={{fontSize:13,fontWeight:700,color:"#63b3ed"}}>Serie {gi+1}</span>
                           <span style={{fontSize:12,color:"#f9e04b",fontWeight:700}}>{s.winner!==null?`🏆 ${players[s.winner]}`:"Sin ganador"}</span>
                         </div>
                         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
@@ -1779,15 +1779,15 @@ function BillarApp() {
 
     const chipS = (active) => ({
       padding:"5px 12px",borderRadius:20,fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer",
-      background:active?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",
+      background:active?"linear-gradient(135deg,#1e3a8a,#4ade80)":"rgba(255,255,255,0.06)",
       border:active?"none":"1px solid rgba(255,255,255,0.11)",color:active?"#fff":"#999"
     });
 
     return (
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
         <div className="app-scroll" style={{padding:"20px 14px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-            <div style={{fontSize:22,fontWeight:800,color:"#4ade80"}}>📊 Estadísticas</div>
+            <div style={{fontSize:22,fontWeight:800,color:"#63b3ed"}}>📊 Estadísticas</div>
             <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
           </div>
 
@@ -1845,7 +1845,7 @@ function BillarApp() {
                 const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
                 const tituloRanking = sfPeriod==="Hoy"?`Ranking · Hoy ${now.getDate()} ${meses[now.getMonth()]}`:sfPeriod==="Esta semana"?`Ranking · Esta semana`:sfPeriod==="Este mes"?`Ranking · ${meses[now.getMonth()]} ${now.getFullYear()}`:sfPeriod==="Rango"?`Ranking · Rango personalizado`:`Ranking · Todo el tiempo`;
                 return <div style={{textAlign:"center",marginBottom:12}}>
-                  <div style={{fontSize:15,fontWeight:800,color:"#4ade80",letterSpacing:1}}>{tituloRanking}</div>
+                  <div style={{fontSize:15,fontWeight:800,color:"#63b3ed",letterSpacing:1}}>{tituloRanking}</div>
                   <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,transparent,#06b6d4,transparent)",marginTop:6}}></div>
                 </div>;
               })()}
@@ -1876,8 +1876,8 @@ function BillarApp() {
                     return (<>
                       <thead>
                         <tr style={{borderBottom:"1px solid rgba(74,222,128,0.2)"}}>
-                          <td style={{padding:"7px 4px",color:"#4ade80",fontWeight:700}}>#</td>
-                          <td style={{padding:"7px 4px",color:"#4ade80",fontWeight:700}}>Jugador</td>
+                          <td style={{padding:"7px 4px",color:"#63b3ed",fontWeight:700}}>#</td>
+                          <td style={{padding:"7px 4px",color:"#63b3ed",fontWeight:700}}>Jugador</td>
                           {Object.entries(colMap).map(([col,label])=>(
                             <td key={col} style={thStyle(col)} onClick={()=>toggleSort(col)} title={col}>
                               {label}{arrow(col)}
@@ -1891,11 +1891,11 @@ function BillarApp() {
                       <tr key={r.name} style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:i%2===0?"transparent":"rgba(255,255,255,0.01)"}}>
                         <td style={{padding:"8px 4px",color:i===0?"#f9e04b":i===1?"#ccc":i===2?"#cd7f32":"#555",fontWeight:700}}>{i+1}</td>
                         <td style={{padding:"8px 4px",fontWeight:700,color:"#e0e0e0",whiteSpace:"nowrap"}}>{r.name}</td>
-                        <td style={{padding:"8px 3px",textAlign:"center",color:"#4ade80",fontWeight:700}}>{r.partidasW}</td>
-                        <td style={{padding:"8px 3px",textAlign:"center",color:"#4ade80",fontWeight:600}}>{r.seriesW}</td>
-                        <td style={{padding:"8px 3px",textAlign:"center",color:"#4ade80",fontWeight:600}}>{r.juegosW}</td>
-                        <td style={{padding:"8px 3px",textAlign:"center",color:"#4ade80",fontWeight:700}}>{r.goldenBreaks}</td>
-                        <td style={{padding:"8px 3px",textAlign:"center",color:"#4ade80",fontWeight:700}}>{r.mesas}</td>
+                        <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.partidasW}</td>
+                        <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:600}}>{r.seriesW}</td>
+                        <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:600}}>{r.juegosW}</td>
+                        <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.goldenBreaks}</td>
+                        <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.mesas}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#888",fontWeight:600}}>{r.juegos}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:r.juegos>0&&(r.juegosW/r.juegos)>=0.5?"#4ade80":"#888",fontWeight:700}}>{r.juegos>0?Math.round(r.juegosW/r.juegos*100)+"%":"—"}</td>
                         {showCR&&<td style={{padding:"8px 3px",textAlign:"center",color:"#888",fontSize:10,fontVariantNumeric:"tabular-nums"}}>{r.crTimes.length>0?fmtTime(r.crTimes.reduce((a,b)=>a+b,0)/r.crTimes.length):"—"}</td>}
@@ -1907,14 +1907,14 @@ function BillarApp() {
                 </table>
               </div>
               <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:12,fontSize:11,color:"#888"}}>
-                <span style={{color:"#4ade80",fontWeight:600}}>👑</span><span>=Partidas</span>
-                <span style={{color:"#4ade80",fontWeight:600}}>🏆</span><span>=Series</span>
-                <span style={{color:"#4ade80",fontWeight:600}}>JG</span><span>=Juegos</span>
-                <span style={{color:"#4ade80",fontWeight:600}}>🟡</span><span>=Golden Break</span>
-                <span style={{color:"#4ade80",fontWeight:600}}>🧹</span><span>=Barrida</span>
+                <span style={{color:"#63b3ed",fontWeight:600}}>👑</span><span>=Partidas</span>
+                <span style={{color:"#63b3ed",fontWeight:600}}>🏆</span><span>=Series</span>
+                <span style={{color:"#63b3ed",fontWeight:600}}>JG</span><span>=Juegos</span>
+                <span style={{color:"#63b3ed",fontWeight:600}}>🟡</span><span>=Golden Break</span>
+                <span style={{color:"#63b3ed",fontWeight:600}}>🧹</span><span>=Barrida</span>
                 <span style={{color:"#888",fontWeight:600}}>JJ</span><span>=Juegos Jugados</span>
                 <span style={{color:"#888",fontWeight:600}}>%</span><span>=Promedio de victorias</span>
-                {showCR&&<><span style={{color:"#4ade80",fontWeight:600}}>⏱</span><span>=T.prom CR</span></>}
+                {showCR&&<><span style={{color:"#63b3ed",fontWeight:600}}>⏱</span><span>=T.prom CR</span></>}
               </div>
             </>)
           }
@@ -1929,11 +1929,11 @@ function BillarApp() {
     // Normalizar playersList: puede tener strings o {name,id}
     const plNorm = playersList.map(p => typeof p==="string" ? {name:p,id:""} : p);
     return (
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
         <div className="app-scroll" style={{padding:"20px 18px"}}>
           <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>← Volver</button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-            <div style={{fontSize:22,fontWeight:800,color:"#4ade80"}}>👥 Jugadores</div>
+            <div style={{fontSize:22,fontWeight:800,color:"#63b3ed"}}>👥 Jugadores</div>
             {deviceName && isAdmin && (
               <button onClick={()=>{if(window.confirm("¿Borrar el registro de este celular?")){setDeviceName(null);localStorage.removeItem("bg_device");}}}
                 style={{padding:"6px 12px",borderRadius:8,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
@@ -1941,7 +1941,7 @@ function BillarApp() {
               </button>
             )}
           </div>
-          {deviceName && <div style={{fontSize:11,color:"#4ade80",marginBottom:16,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",borderRadius:8,padding:"5px 10px",display:"inline-block"}}>📱 Este dispositivo: <b>{deviceName}</b></div>}
+          {deviceName && <div style={{fontSize:11,color:"#63b3ed",marginBottom:16,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",borderRadius:8,padding:"5px 10px",display:"inline-block"}}>📱 Este dispositivo: <b>{deviceName}</b></div>}
           {!deviceName && <div style={{fontSize:11,color:"#888",marginBottom:16}}>Ningún jugador registrado en este dispositivo</div>}
 
           {/* Agregar nuevo - solo Operario y Admin */}
@@ -1963,7 +1963,7 @@ function BillarApp() {
             </div>
             <button
               onClick={()=>{if(newPlayerName.trim()){addPlayerToList({name:newPlayerName.trim(),id:newPId.trim().toUpperCase()});setNewPlayerName("");setNewPId("");}}}
-              style={{width:"100%",padding:"11px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>
+              style={{width:"100%",padding:"11px",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>
               + Agregar
             </button>
           </div>}
@@ -2055,7 +2055,7 @@ function BillarApp() {
                         const selRole = ["jugador","operario","admin"].find(r=>document.getElementById("edit-role-"+i+"-"+r)?.style?.background?.includes("0.2"))||(p.role||"jugador");
                         const npin = document.getElementById("edit-pin-"+i)?.value||"";
                         saveEdit(nm,nid,ncol,selRole,npin);
-                      }} style={{flex:1,padding:"9px",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                      }} style={{flex:1,padding:"9px",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
                         ✓ Guardar
                       </button>
                       <button onClick={()=>setEditingNameKey(null)} style={{padding:"9px 14px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>✕</button>
@@ -2069,7 +2069,7 @@ function BillarApp() {
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                       <span style={{fontSize:15,fontWeight:700,color:p.color||"#e0e0e0"}}>🎱 {p.name}</span>
                       {p.id && <span style={{fontSize:11,fontWeight:800,color:"#f9e04b",background:"rgba(249,224,75,0.12)",border:"1px solid rgba(249,224,75,0.25)",borderRadius:6,padding:"2px 7px"}}>{p.id}</span>}
-                      {isThisDevice && <span style={{fontSize:10,color:"#4ade80"}}>📱 Este dispositivo</span>}
+                      {isThisDevice && <span style={{fontSize:10,color:"#63b3ed"}}>📱 Este dispositivo</span>}
                       {isAdmin && <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:5,
                         background:(p.role||"jugador")==="admin"?"rgba(249,224,75,0.15)":(p.role||"jugador")==="operario"?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
                         color:(p.role||"jugador")==="admin"?"#f9e04b":(p.role||"jugador")==="operario"?"#4ade80":"#888"}}>
@@ -2160,7 +2160,7 @@ function BillarApp() {
             <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:320,width:"100%"}}>
               <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:8,textAlign:"center"}}>📱 Registrar dispositivo</div>
               <div style={{fontSize:13,color:"#ccc",textAlign:"center",marginBottom:20,lineHeight:1.6}}>
-                <b style={{color:"#4ade80"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
+                <b style={{color:"#63b3ed"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[devDialog.newDev]});setDevDialog(null);}}
@@ -2169,7 +2169,7 @@ function BillarApp() {
                   <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Borra el dispositivo anterior</div>
                 </button>
                 <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[...devDialog.existingDevs,devDialog.newDev]});setDevDialog(null);}}
-                  style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#4ade80",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
+                  style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
                   ➕ Agregar dispositivo
                   <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Mantiene el anterior también</div>
                 </button>
@@ -2193,10 +2193,10 @@ function BillarApp() {
       ? validPlayers.length >= 2 && wOrder.length === validPlayers.length
       : wP1.trim() && wP2.trim() && wServe;
     return (
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
         <div className="app-scroll" style={{padding:"24px 22px"}}>
           <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.11)",color:"#bbb",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit",marginBottom:16}}>← Volver</button>
-          <div style={{fontSize:20,fontWeight:800,color:"#4ade80",marginBottom:18}}>Nueva Partida</div>
+          <div style={{fontSize:20,fontWeight:800,color:"#63b3ed",marginBottom:18}}>Nueva Partida</div>
 
           <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Modalidad</div>
           <div style={{display:"flex",gap:8,marginTop:8,marginBottom:18}}>
@@ -2218,8 +2218,8 @@ function BillarApp() {
                 <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:pi===1?14:0}}>{label}</div>
                 <select value={val} onChange={e=>setVal(e.target.value)}
                   style={{width:"100%",padding:"12px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${val?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:val?"#fff":"#888",fontFamily:"inherit",fontSize:15,outline:"none",boxSizing:"border-box",marginBottom:6,cursor:"pointer"}}>
-                  <option value="" style={{color:"#888",background:"#0a1f0a"}}>Selecciona un jugador...</option>
-                  {opts.map((pn,oi)=>(<option key={oi} value={pn} style={{color:"#fff",background:"#0a1f0a"}}>{pn}</option>))}
+                  <option value="" style={{color:"#888",background:"#081530"}}>Selecciona un jugador...</option>
+                  {opts.map((pn,oi)=>(<option key={oi} value={pn} style={{color:"#fff",background:"#081530"}}>{pn}</option>))}
                 </select>
               </React.Fragment>);
             })}
@@ -2232,14 +2232,14 @@ function BillarApp() {
               <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
                 <select value={p} onChange={e=>{const n=[...wPlayers];n[i]=e.target.value;setWPlayers(n);setWOrder([]);}}
                   style={{flex:1,padding:"11px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${p?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:p?"#fff":"#888",fontFamily:"inherit",fontSize:14,outline:"none",cursor:"pointer"}}>
-                  <option value="" style={{color:"#888",background:"#0a1f0a"}}>Selecciona un jugador...</option>
-                  {opts.map((pn,oi)=>(<option key={oi} value={pn} style={{color:"#fff",background:"#0a1f0a"}}>{pn}</option>))}
+                  <option value="" style={{color:"#888",background:"#081530"}}>Selecciona un jugador...</option>
+                  {opts.map((pn,oi)=>(<option key={oi} value={pn} style={{color:"#fff",background:"#081530"}}>{pn}</option>))}
                 </select>
                 {wPlayers.length > 2 && <button onClick={()=>{const n=wPlayers.filter((_,j)=>j!==i);setWPlayers(n);setWOrder([]);}} style={{background:"rgba(255,80,80,0.15)",border:"1px solid rgba(255,80,80,0.3)",color:"#f87171",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:14,fontFamily:"inherit"}}>✕</button>}
               </div>
               );
             })}
-            <button onClick={()=>{setWPlayers([...wPlayers,""]);setWOrder([]);}} style={{width:"100%",padding:"9px 0",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:4}}>+ Agregar jugador</button>
+            <button onClick={()=>{setWPlayers([...wPlayers,""]);setWOrder([]);}} style={{width:"100%",padding:"9px 0",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:4}}>+ Agregar jugador</button>
           </>)}
 
           {!isCR && (<>
@@ -2265,7 +2265,7 @@ function BillarApp() {
               {["p1","p2"].map(k => {
                 const name = k==="p1"?(wP1||"Jugador 1"):(wP2||"Jugador 2");
                 const sel = wServe===k;
-                return <button key={k} onClick={()=>setWServe(k)} style={{flex:1,padding:"13px 8px",borderRadius:12,fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer",background:sel?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",border:sel?"none":"1px solid rgba(255,255,255,0.11)",color:sel?"#fff":"#999"}}>{name}</button>;
+                return <button key={k} onClick={()=>setWServe(k)} style={{flex:1,padding:"13px 8px",borderRadius:12,fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer",background:sel?"linear-gradient(135deg,#1e3a8a,#4ade80)":"rgba(255,255,255,0.06)",border:sel?"none":"1px solid rgba(255,255,255,0.11)",color:sel?"#fff":"#999"}}>{name}</button>;
               })}
             </div>
           </>) : (<>
@@ -2281,19 +2281,19 @@ function BillarApp() {
                     return <button key={i} onClick={()=>{
                       if(sel){setWOrder(wOrder.filter(x=>x!==i));}
                       else{setWOrder([...wOrder,i]);}
-                    }} style={{padding:"10px 16px",borderRadius:10,fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",background:sel?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",border:sel?"none":"1px solid rgba(255,255,255,0.11)",color:sel?"#fff":"#999",position:"relative"}}>
+                    }} style={{padding:"10px 16px",borderRadius:10,fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",background:sel?"linear-gradient(135deg,#1e3a8a,#4ade80)":"rgba(255,255,255,0.06)",border:sel?"none":"1px solid rgba(255,255,255,0.11)",color:sel?"#fff":"#999",position:"relative"}}>
                       {sel && <span style={{position:"absolute",top:-6,right:-6,background:"#f9e04b",color:"#000",borderRadius:"50%",width:18,height:18,fontSize:11,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{pos+1}</span>}
                       {p}
                     </button>;
                   })}
                 </div>
-                {wOrder.length > 0 && <div style={{fontSize:11,color:"#4ade80",marginBottom:4}}>Orden: {wOrder.map(i=>wPlayers[i]).join(" → ")}</div>}
+                {wOrder.length > 0 && <div style={{fontSize:11,color:"#63b3ed",marginBottom:4}}>Orden: {wOrder.map(i=>wPlayers[i]).join(" → ")}</div>}
               </>);
             })()}
           </>)}
 
           <div style={{display:"flex",gap:12,marginTop:20}}>
-            <button style={{flex:1,padding:"14px 0",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:700,cursor:"pointer",opacity:ready?1:0.4}} onClick={startNewMatch} disabled={!ready}>Iniciar</button>
+            <button style={{flex:1,padding:"14px 0",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:700,cursor:"pointer",opacity:ready?1:0.4}} onClick={startNewMatch} disabled={!ready}>Iniciar</button>
             <button style={{padding:"14px 16px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.11)",color:"#aaa",fontFamily:"inherit",fontSize:14,cursor:"pointer"}} onClick={()=>{
               const pj = sessionStorage.getItem("pendingJornadaId");
               if(pj){setJornadaScreenP(pj);}else{setScreenP("lobby");}
@@ -2307,7 +2307,7 @@ function BillarApp() {
   // ===== PARTIDA =====
   if (screen === "match") {
     if (!activeMatch) {
-      if (!fbLoaded) return <div style={{minHeight:"100vh",background:"#0a1f0a",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#4ade80",fontSize:14,fontFamily:"Georgia,serif",letterSpacing:1}}>Cargando...</div></div>;
+      if (!fbLoaded) return <div style={{minHeight:"100vh",background:"#081530",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#63b3ed",fontSize:14,fontFamily:"Georgia,serif",letterSpacing:1}}>Cargando...</div></div>;
       setScreenP("lobby"); return null;
     }
   } else if (!activeMatch) { return null; }
@@ -2358,7 +2358,7 @@ function BillarApp() {
   };
 
   return (
-    <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#1a4a1a 0%,#0a1f0a 55%,#060f06 100%)"}}>
+    <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
 
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px 8px",borderBottom:"1px solid rgba(255,255,255,0.07)",background:"rgba(0,0,0,0.4)"}}>
@@ -2377,7 +2377,7 @@ function BillarApp() {
           <span style={{fontSize:30,fontWeight:900,lineHeight:1,color:sw1>sw2?"#f9e04b":"#fff"}}>{sw1}</span>
         </div>
         <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-          <div style={{fontSize:8,letterSpacing:2,color:"#4ade80",textTransform:"uppercase"}}>SERIES</div>
+          <div style={{fontSize:8,letterSpacing:2,color:"#63b3ed",textTransform:"uppercase"}}>SERIES</div>
           <div style={{fontSize:18,color:"#333",fontWeight:700}}>-</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10,flex:1,flexDirection:"row-reverse"}}>
@@ -2483,7 +2483,7 @@ function BillarApp() {
       {/* Footer */}
       <div style={{display:"flex",gap:8,padding:"10px 14px",borderTop:"1px solid rgba(255,255,255,0.05)",background:"rgba(0,0,0,0.32)",alignItems:"center"}}>
         {!isReadOnly && seriesFinished
-          ? <button style={{flex:2,fontSize:13,padding:"12px 0",borderRadius:14,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontWeight:800,cursor:"pointer"}} onClick={startNewSeries}>Siguiente serie</button>
+          ? <button style={{flex:2,fontSize:13,padding:"12px 0",borderRadius:14,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontWeight:800,cursor:"pointer"}} onClick={startNewSeries}>Siguiente serie</button>
           : <div style={{flex:2}} />
         }
         {!isReadOnly && <button style={{padding:"11px 14px",borderRadius:12,background:"rgba(255,80,80,0.12)",border:"1px solid rgba(255,80,80,0.28)",color:"#f87171",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}} onClick={()=>setShowCloseMatch(true)}>Terminar</button>}
@@ -2539,7 +2539,7 @@ function BillarApp() {
                 <button onClick={()=>setShowHistoryP(false)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#aaa",borderRadius:8,padding:"4px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
               </div>
               {/* Clasificación general */}
-              <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Clasificación</div>
+              <div style={{fontSize:11,color:"#63b3ed",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Clasificación</div>
               {standings.map((pidx,pos)=>(
                 <div key={pidx} style={{display:"flex",justifyContent:"space-between",padding:"7px 10px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:5}}>
                   <span style={{fontWeight:700,color:pos===0?"#f9e04b":"#e0e0e0"}}>{pos===0?"🏆":pos===1?"🥈":"🥉"} {pos+1}. {players[pidx]}</span>
@@ -2548,7 +2548,7 @@ function BillarApp() {
               ))}
               {/* Tabla de rondas */}
               {roundHistory.length>0 && (<>
-                <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Resultados por ronda</div>
+                <div style={{fontSize:11,color:"#63b3ed",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Resultados por ronda</div>
                 <div style={{overflowX:"auto"}}>
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                     <thead>
@@ -2557,7 +2557,7 @@ function BillarApp() {
                         {roundHistory.map((r,ri)=>{
                           const sIdx = Math.floor(ri/(hm.crTotalRounds||1));
                           const rIdx = ri%(hm.crTotalRounds||1);
-                          return <td key={r.round} style={{padding:"4px 4px",textAlign:"center",color:"#4ade80",fontWeight:700,borderLeft:rIdx===0?"1px solid rgba(74,222,128,0.2)":"none",fontSize:10}}>S{sIdx+1}·R{rIdx+1}</td>;
+                          return <td key={r.round} style={{padding:"4px 4px",textAlign:"center",color:"#63b3ed",fontWeight:700,borderLeft:rIdx===0?"1px solid rgba(74,222,128,0.2)":"none",fontSize:10}}>S{sIdx+1}·R{rIdx+1}</td>;
                         })}
                         <td style={{padding:"4px 4px",textAlign:"center",color:"#f9e04b",fontWeight:700,borderLeft:"1px solid rgba(74,222,128,0.2)"}}>🏆S</td>
                         <td style={{padding:"4px 4px",textAlign:"center",color:"#888",fontWeight:700}}>Prom</td>
@@ -2784,7 +2784,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
 
 
         {(seriesHistory||[]).length>0&&<>
-          <div style={{fontSize:10,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Series completadas</div>
+          <div style={{fontSize:10,color:"#63b3ed",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Series completadas</div>
           {(seriesHistory||[]).map((s,i)=>{
              const isLast=i===seriesHistory.length-1;
              const isSecondLast=i===seriesHistory.length-2;
@@ -2830,7 +2830,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
 
         {matchClosed && onReactivar && (
           <button onClick={onReactivar}
-            style={{marginTop:8,width:"100%",padding:"12px 0",borderRadius:10,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
+            style={{marginTop:8,width:"100%",padding:"12px 0",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
             ▶ Reactivar partida
           </button>
         )}
@@ -3068,7 +3068,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
             <span style={{fontSize:18}}>⏱</span>
             <div>
               <div style={{fontSize:11,color:"#aaa"}}>{m.createdAt ? (()=>{const d=new Date(m.createdAt);return ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][d.getDay()]+" "+d.getDate()+" "+["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][d.getMonth()]+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");})() : ""}</div>
-              <div style={{fontSize:13,fontWeight:700,color:"#4ade80"}}>Serie {currentSerie}/{totalSeries} · Ronda {currentRound}/{totalRounds}</div>
+              <div style={{fontSize:13,fontWeight:700,color:"#63b3ed"}}>Serie {currentSerie}/{totalSeries} · Ronda {currentRound}/{totalRounds}</div>
             </div>
           </div>
           <div style={{display:"flex",gap:6}}>
@@ -3088,7 +3088,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                     {roundHistory.map(r=>(
                       <td key={r.round} style={{padding:"4px 6px",textAlign:"center",color:"#666",fontWeight:700}}>R{r.round}</td>
                     ))}
-                    <td style={{padding:"4px 6px",textAlign:"center",color:"#4ade80",fontWeight:700}}>🏆</td>
+                    <td style={{padding:"4px 6px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>🏆</td>
                     <td style={{padding:"4px 6px",textAlign:"center",color:"#888",fontWeight:700}}>Prom</td>
                   </tr>
                 </thead>
@@ -3122,7 +3122,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
         {/* Lista de jugadores con tiempos */}
         {matchOver2 && (
           <div style={{background:"rgba(0,0,0,0.25)",borderRadius:12,padding:"12px",marginBottom:10,border:"1px solid rgba(74,222,128,0.15)"}}>
-            <div style={{fontSize:11,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:10,fontWeight:700}}>🏁 Clasificación final</div>
+            <div style={{fontSize:11,color:"#63b3ed",letterSpacing:1,textTransform:"uppercase",marginBottom:10,fontWeight:700}}>🏁 Clasificación final</div>
             {standings.map((pidx,pos)=>(
               <div key={pidx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",borderRadius:10,
                 background:pos===0?"rgba(249,224,75,0.1)":"rgba(255,255,255,0.04)",
@@ -3193,7 +3193,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               onContextMenu={e=>{e.preventDefault();e.stopPropagation();handleCrReset();}}
               onTouchStart={e=>{e.stopPropagation();}}
               style={{width:"100%",padding:"18px 0",borderRadius:14,border:"none",fontFamily:"inherit",fontSize:18,fontWeight:900,cursor:"pointer",marginBottom:8,
-                background:running?"linear-gradient(135deg,#7f1d1d,#ef4444)":"linear-gradient(135deg,#166534,#4ade80)",
+                background:running?"linear-gradient(135deg,#7f1d1d,#ef4444)":"linear-gradient(135deg,#1e3a8a,#4ade80)",
                 color:"#fff"}}>
               {running ? "⏹ Detener" : (pausedTime>0 ? "▶ Continuar" : "▶ Iniciar")}
             </button>
@@ -3237,7 +3237,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
           </div>
         )}
         {serieOver && !matchOver2 && (
-          <div style={{textAlign:"center",padding:"8px 0",fontSize:13,fontWeight:700,color:"#4ade80",marginBottom:4}}>
+          <div style={{textAlign:"center",padding:"8px 0",fontSize:13,fontWeight:700,color:"#63b3ed",marginBottom:4}}>
             Serie {currentSerie} terminada · Siguiente: Serie {currentSerie+1}/{totalSeries}
           </div>
         )}
@@ -3245,13 +3245,13 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
         <div style={{display:"flex",gap:5,marginTop:4}}>
           {allDone && !serieOver && !matchOver2 && (
             <button onClick={e=>{e.stopPropagation();onUpdateMatch(m.id,mm=>({...mm,crTimes:{},crCurrentIdx:0,crRunning:false,crStartTs:null,crPausedTime:0,crRound:(mm.crRound||1)+1,crRoundDone:false,crFaults:{},crFaultTimes:{}}));}}
-              style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+              style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
               Ronda {currentRound+1} →
             </button>
           )}
           {serieOver && !matchOver2 && (
             <button onClick={e=>{e.stopPropagation();handleNewSerie();}}
-              style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+              style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
               Serie {currentSerie+1} →
             </button>
           )}
@@ -3390,7 +3390,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
         </div>
 
         <div style={{display:"flex",gap:5,marginTop:6}}>
-          <button style={{flex:2,padding:"8px 0",borderRadius:10,background:m.seriesFinished?"linear-gradient(135deg,#166534,#4ade80)":"rgba(255,255,255,0.06)",border:m.seriesFinished?"none":"1px solid rgba(255,255,255,0.1)",color:m.seriesFinished?"#fff":"#555",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:m.seriesFinished?"pointer":"default"}} onClick={e=>{e.stopPropagation();if(m.seriesFinished)onNextSeries(m.id);}}>Confirmar ✓</button>
+          <button style={{flex:2,padding:"8px 0",borderRadius:10,background:m.seriesFinished?"linear-gradient(135deg,#1e3a8a,#4ade80)":"rgba(255,255,255,0.06)",border:m.seriesFinished?"none":"1px solid rgba(255,255,255,0.1)",color:m.seriesFinished?"#fff":"#555",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:m.seriesFinished?"pointer":"default"}} onClick={e=>{e.stopPropagation();if(m.seriesFinished)onNextSeries(m.id);}}>Confirmar ✓</button>
           {(()=>{ const scored3 = jornadaTurnScored===true; const cu3 = jornadaTurnActive ? scored3 : (jornadaBlocked ? false : (m.games.length>0||m.seriesHistory.length>0)); return (
           <button style={{flex:1,padding:"8px 0",borderRadius:10,background:cu3?"rgba(255,200,50,0.1)":"rgba(255,255,255,0.04)",border:cu3?"1px solid rgba(255,200,50,0.25)":"1px solid rgba(255,255,255,0.08)",color:cu3?"#f9e04b":"#444",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:cu3?"pointer":"default"}} onClick={e=>{
                   e.stopPropagation();
@@ -3455,7 +3455,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               });
               return (
                 <div style={{background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"10px",marginBottom:8}}>
-                  <div style={{fontSize:10,color:"#4ade80",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>⏱ Clasificación final</div>
+                  <div style={{fontSize:10,color:"#63b3ed",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>⏱ Clasificación final</div>
                   {standings.map((pidx,pos)=>(
                     <div key={pidx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:8,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:4}}>
                       <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -3519,9 +3519,9 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
             )}
             {/* Botones en una línea */}
             <div style={{display:"flex",gap:5}}>
-              <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"linear-gradient(135deg,#166534,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReplay(m);}}>↺ Re-crear</button>
+              <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReplay(m);}}>↺ Re-crear</button>
               <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onOpenHistory(m.id);}}>📋 Historial</button>
-              {onReactivar && <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#4ade80",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReactivar(m.id);}}>↺ Reactivar</button>}
+              {onReactivar && <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReactivar(m.id);}}>↺ Reactivar</button>}
             </div>
           </div>
         );
