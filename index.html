@@ -1999,10 +1999,7 @@ function BillarApp() {
           <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
           <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>← Volver</button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{fontSize:22,fontWeight:800,color:"#63b3ed"}}>👥 Jugadores</div>
-              <button onClick={()=>window.location.reload()} style={{padding:"5px 12px",borderRadius:8,background:"rgba(99,179,237,0.1)",border:"1px solid rgba(99,179,237,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔄 Actualizar</button>
-            </div>
+            <div style={{fontSize:22,fontWeight:800,color:"#63b3ed",marginBottom:4}}>👥 Jugadores</div>
             {deviceName && isAdmin && (
               <button onClick={()=>{if(window.confirm("¿Borrar el registro de este celular?")){setDeviceName(null);localStorage.removeItem("bg_device");}}}
                 style={{padding:"6px 12px",borderRadius:8,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
