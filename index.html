@@ -238,8 +238,12 @@ function BillarApp() {
   };
   // Obtener devices de un jugador (por id o nombre)
   const getJugadorDevices = (p) => {
-    const key = typeof p==="string" ? p : (p.id||p.name);
-    return dispositivosMap[key] || [];
+    if (typeof p === "string") return dispositivosMap[p] || [];
+    // Buscar por id y por nombre para cubrir registros antiguos
+    const byId = p.id ? (dispositivosMap[p.id] || []) : [];
+    const byName = dispositivosMap[p.name] || [];
+    const combined = [...new Set([...byId, ...byName])];
+    return combined;
   };
   const getPlayerColor = (name) => {
     const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
