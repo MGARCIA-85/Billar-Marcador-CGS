@@ -4,8 +4,8 @@
   "description": "Control de partidas de billar",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a4a1a",
-  "theme_color": "##1a4a1a",
+  "background_color": "#1e5a9a",
+  "theme_color": "#1e5a9a",
   "orientation": "portrait",
   "icons": [
     {
