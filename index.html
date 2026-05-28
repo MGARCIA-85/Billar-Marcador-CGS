@@ -1828,6 +1828,9 @@ function BillarApp() {
       const isActive = typeof pl==="object"?pl.rankActivo!==false:false;
       if (isActive && !statsMap[pname]) rows.push({name:pname,partidas:0,partidasW:0,series:0,seriesW:0,juegos:0,juegosW:0,rachaMejor:0,rachaActual:0,goldenBreaks:0,mesas:0,breakRuns:0,crRondas:0,crRondasW:0,crTimes:[]});
     });
+    // Filtrar jugadores inactivos
+    const inactivos = new Set(playersList.filter(pl=>typeof pl==="object"&&pl.rankActivo===false).map(pl=>pl.name));
+    rows = rows.filter(r=>!inactivos.has(r.name));
     rows.sort((a,b)=>(b.partidasW-a.partidasW)||(b.seriesW-a.seriesW)||(b.juegosW-a.juegosW)||(b.crRondasW-a.crRondasW));
 
     const isCRonly = sfModalidades.length===1 && sfModalidades[0]==="Contrarreloj";
