@@ -1053,15 +1053,15 @@ function BillarApp() {
                     <div style={{fontSize:11,color:"#aaa"}}>Normal</div>
                   </div>
                   <div onClick={()=>applyBall("gold")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                    <SpecialBall type="gold" size={44}/>
+                    <img src="golden_break.png" style={{width:44,height:44,objectFit:"contain"}}/>
                     <div style={{fontSize:11,color:"#f5c400"}}>Golden Break</div>
                   </div>
                   <div onClick={()=>applyBall("diamond")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                    <img {...{src:IMG_RUN_OUT}} style={{width:44,height:44,objectFit:"contain"}}/>
+                    <img src="run_out.png" style={{width:44,height:44,objectFit:"contain"}}/>
                     <div style={{fontSize:11,color:"#a8d8ff"}}>Run Out</div>
                   </div>
                   <div onClick={()=>applyBall("breakrun")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                    <img {...{src:IMG_BREAK_AND_RUN}} style={{width:44,height:44,objectFit:"contain"}}/>
+                    <img src="break_run.png" style={{width:44,height:44,objectFit:"contain"}}/>
                     <div style={{fontSize:11,color:"#ffa500"}}>Break & Run</div>
                   </div>
                 </div>
@@ -1518,13 +1518,13 @@ function BillarApp() {
                     <BallIcon modalidad={lm.modalidad} size={44}/><div style={{fontSize:11,color:"#aaa"}}>Normal</div>
                   </div>
                   <div onClick={()=>applyBall("gold")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                    <SpecialBall type="gold" size={44}/><div style={{fontSize:11,color:"#f5c400"}}>Golden Break</div>
+                    <img src="golden_break.png" style={{width:44,height:44,objectFit:"contain"}}/><div style={{fontSize:11,color:"#f5c400"}}>Golden Break</div>
                   </div>
                   <div onClick={()=>applyBall("diamond")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                    <img {...{src:IMG_RUN_OUT}} style={{width:44,height:44,objectFit:"contain"}}/><div style={{fontSize:11,color:"#a8d8ff"}}>Run Out</div>
+                    <img src="run_out.png" style={{width:44,height:44,objectFit:"contain"}}/><div style={{fontSize:11,color:"#a8d8ff"}}>Run Out</div>
                   </div>
                   <div onClick={()=>applyBall("breakrun")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                    <img {...{src:IMG_BREAK_AND_RUN}} style={{width:44,height:44,objectFit:"contain"}}/><div style={{fontSize:11,color:"#ffa500"}}>Break & Run</div>
+                    <img src="break_run.png" style={{width:44,height:44,objectFit:"contain"}}/><div style={{fontSize:11,color:"#ffa500"}}>Break & Run</div>
                   </div>
                 </div>
                 <button onClick={()=>setLobbyBallMenu(null)} style={{marginTop:16,padding:"8px 24px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#aaa",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
@@ -2540,15 +2540,15 @@ function BillarApp() {
                 <div style={{fontSize:11,color:"#aaa"}}>Normal</div>
               </div>
               <div onClick={()=>handleCellClick(ballMenu.k,ballMenu.ji,"gold")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                <SpecialBall type="gold" size={44}/>
+                <img src="golden_break.png" style={{width:44,height:44,objectFit:"contain"}}/>
                 <div style={{fontSize:11,color:"#f5c400"}}>Golden Break</div>
               </div>
               <div onClick={()=>handleCellClick(ballMenu.k,ballMenu.ji,"diamond")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                <img {...{src:IMG_RUN_OUT}} style={{width:44,height:44,objectFit:"contain"}}/>
+                <img src="run_out.png" style={{width:44,height:44,objectFit:"contain"}}/>
                 <div style={{fontSize:11,color:"#a8d8ff"}}>Run Out</div>
               </div>
               <div onClick={()=>handleCellClick(ballMenu.k,ballMenu.ji,"breakrun")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                <img {...{src:IMG_BREAK_AND_RUN}} style={{width:44,height:44,objectFit:"contain"}}/>
+                <img src="break_run.png" style={{width:44,height:44,objectFit:"contain"}}/>
                 <div style={{fontSize:11,color:"#ffa500"}}>Break & Run</div>
               </div>
             </div>
