@@ -1823,13 +1823,10 @@ function BillarApp() {
     });
 
     let rows = Object.values(statsMap);
-    // Agregar jugadores activos que no hayan jugado ninguna partida en el período
     playersList.forEach(pl => {
-      const name = typeof pl==="string"?pl:pl.name;
-      const isActive = typeof pl==="object" && pl.rankActivo !== false ? true : typeof pl==="string" ? false : pl.rankActivo !== false;
-      if (isActive && !statsMap[name]) {
-        rows.push({name,partidas:0,partidasW:0,series:0,seriesW:0,juegos:0,juegosW:0,rachaMejor:0,rachaActual:0,goldenBreaks:0,mesas:0,breakRuns:0,crRondas:0,crRondasW:0,crTimes:[]});
-      }
+      const pname = typeof pl==="string"?pl:pl.name;
+      const isActive = typeof pl==="object"?pl.rankActivo!==false:false;
+      if (isActive && !statsMap[pname]) rows.push({name:pname,partidas:0,partidasW:0,series:0,seriesW:0,juegos:0,juegosW:0,rachaMejor:0,rachaActual:0,goldenBreaks:0,mesas:0,breakRuns:0,crRondas:0,crRondasW:0,crTimes:[]});
     });
     rows.sort((a,b)=>(b.partidasW-a.partidasW)||(b.seriesW-a.seriesW)||(b.juegosW-a.juegosW)||(b.crRondasW-a.crRondasW));
 
@@ -2177,25 +2174,14 @@ function BillarApp() {
                         ))}
                       </div>
                     </div>
-                    {isAdmin && (
-                      <div style={{marginTop:6}}>
-                        <div style={{fontSize:9,color:"#888",fontWeight:700,letterSpacing:1,marginBottom:4}}>VISIBILIDAD EN RANKING</div>
-                        <div style={{display:"flex",gap:5}}>
-                          {["activo","inactivo"].map(estado=>(
-                            <button key={estado} onClick={()=>{
-                              const updated = playersList.map((pl,j2)=>j2===i?{...pl,rankActivo:estado==="activo"}:pl);
-                              savePlayersList(updated);
-                            }} style={{flex:1,padding:"6px 0",borderRadius:8,fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer",
-                              background:(p.rankActivo===false?estado==="inactivo":estado==="activo")?(estado==="activo"?"rgba(74,222,128,0.2)":"rgba(239,68,68,0.2)"):"rgba(255,255,255,0.04)",
-                              border:`1px solid ${(p.rankActivo===false?estado==="inactivo":estado==="activo")?(estado==="activo"?"rgba(74,222,128,0.4)":"rgba(239,68,68,0.4)"):"rgba(255,255,255,0.1)"}`,
-                              color:(p.rankActivo===false?estado==="inactivo":estado==="activo")?(estado==="activo"?"#4ade80":"#f87171"):"#555"}}>
-                              {estado==="activo"?"🟢":"🔴"} {estado.charAt(0).toUpperCase()+estado.slice(1)}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   )}
+                  {isAdmin && <div style={{marginTop:6,marginBottom:6}}>
+                    <div style={{fontSize:9,color:"#888",fontWeight:700,letterSpacing:1,marginBottom:4}}>VISIBILIDAD EN RANKING</div>
+                    <div style={{display:"flex",gap:5}}>
+                      <button onClick={()=>{const u=playersList.map((pl,j2)=>j2===i?{...pl,rankActivo:true}:pl);savePlayersList(u);}} style={{flex:1,padding:"6px 0",borderRadius:8,fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer",background:p.rankActivo!==false?"rgba(74,222,128,0.2)":"rgba(255,255,255,0.04)",border:"1px solid "+(p.rankActivo!==false?"rgba(74,222,128,0.4)":"rgba(255,255,255,0.1)"),color:p.rankActivo!==false?"#4ade80":"#555"}}>🟢 Activo</button>
+                      <button onClick={()=>{const u=playersList.map((pl,j2)=>j2===i?{...pl,rankActivo:false}:pl);savePlayersList(u);}} style={{flex:1,padding:"6px 0",borderRadius:8,fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer",background:p.rankActivo===false?"rgba(239,68,68,0.2)":"rgba(255,255,255,0.04)",border:"1px solid "+(p.rankActivo===false?"rgba(239,68,68,0.4)":"rgba(255,255,255,0.1)"),color:p.rankActivo===false?"#f87171":"#555"}}>🔴 Inactivo</button>
+                    </div>
+                  </div>}
                   <div style={{display:"flex",gap:6}}>
                     {(()=>{
                       const jugKey = p.id||p.name;
