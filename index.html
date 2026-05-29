@@ -1744,7 +1744,7 @@ function BillarApp() {
       if (!statsMap[name]) statsMap[name] = {
         name, partidas:0, partidasW:0, series:0, seriesW:0,
         juegos:0, juegosW:0, rachaMejor:0, rachaActual:0,
-        goldenBreaks:0, mesas:0, breakRuns:0,
+        goldenBreaks:0, mesas:0, breakRuns:0, remontadas:0,
         crRondas:0, crRondasW:0, crTimes:[]
       };
     };
@@ -1810,6 +1810,12 @@ function BillarApp() {
             serGames.filter(g=>g.winner===key && g.ballType==="breakrun").forEach(()=>s.breakRuns++);
             // Mesa limpia/barrida: juegos donde este jugador tiene diamante
             serGames.filter(g=>g.winner===key && g.ballType==="diamond").forEach(()=>s.mesas++);
+            // Remontada: ganó la serie sin haber ganado ningún juego cuando el rival estaba a 1 de ganar
+            if (won && ser.winner===key) {
+              const myWinsBefore = key===m.p1Name?(ser.p1wins||0):(ser.p2wins||0);
+              const rivWinsBefore = key===m.p1Name?(ser.p2wins||0):(ser.p1wins||0);
+              if (myWinsBefore===0 && rivWinsBefore>=(m.carrera-1) && m.carrera>1) s.remontadas=(s.remontadas||0)+1;
+            }
             // Racha
             if (won) { s.rachaActual++; if(s.rachaActual>s.rachaMejor) s.rachaMejor=s.rachaActual; }
             else s.rachaActual=0;
@@ -1826,7 +1832,7 @@ function BillarApp() {
     playersList.forEach(pl => {
       const pname = typeof pl==="string"?pl:pl.name;
       const isActive = typeof pl==="object"?pl.rankActivo!==false:false;
-      if (isActive && !statsMap[pname]) rows.push({name:pname,partidas:0,partidasW:0,series:0,seriesW:0,juegos:0,juegosW:0,rachaMejor:0,rachaActual:0,goldenBreaks:0,mesas:0,breakRuns:0,crRondas:0,crRondasW:0,crTimes:[]});
+      if (isActive && !statsMap[pname]) rows.push({name:pname,partidas:0,partidasW:0,series:0,seriesW:0,juegos:0,juegosW:0,rachaMejor:0,rachaActual:0,goldenBreaks:0,mesas:0,breakRuns:0,remontadas:0,crRondas:0,crRondasW:0,crTimes:[]});
     });
     // Filtrar jugadores inactivos
     const inactivos = new Set(playersList.filter(pl=>typeof pl==="object"&&pl.rankActivo===false).map(pl=>pl.name));
@@ -1916,10 +1922,16 @@ function BillarApp() {
               {/* Podio */}
               <div style={{display:"flex",gap:8,marginBottom:14}}>
                 {rows.slice(0,3).map((r,i)=>(
-                  <div key={r.name} style={{flex:1,background:i===0?"rgba(249,224,75,0.08)":i===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:`1px solid ${i===0?"rgba(249,224,75,0.2)":i===1?"rgba(200,200,200,0.1)":"rgba(150,100,50,0.15)"}`,borderRadius:12,padding:"10px 8px",textAlign:"center"}}>
-                    <div style={{fontSize:20}}>{i===0?"🥇":i===1?"🥈":"🥉"}</div>
-                    <div style={{fontSize:12,fontWeight:800,color:i===0?"#f9e04b":"#e0e0e0",marginTop:4,wordBreak:"break-word"}}>{r.name}</div>
-                    <div style={{fontSize:10,color:"#888",marginTop:2}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
+                  <div key={r.name} style={{flex:1,background:i===0?"rgba(249,224,75,0.08)":i===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:"1px solid "+(i===0?"rgba(249,224,75,0.2)":i===1?"rgba(200,200,200,0.1)":"rgba(150,100,50,0.15)"),borderRadius:12,padding:"10px 8px",textAlign:"center"}}>
+                    <div style={{fontSize:i===0?26:22}}>{i===0?"🥇":i===1?"🥈":"🥉"}</div>
+                    <div style={{fontSize:i===0?16:13,fontWeight:900,color:i===0?"#f9e04b":i===1?"#e0e0e0":"#cd7f32",marginTop:4,wordBreak:"break-word",letterSpacing:0.5}}>{r.name}</div>
+                    <div style={{fontSize:9,color:"#888",marginTop:2}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
+                    <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:3,marginTop:6}}>
+                      {r.goldenBreaks>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_golden_break.png" style={{width:22,height:22,objectFit:"contain"}}/><span style={{fontSize:8,color:"#f9e04b",fontWeight:700}}>x{r.goldenBreaks}</span></div>}
+                      {r.mesas>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_run_out.png" style={{width:22,height:22,objectFit:"contain"}}/><span style={{fontSize:8,color:"#63b3ed",fontWeight:700}}>x{r.mesas}</span></div>}
+                      {r.breakRuns>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_break_run.png" style={{width:22,height:22,objectFit:"contain"}}/><span style={{fontSize:8,color:"#ffd700",fontWeight:700}}>x{r.breakRuns}</span></div>}
+                      {(r.remontadas||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_remontada.png" style={{width:22,height:22,objectFit:"contain"}}/><span style={{fontSize:8,color:"#f87171",fontWeight:700}}>x{r.remontadas}</span></div>}
+                    </div>
                   </div>
                 ))}
               </div>
