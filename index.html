@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v302</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v303</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v302</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v303</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1813,21 +1813,20 @@ function BillarApp() {
             // Mesa limpia/barrida: juegos donde este jugador tiene diamante
             serGames.filter(g=>g.winner===key && g.ballType==="diamond").forEach(()=>s.mesas++);
             // Remontada: en algún momento de la serie el rival tuvo carrera-1 wins y el jugador tenía 0
-            if (won && ser.winner===key && m.carrera>1) {
+            if (won && m.carrera>1) {
               const serGamesArr = ser.games||[];
               let myW=0, rivW=0;
               let huboRemontada=false;
               for (let gi=0; gi<serGamesArr.length; gi++) {
                 const g = serGamesArr[gi];
-                // Antes de contar este juego, ¿estaba el rival a punto de ganar y yo en 0?
                 if (myW===0 && rivW>=(m.carrera-1)) { huboRemontada=true; break; }
                 if (g.winner===key) myW++; else rivW++;
               }
               if (huboRemontada) s.remontadas=(s.remontadas||0)+1;
             }
             // Imparable: ganó la serie dejando al oponente en 0 juegos
-            if (won && ser.winner===key) {
-              const rivFinalWins = key===m.p1Name?(ser.p2wins||0):(ser.p1wins||0);
+            if (won) {
+              const rivFinalWins = key==="p1"?(ser.p2wins||0):(ser.p1wins||0);
               if (rivFinalWins===0 && m.carrera>1) s.imparables=(s.imparables||0)+1;
             }
             // Racha
