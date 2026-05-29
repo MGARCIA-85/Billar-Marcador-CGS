@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v299</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v301</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v299</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v301</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1935,17 +1935,19 @@ function BillarApp() {
               })()}
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
                 {rows.slice(0,3).map((r,i)=>(
-                  <div key={r.name} style={{background:i===0?"rgba(249,224,75,0.08)":i===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:"1px solid "+(i===0?"rgba(249,224,75,0.25)":i===1?"rgba(200,200,200,0.15)":"rgba(150,100,50,0.2)"),borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",gap:14}}>
-                    <div style={{fontSize:i===0?38:30,flexShrink:0}}>{i===0?"🥇":i===1?"🥈":"🥉"}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:i===0?22:17,fontWeight:900,color:i===0?"#f9e04b":i===1?"#e0e0e0":"#cd7f32",letterSpacing:0.5,wordBreak:"break-word"}}>{r.name}</div>
-                      <div style={{fontSize:10,color:"#888",marginTop:2}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:8}}>
-                        {r.goldenBreaks>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_golden_break.png" style={{width:56,height:56,objectFit:"contain"}}/><span style={{fontSize:10,color:"#f9e04b",fontWeight:700}}>x{r.goldenBreaks}</span></div>}
-                        {r.mesas>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_run_out.png" style={{width:56,height:56,objectFit:"contain"}}/><span style={{fontSize:10,color:"#63b3ed",fontWeight:700}}>x{r.mesas}</span></div>}
-                        {r.breakRuns>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_break_run.png" style={{width:56,height:56,objectFit:"contain"}}/><span style={{fontSize:10,color:"#ffd700",fontWeight:700}}>x{r.breakRuns}</span></div>}
-                        {(r.remontadas||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_remontada.png" style={{width:56,height:56,objectFit:"contain"}}/><span style={{fontSize:10,color:"#f87171",fontWeight:700}}>x{r.remontadas}</span></div>}
+                  <div key={r.name} style={{background:i===0?"rgba(249,224,75,0.08)":i===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:"1px solid "+(i===0?"rgba(249,224,75,0.25)":i===1?"rgba(200,200,200,0.15)":"rgba(150,100,50,0.2)"),borderRadius:14,padding:"14px 16px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+                      <img src={i===0?"https://em-content.zobj.net/source/google/387/1st-place-medal_1f947.png":i===1?"https://em-content.zobj.net/source/google/387/2nd-place-medal_1f948.png":"https://em-content.zobj.net/source/google/387/3rd-place-medal_1f949.png"} style={{width:i===0?42:34,height:i===0?42:34,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none";}}/>
+                      <div>
+                        <div style={{fontSize:i===0?22:17,fontWeight:900,color:i===0?"#f9e04b":i===1?"#e0e0e0":"#cd7f32",letterSpacing:0.5,wordBreak:"break-word"}}>{r.name}</div>
+                        <div style={{fontSize:10,color:"#888"}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
                       </div>
+                    </div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:6}}>
+                      {r.goldenBreaks>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_golden_break.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#f9e04b",fontWeight:700}}>x{r.goldenBreaks}</span></div>}
+                      {r.mesas>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_run_out.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#63b3ed",fontWeight:700}}>x{r.mesas}</span></div>}
+                      {r.breakRuns>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_break_run.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#ffd700",fontWeight:700}}>x{r.breakRuns}</span></div>}
+                      {(r.remontadas||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_remontada.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#f87171",fontWeight:700}}>x{r.remontadas}</span></div>}
                     </div>
                   </div>
                 ))}
