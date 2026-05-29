@@ -324,6 +324,7 @@ function BillarApp() {
   const [sfJugadores, setSfJugadores] = useState([]);
   const [sfPeriod, setSfPeriod] = useState("Este mes");
   const [sortCol, setSortCol] = useState("partidasW");
+  const [rankingOpen, setRankingOpen] = useState(true);
   const [ptrActive, setPtrActive] = useState(false);
   const ptrRef = React.useRef({startY:0, active:false});
   const [sortDir, setSortDir] = useState("desc");
@@ -1921,28 +1922,31 @@ function BillarApp() {
                 const now = new Date();
                 const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
                 const tituloRanking = sfPeriod==="Hoy"?`Ranking · Hoy ${now.getDate()} ${meses[now.getMonth()]}`:sfPeriod==="Esta semana"?`Ranking · Esta semana`:sfPeriod==="Este mes"?`Ranking · ${meses[now.getMonth()]} ${now.getFullYear()}`:sfPeriod==="Rango"?`Ranking · Rango personalizado`:`Ranking · Todo el tiempo`;
-                return <div style={{textAlign:"center",marginBottom:12}}>
-                  <div style={{fontSize:15,fontWeight:800,color:"#63b3ed",letterSpacing:1}}>{tituloRanking}</div>
-                  <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,transparent,#06b6d4,transparent)",marginTop:6}}></div>
+                return <div style={{marginBottom:12}}>
+                  <div onClick={()=>setRankingOpen(o=>!o)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:"8px 12px",borderRadius:10,background:"rgba(99,179,237,0.06)",border:"1px solid rgba(99,179,237,0.15)"}}>
+                    <div style={{fontSize:15,fontWeight:800,color:"#63b3ed",letterSpacing:1}}>{tituloRanking}</div>
+                    <div style={{fontSize:14,color:"#63b3ed"}}>{rankingOpen?"▲":"▼"}</div>
+                  </div>
+                  <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,transparent,#06b6d4,transparent)",marginTop:4}}></div>
                 </div>;
               })()}
-              {/* Podio */}
-              <div style={{display:"flex",gap:8,marginBottom:14}}>
+              {rankingOpen && <><div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
                 {rows.slice(0,3).map((r,i)=>(
-                  <div key={r.name} style={{flex:1,background:i===0?"rgba(249,224,75,0.08)":i===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:"1px solid "+(i===0?"rgba(249,224,75,0.2)":i===1?"rgba(200,200,200,0.1)":"rgba(150,100,50,0.15)"),borderRadius:12,padding:"10px 8px",textAlign:"center"}}>
-                    <div style={{fontSize:i===0?26:22}}>{i===0?"🥇":i===1?"🥈":"🥉"}</div>
-                    <div style={{fontSize:i===0?16:13,fontWeight:900,color:i===0?"#f9e04b":i===1?"#e0e0e0":"#cd7f32",marginTop:4,wordBreak:"break-word",letterSpacing:0.5}}>{r.name}</div>
-                    <div style={{fontSize:9,color:"#888",marginTop:2}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
-                    <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:3,marginTop:6}}>
-                      {r.goldenBreaks>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_golden_break.png" style={{width:22,height:22,objectFit:"contain"}}/><span style={{fontSize:8,color:"#f9e04b",fontWeight:700}}>x{r.goldenBreaks}</span></div>}
-                      {r.mesas>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_run_out.png" style={{width:22,height:22,objectFit:"contain"}}/><span style={{fontSize:8,color:"#63b3ed",fontWeight:700}}>x{r.mesas}</span></div>}
-                      {r.breakRuns>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_break_run.png" style={{width:22,height:22,objectFit:"contain"}}/><span style={{fontSize:8,color:"#ffd700",fontWeight:700}}>x{r.breakRuns}</span></div>}
-                      {(r.remontadas||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_remontada.png" style={{width:22,height:22,objectFit:"contain"}}/><span style={{fontSize:8,color:"#f87171",fontWeight:700}}>x{r.remontadas}</span></div>}
+                  <div key={r.name} style={{background:i===0?"rgba(249,224,75,0.08)":i===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:"1px solid "+(i===0?"rgba(249,224,75,0.25)":i===1?"rgba(200,200,200,0.15)":"rgba(150,100,50,0.2)"),borderRadius:14,padding:"14px 16px",display:"flex",alignItems:"center",gap:14}}>
+                    <div style={{fontSize:i===0?38:30,flexShrink:0}}>{i===0?"🥇":i===1?"🥈":"🥉"}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:i===0?22:17,fontWeight:900,color:i===0?"#f9e04b":i===1?"#e0e0e0":"#cd7f32",letterSpacing:0.5,wordBreak:"break-word"}}>{r.name}</div>
+                      <div style={{fontSize:10,color:"#888",marginTop:2}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
+                    </div>
+                    <div style={{display:"flex",flexWrap:"wrap",justifyContent:"flex-end",gap:6,maxWidth:140}}>
+                      {r.goldenBreaks>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_golden_break.png" style={{width:32,height:32,objectFit:"contain"}}/><span style={{fontSize:9,color:"#f9e04b",fontWeight:700}}>x{r.goldenBreaks}</span></div>}
+                      {r.mesas>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_run_out.png" style={{width:32,height:32,objectFit:"contain"}}/><span style={{fontSize:9,color:"#63b3ed",fontWeight:700}}>x{r.mesas}</span></div>}
+                      {r.breakRuns>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_break_run.png" style={{width:32,height:32,objectFit:"contain"}}/><span style={{fontSize:9,color:"#ffd700",fontWeight:700}}>x{r.breakRuns}</span></div>}
+                      {(r.remontadas||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><img src="insignia_remontada.png" style={{width:32,height:32,objectFit:"contain"}}/><span style={{fontSize:9,color:"#f87171",fontWeight:700}}>x{r.remontadas}</span></div>}
                     </div>
                   </div>
                 ))}
               </div>
-
               {/* Tabla */}
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
@@ -1993,6 +1997,7 @@ function BillarApp() {
                   })()}
                 </table>
               </div>
+              </></>}
               <div style={{marginTop:28,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"10px 8px",fontSize:11}}>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontSize:18,lineHeight:1}}>👑</span></span><span style={{color:"#888"}}>Partidas</span></div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontSize:18,lineHeight:1}}>🏆</span></span><span style={{color:"#888"}}>Series</span></div>
