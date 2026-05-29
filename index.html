@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v301</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v302</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v301</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v302</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1746,7 +1746,7 @@ function BillarApp() {
       if (!statsMap[name]) statsMap[name] = {
         name, partidas:0, partidasW:0, series:0, seriesW:0,
         juegos:0, juegosW:0, rachaMejor:0, rachaActual:0,
-        goldenBreaks:0, mesas:0, breakRuns:0, remontadas:0,
+        goldenBreaks:0, mesas:0, breakRuns:0, remontadas:0, imparables:0,
         crRondas:0, crRondasW:0, crTimes:[]
       };
     };
@@ -1825,6 +1825,11 @@ function BillarApp() {
               }
               if (huboRemontada) s.remontadas=(s.remontadas||0)+1;
             }
+            // Imparable: ganó la serie dejando al oponente en 0 juegos
+            if (won && ser.winner===key) {
+              const rivFinalWins = key===m.p1Name?(ser.p2wins||0):(ser.p1wins||0);
+              if (rivFinalWins===0 && m.carrera>1) s.imparables=(s.imparables||0)+1;
+            }
             // Racha
             if (won) { s.rachaActual++; if(s.rachaActual>s.rachaMejor) s.rachaMejor=s.rachaActual; }
             else s.rachaActual=0;
@@ -1841,7 +1846,7 @@ function BillarApp() {
     playersList.forEach(pl => {
       const pname = typeof pl==="string"?pl:pl.name;
       const isActive = typeof pl==="object"?pl.rankActivo!==false:false;
-      if (isActive && !statsMap[pname]) rows.push({name:pname,partidas:0,partidasW:0,series:0,seriesW:0,juegos:0,juegosW:0,rachaMejor:0,rachaActual:0,goldenBreaks:0,mesas:0,breakRuns:0,remontadas:0,crRondas:0,crRondasW:0,crTimes:[]});
+      if (isActive && !statsMap[pname]) rows.push({name:pname,partidas:0,partidasW:0,series:0,seriesW:0,juegos:0,juegosW:0,rachaMejor:0,rachaActual:0,goldenBreaks:0,mesas:0,breakRuns:0,remontadas:0,imparables:0,crRondas:0,crRondasW:0,crTimes:[]});
     });
     // Filtrar jugadores inactivos
     const inactivos = new Set(playersList.filter(pl=>typeof pl==="object"&&pl.rankActivo===false).map(pl=>pl.name));
@@ -1948,6 +1953,7 @@ function BillarApp() {
                       {r.mesas>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_run_out.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#63b3ed",fontWeight:700}}>x{r.mesas}</span></div>}
                       {r.breakRuns>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_break_run.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#ffd700",fontWeight:700}}>x{r.breakRuns}</span></div>}
                       {(r.remontadas||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_remontada.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#f87171",fontWeight:700}}>x{r.remontadas}</span></div>}
+                      {(r.imparables||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}><img src="insignia_imparable.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#a78bfa",fontWeight:700}}>x{r.imparables}</span></div>}
                     </div>
                   </div>
                 ))}
