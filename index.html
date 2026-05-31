@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v312</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v313</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v312</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v313</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1859,6 +1859,33 @@ function BillarApp() {
       }
     });
 
+    // Rey del día: ganó al menos 1 partida a cada jugador activo en un mismo día
+    try {
+      const activePlayers = playersList.filter(pl=>typeof pl==="object"&&pl.rankActivo!==false).map(pl=>pl.name);
+      if (activePlayers.length > 1) {
+        const winsByDay = {};
+        filteredMatches.forEach(m => {
+          const sw1 = m.seriesWins?.p1||0;
+          const sw2 = m.seriesWins?.p2||0;
+          const winner = sw1>sw2?m.p1Name:sw2>sw1?m.p2Name:null;
+          const loser = sw1>sw2?m.p2Name:sw2>sw1?m.p1Name:null;
+          if (!winner||!loser) return;
+          const day = new Date(m.createdAt||0).toDateString();
+          if (!winsByDay[day]) winsByDay[day]={};
+          if (!winsByDay[day][winner]) winsByDay[day][winner]=[];
+          if (winsByDay[day][winner].indexOf(loser)===-1) winsByDay[day][winner].push(loser);
+        });
+        Object.values(winsByDay).forEach(byPlayer => {
+          Object.keys(byPlayer).forEach(winner => {
+            const beaten = byPlayer[winner];
+            const needed = activePlayers.filter(p=>p!==winner);
+            if (needed.length>0 && needed.every(p=>beaten.indexOf(p)!==-1)) {
+              if (statsMap[winner]) statsMap[winner].reyDelDia=(statsMap[winner].reyDelDia||0)+1;
+            }
+          });
+        });
+      }
+    } catch(e) {}
     let rows = Object.values(statsMap);
     playersList.forEach(pl => {
       const pname = typeof pl==="string"?pl:pl.name;
