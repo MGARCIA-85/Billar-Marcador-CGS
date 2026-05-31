@@ -11,6 +11,8 @@ self.addEventListener('activate', e => {
   );
 });
 self.addEventListener('fetch', e => {
+  const url = e.request.url;
+  if (!url.startsWith('http')) return;
   e.respondWith(
     fetch(e.request).then(res => {
       if (!res || res.status !== 200 || res.type !== 'basic') return res;
