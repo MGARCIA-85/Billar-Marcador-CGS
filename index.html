@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v321</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v322</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v321</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v322</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -661,7 +661,10 @@ function BillarApp() {
                           <span style={{fontSize:"clamp(13px,3.8vw,15px)",fontWeight:700,color:j.finished?"#555":"#f9e04b"}}>{j.name}</span>
                           <span style={{fontSize:11,color:"#888",marginLeft:8}}>{done}/{jms.length} partidas</span>
                         </div>
-                        <div style={{display:"flex",gap:6}}>
+                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                          {isAdmin && <div onClick={()=>{const u=playersList.map((pl,j2)=>j2===i?{...pl,rankActivo:p.rankActivo===false?true:false}:pl);savePlayersList(u);}} style={{cursor:"pointer",width:42,height:24,borderRadius:12,background:p.rankActivo!==false?"#4ade80":"#ef4444",position:"relative",flexShrink:0}}>
+                            <div style={{position:"absolute",top:2,left:p.rankActivo!==false?20:2,width:20,height:20,borderRadius:10,background:"white",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
+                          </div>}
                           <button onClick={()=>{
                             const newName = prompt("Nuevo nombre:", j.name);
                             if(newName?.trim()) saveJornadas(jornadas.map(x=>x.id===j.id?{...x,name:newName.trim()}:x));
@@ -2374,6 +2377,12 @@ function BillarApp() {
                           {p.pin?"🔑 PIN":"⚠️ Sin PIN"}
                         </span>
                       )}
+                      {isAdmin && <div onClick={()=>{const v=!pinRequerido;setPinRequerido(v);localStorage.setItem("bg_pinReq",v?"1":"0");}} style={{display:"flex",alignItems:"center",gap:4,cursor:"pointer",padding:"2px 7px",borderRadius:5,background:pinRequerido?"rgba(99,179,237,0.1)":"rgba(255,255,255,0.04)",border:"1px solid "+(pinRequerido?"rgba(99,179,237,0.3)":"rgba(255,255,255,0.08)")}}>
+                        <div style={{width:13,height:13,borderRadius:2,border:"1.5px solid "+(pinRequerido?"#63b3ed":"#555"),background:pinRequerido?"#63b3ed":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          {pinRequerido && <span style={{color:"#fff",fontSize:9,fontWeight:900,lineHeight:1}}>✓</span>}
+                        </div>
+                        <span style={{fontSize:9,color:pinRequerido?"#63b3ed":"#555",fontWeight:700}}>PIN reg.</span>
+                      </div>}
                     </div>
                   </div>
                   {isAdmin && (
@@ -2394,18 +2403,7 @@ function BillarApp() {
                       </div>
                     </div>
                   )}
-                  {isAdmin && <div style={{marginTop:6,marginBottom:2,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <div style={{fontSize:9,color:"#888",fontWeight:700,letterSpacing:1}}>RANKING</div>
-                    <div onClick={()=>{const u=playersList.map((pl,j2)=>j2===i?{...pl,rankActivo:p.rankActivo===false?true:false}:pl);savePlayersList(u);}} style={{cursor:"pointer",width:48,height:26,borderRadius:13,background:p.rankActivo!==false?"#4ade80":"#ef4444",position:"relative",transition:"background 0.2s",flexShrink:0}}>
-                      <div style={{position:"absolute",top:3,left:p.rankActivo!==false?24:3,width:20,height:20,borderRadius:10,background:"white",transition:"left 0.2s",boxShadow:"0 1px 4px rgba(0,0,0,0.3)"}}/>
-                    </div>
-                  </div>}
-                  {isAdmin && <div style={{marginBottom:6,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}} onClick={()=>{const v=!pinRequerido;setPinRequerido(v);localStorage.setItem("bg_pinReq",v?"1":"0");}}>
-                    <div style={{width:16,height:16,borderRadius:3,border:"2px solid "+(pinRequerido?"#63b3ed":"#555"),background:pinRequerido?"#63b3ed":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      {pinRequerido && <span style={{color:"#fff",fontSize:10,fontWeight:900,lineHeight:1}}>✓</span>}
-                    </div>
-                    <span style={{fontSize:9,color:pinRequerido?"#63b3ed":"#555",fontWeight:700,letterSpacing:0.5}}>REQUERIR PIN PARA REGISTRAR</span>
-                  </div>}
+
                   <div style={{display:"flex",gap:6}}>
                     {(()=>{
                       const jugKey = p.id||p.name;
