@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v323</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v324</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v323</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v324</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -2361,7 +2361,7 @@ function BillarApp() {
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                       <span style={{fontSize:15,fontWeight:700,color:p.color||"#e0e0e0"}}>🎱 {p.name}</span>
                       {p.id && <span style={{fontSize:11,fontWeight:800,color:"#f9e04b",background:"rgba(249,224,75,0.12)",border:"1px solid rgba(249,224,75,0.25)",borderRadius:6,padding:"2px 7px"}}>{p.id}</span>}
-                      {isThisDevice && <span style={{fontSize:10,color:"#63b3ed"}}>📱 Este dispositivo</span>}
+                      
                       {isAdmin && <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:5,
                         background:(p.role||"jugador")==="admin"?"rgba(249,224,75,0.15)":(p.role||"jugador")==="operario"?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
                         color:(p.role||"jugador")==="admin"?"#f9e04b":(p.role||"jugador")==="operario"?"#4ade80":"#888"}}>
@@ -2374,14 +2374,15 @@ function BillarApp() {
                           {p.pin?"🔑 PIN":"⚠️ Sin PIN"}
                         </span>
                       )}
-                      {isAdmin && <div onClick={()=>{const v=!pinRequerido;setPinRequerido(v);localStorage.setItem("bg_pinReq",v?"1":"0");}} style={{display:"flex",alignItems:"center",gap:4,cursor:"pointer",padding:"2px 7px",borderRadius:5,background:pinRequerido?"rgba(99,179,237,0.1)":"rgba(255,255,255,0.04)",border:"1px solid "+(pinRequerido?"rgba(99,179,237,0.3)":"rgba(255,255,255,0.08)")}}>
-                        <div style={{width:13,height:13,borderRadius:2,border:"1.5px solid "+(pinRequerido?"#63b3ed":"#555"),background:pinRequerido?"#63b3ed":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                          {pinRequerido && <span style={{color:"#fff",fontSize:9,fontWeight:900,lineHeight:1}}>✓</span>}
+                      {isAdmin && <div onClick={()=>{const u=playersList.map((pl,j2)=>j2===i?{...pl,pinReq:!p.pinReq}:pl);savePlayersList(u);}} style={{display:"flex",alignItems:"center",gap:4,cursor:"pointer",padding:"2px 7px",borderRadius:5,background:p.pinReq?"rgba(99,179,237,0.1)":"rgba(255,255,255,0.04)",border:"1px solid "+(p.pinReq?"rgba(99,179,237,0.3)":"rgba(255,255,255,0.08)")}}>
+                        <div style={{width:13,height:13,borderRadius:2,border:"1.5px solid "+(p.pinReq?"#63b3ed":"#555"),background:p.pinReq?"#63b3ed":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          {p.pinReq && <span style={{color:"#fff",fontSize:9,fontWeight:900,lineHeight:1}}>✓</span>}
                         </div>
-                        <span style={{fontSize:9,color:pinRequerido?"#63b3ed":"#555",fontWeight:700}}>PIN reg.</span>
+                        <span style={{fontSize:9,color:p.pinReq?"#63b3ed":"#555",fontWeight:700}}>PIN reg.</span>
                       </div>}
                     </div>
                   </div>
+                  {isThisDevice && <div style={{fontSize:10,color:"#63b3ed",marginBottom:6}}>📱 Este dispositivo</div>}
                   {isAdmin && (
                     <div style={{marginBottom:8}}>
                       <div style={{fontSize:10,color:"#555",marginBottom:5,letterSpacing:0.5}}>ROL</div>
@@ -2413,7 +2414,7 @@ function BillarApp() {
                         <button onClick={()=>{
                           if(!isThisDevice) {
                             const dn=jugKey;
-                            if(pinRequerido) {
+                            if(p.pinReq) {
                               setPinRegistroModal({jugKey, jugName:p.name, existingDevs, newDev:dn, hasOtherDevs});
                               setPinRegistroInput('');
                               setPinRegistroError('');
