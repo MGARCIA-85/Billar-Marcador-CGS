@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v309</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v310</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v309</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v310</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1986,9 +1986,9 @@ function BillarApp() {
                           <td style={{padding:"7px 4px",color:"#63b3ed",fontWeight:700}}>Jugador</td>
                           {Object.entries(colMap).map(([col,label])=>(
                             <td key={col} style={thStyle(col)} onClick={()=>toggleSort(col)} title={col}>
-                              {label==="⭐GB"?<img src="golden_break.png" style={{width:26,height:26,objectFit:"contain"}}/>:
-                               label==="⭐RO"?<img src="run_out.png" style={{width:26,height:26,objectFit:"contain",verticalAlign:"middle"}}/>:
-                               label==="⭐BR"?<img src="break_run.png" style={{width:26,height:26,objectFit:"contain",verticalAlign:"middle"}}/>:
+                              {label==="⭐GB"?<img src="golden_break.png" style={{width:26,height:39,objectFit:"contain"}}/>:
+                               label==="⭐RO"?<img src="run_out.png" style={{width:26,height:39,objectFit:"contain",verticalAlign:"middle"}}/>:
+                               label==="⭐BR"?<img src="break_run.png" style={{width:26,height:39,objectFit:"contain",verticalAlign:"middle"}}/>:
                                label}{arrow(col)}
                             </td>
                           ))}
@@ -2020,9 +2020,9 @@ function BillarApp() {
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontSize:18,lineHeight:1}}>👑</span></span><span style={{color:"#888"}}>Partidas</span></div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontSize:18,lineHeight:1}}>🏆</span></span><span style={{color:"#888"}}>Series</span></div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontWeight:800,fontSize:13}}>JG</span></span><span style={{color:"#888"}}>Juegos</span></div>
-                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="break_run.png" style={{width:20,height:20,objectFit:"contain"}}/></span><span style={{color:"#888"}}>Break & Run</span></div>
-                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="run_out.png" style={{width:20,height:20,objectFit:"contain"}}/></span><span style={{color:"#888"}}>Run Out</span></div>
-                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="golden_break.png" style={{width:20,height:20,objectFit:"contain"}}/></span><span style={{color:"#888"}}>Golden Break</span></div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="break_run.png" style={{width:20,height:30,objectFit:"contain"}}/></span><span style={{color:"#888"}}>Break & Run</span></div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="run_out.png" style={{width:20,height:30,objectFit:"contain"}}/></span><span style={{color:"#888"}}>Run Out</span></div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="golden_break.png" style={{width:20,height:30,objectFit:"contain"}}/></span><span style={{color:"#888"}}>Golden Break</span></div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontWeight:800,fontSize:13}}>JJ</span></span><span style={{color:"#888"}}>Jugados</span></div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontWeight:800,fontSize:13}}>%</span></span><span style={{color:"#888"}}>Promedio</span></div>
                 {showCR&&<div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#4ade80",fontSize:18,lineHeight:1}}>⏱</span></span><span style={{color:"#888"}}>T.prom CR</span></div>}
@@ -2849,7 +2849,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                   const clickable=isEditable&&g;
                   return <div key={ji} onClick={()=>clickable&&onToggle(ji,k)}
                     style={{width:CELL_W,height:CELL_H,borderRight:BORDER_THIN,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,0.01)",cursor:clickable?"pointer":"default"}}>
-                    {hasWon&&(g.ballType==="gold"?<img src="golden_break.png" style={{width:22,height:22,objectFit:"contain"}}/>:g.ballType==="diamond"?<img src="run_out.png" style={{width:22,height:22,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img src="break_run.png" style={{width:22,height:22,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img src="gran_defensa.png" style={{width:22,height:33,objectFit:"contain"}}/>:<BallIcon modalidad={modalidad} size={22}/>)}
+                    {hasWon&&(g.ballType==="gold"?<img src="golden_break.png" style={{width:22,height:33,objectFit:"contain"}}/>:g.ballType==="diamond"?<img src="run_out.png" style={{width:22,height:33,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img src="break_run.png" style={{width:22,height:33,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img src="gran_defensa.png" style={{width:22,height:33,objectFit:"contain"}}/>:<BallIcon modalidad={modalidad} size={22}/>)}
                   </div>;
                 })}
               </div>
@@ -2938,7 +2938,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                      <div style={{flex:1}}>
                        <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":(getPlayerColor(p1Name)||"#666"),marginBottom:4,fontWeight:s.p1wins>s.p2wins?700:400}}>{s.p1wins>s.p2wins?"🏆 ":""}{p1Name}</div>
                        <div style={{display:"flex",flexWrap:"wrap",gap:2}}>
-                         {(s.games||fakeGames).filter(g=>g.winner==="p1").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:20,height:20,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:20,height:20,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:20,height:20,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:20,height:30,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={modalidad} size={20}/>)}
+                         {(s.games||fakeGames).filter(g=>g.winner==="p1").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:20,height:30,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={modalidad} size={20}/>)}
                          {s.p1wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
                        </div>
                      </div>
@@ -2950,7 +2950,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                      <div style={{flex:1,textAlign:"right"}}>
                        <div style={{fontSize:11,color:s.p2wins>s.p1wins?"#4ade80":(getPlayerColor(p2Name)||"#666"),marginBottom:4,textAlign:"right",fontWeight:s.p2wins>s.p1wins?700:400}}>{p2Name}{s.p2wins>s.p1wins?" 🏆":""}</div>
                        <div style={{display:"flex",flexWrap:"wrap",gap:2,justifyContent:"flex-end"}}>
-                         {(s.games||fakeGames).filter(g=>g.winner==="p2").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:20,height:20,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:20,height:20,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:20,height:20,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:20,height:30,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={modalidad} size={20}/>)}
+                         {(s.games||fakeGames).filter(g=>g.winner==="p2").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:20,height:30,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={modalidad} size={20}/>)}
                          {s.p2wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
                        </div>
                      </div>
@@ -3637,12 +3637,12 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                     <div style={{fontSize:10,color:"#f9e04b",fontWeight:700,marginBottom:5}}>Serie {m.seriesFinished?"concluida":"inconclusa"} #{m.seriesCount}</div>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6}}>
                       <div style={{display:"flex",flexWrap:"wrap",gap:2,flex:1}}>
-                        {ig.filter(g=>g.winner==="p1").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:22,height:22,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:22,height:22,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:22,height:22,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:22,height:33,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={m.modalidad} size={22}/>)}
+                        {ig.filter(g=>g.winner==="p1").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:22,height:33,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:22,height:33,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:22,height:33,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:22,height:33,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={m.modalidad} size={22}/>)}
                         {p1w===0&&<span style={{fontSize:10,color:"#444"}}>—</span>}
                       </div>
                       <div style={{fontSize:11,color:"#444",fontWeight:700,flexShrink:0}}>vs</div>
                       <div style={{display:"flex",flexWrap:"wrap",gap:2,flex:1,justifyContent:"flex-end"}}>
-                        {ig.filter(g=>g.winner==="p2").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:22,height:22,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:22,height:22,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:22,height:22,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:22,height:33,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={m.modalidad} size={22}/>)}
+                        {ig.filter(g=>g.winner==="p2").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:22,height:33,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:22,height:33,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:22,height:33,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:22,height:33,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={m.modalidad} size={22}/>)}
                         {p2w===0&&<span style={{fontSize:10,color:"#444"}}>—</span>}
                       </div>
                     </div>
