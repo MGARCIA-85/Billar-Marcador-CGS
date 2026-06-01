@@ -2031,6 +2031,32 @@ function BillarApp() {
         if(maxC>=3) histIns[name].tal++;
       });
     });
+    // Rey del día en histIns
+    try {
+      const activePlayers = playersList.filter(pl=>typeof pl==="object"&&pl.rankActivo!==false).map(pl=>pl.name);
+      if(activePlayers.length>1){
+        const wbd={};
+        closed.forEach(m=>{
+          const sw1=m.seriesWins?.p1||0,sw2=m.seriesWins?.p2||0;
+          const winner=sw1>sw2?m.p1Name:sw2>sw1?m.p2Name:null;
+          const loser=sw1>sw2?m.p2Name:sw2>sw1?m.p1Name:null;
+          if(!winner||!loser) return;
+          const day=new Date(m.createdAt||0).toDateString();
+          if(!wbd[day]) wbd[day]={};
+          if(!wbd[day][winner]) wbd[day][winner]=[];
+          if(wbd[day][winner].indexOf(loser)===-1) wbd[day][winner].push(loser);
+        });
+        Object.values(wbd).forEach(byP=>{
+          Object.keys(byP).forEach(winner=>{
+            const needed=activePlayers.filter(p=>p!==winner);
+            if(needed.length>0&&needed.every(p=>byP[winner].indexOf(p)!==-1)){
+              ensureHist(winner);
+              histIns[winner].rey=(histIns[winner].rey||0)+1;
+            }
+          });
+        });
+      }
+    } catch(e){}
     let rows = Object.values(statsMap);
     playersList.forEach(pl => {
       const pname = typeof pl==="string"?pl:pl.name;
