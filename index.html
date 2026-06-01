@@ -1996,6 +1996,41 @@ function BillarApp() {
         });
       }
     } catch(e) {}
+    // Calcular insignias históricas (historial completo, sin filtro)
+    const histIns = {};
+    const ensureHist = (name) => { if(!histIns[name]) histIns[name]={br:0,ro:0,gb:0,rem:0,imp:0,gd:0,tal:0,rey:0}; };
+    closed.forEach(m => {
+      if (m.modalidad==="Contrarreloj") return;
+      [["p1",m.p1Name],["p2",m.p2Name]].forEach(([key,name])=>{
+        if(!name) return;
+        ensureHist(name);
+        const hist = m.seriesHistory||[];
+        hist.forEach(ser => {
+          const won = ser.winner===key;
+          const serG = ser.games||[];
+          serG.forEach(g => {
+            if(g.winner===key){
+              if(g.ballType==="breakrun") histIns[name].br++;
+              if(g.ballType==="diamond") histIns[name].ro++;
+              if(g.ballType==="gold") histIns[name].gb++;
+              if(g.ballType==="grandefensa") histIns[name].gd++;
+            }
+          });
+          if(won){
+            const riv = key==="p1"?(ser.p2wins||0):(ser.p1wins||0);
+            if(riv===0&&m.carrera>1) histIns[name].imp++;
+            if(m.carrera>1){
+              let my=0,rv=0,rem=false;
+              for(let g of serG){if(my===0&&rv>=(m.carrera-1)){rem=true;break;}if(g.winner===key)my++;else rv++;}
+              if(rem) histIns[name].rem++;
+            }
+          }
+        });
+        let consec=0,maxC=0;
+        hist.forEach(ser=>{if(ser.winner===key){consec++;if(consec>maxC)maxC=consec;}else consec=0;});
+        if(maxC>=3) histIns[name].tal++;
+      });
+    });
     let rows = Object.values(statsMap);
     playersList.forEach(pl => {
       const pname = typeof pl==="string"?pl:pl.name;
@@ -2123,46 +2158,7 @@ function BillarApp() {
                 </div>;
               })()}
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
-                {(()=>{
-                // Calcular insignias históricas (historial completo, sin filtro)
-                const histIns = {};
-                const ensureHist = (name) => { if(!histIns[name]) histIns[name]={br:0,ro:0,gb:0,rem:0,imp:0,gd:0,tal:0}; };
-                closed.forEach(m => {
-                  if (m.modalidad==="Contrarreloj") return;
-                  [["p1",m.p1Name],["p2",m.p2Name]].forEach(([key,name])=>{
-                    if(!name) return;
-                    ensureHist(name);
-                    const hist = m.seriesHistory||[];
-                    hist.forEach(ser => {
-                      const won = ser.winner===key;
-                      const serG = ser.games||[];
-                      serG.forEach(g => {
-                        if(g.winner===key){
-                          if(g.ballType==="breakrun") histIns[name].br++;
-                          if(g.ballType==="diamond") histIns[name].ro++;
-                          if(g.ballType==="gold") histIns[name].gb++;
-                          if(g.ballType==="grandefensa") histIns[name].gd++;
-                        }
-                      });
-                      if(won){
-                        const riv = key==="p1"?(ser.p2wins||0):(ser.p1wins||0);
-                        if(riv===0&&m.carrera>1) histIns[name].imp++;
-                        if(m.carrera>1){
-                          let my=0,rv=0,rem=false;
-                          for(let g of serG){if(my===0&&rv>=(m.carrera-1)){rem=true;break;}if(g.winner===key)my++;else rv++;}
-                          if(rem) histIns[name].rem++;
-                        }
-                      }
-                    });
-                    // 3 al hilo
-                    let consec=0,maxC=0;
-                    hist.forEach(ser=>{if(ser.winner===key){consec++;if(consec>maxC)maxC=consec;}else consec=0;});
-                    if(maxC>=3) histIns[name].tal++;
-                  });
-                });
-                return null;
-              })()}
-              {rows.slice(0,3).map((r,i)=>(
+                {rows.slice(0,3).map((r,i)=>(
                   <div key={r.name} style={{background:i===0?"rgba(249,224,75,0.08)":i===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:"1px solid "+(i===0?"rgba(249,224,75,0.25)":i===1?"rgba(200,200,200,0.15)":"rgba(150,100,50,0.2)"),borderRadius:14,padding:"14px 16px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
                       <img src={i===0?"https://em-content.zobj.net/source/google/387/1st-place-medal_1f947.png":i===1?"https://em-content.zobj.net/source/google/387/2nd-place-medal_1f948.png":"https://em-content.zobj.net/source/google/387/3rd-place-medal_1f949.png"} style={{width:i===0?42:34,height:i===0?42:34,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none";}}/>
