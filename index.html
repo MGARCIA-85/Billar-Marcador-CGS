@@ -1826,9 +1826,12 @@ function BillarApp() {
         if (sfPeriod === "Hoy") {
           const hoy = new Date(); hoy.setHours(0,0,0,0);
           if (new Date(ts) < hoy) return false;
-        } else {
-          const ms={"Esta semana":604800000,"Este mes":2592000000,"Todo":Infinity};
-          if (now2-ts > (ms[sfPeriod]||Infinity)) return false;
+        } else if (sfPeriod === "Esta semana") {
+          if (now2-ts > 604800000) return false;
+        } else if (sfPeriod === "Este mes") {
+          const now3 = new Date();
+          const inicioMes = new Date(now3.getFullYear(), now3.getMonth(), 1, 0, 0, 0, 0);
+          if (new Date(ts) < inicioMes) return false;
         }
       }
       // Duelos directos: si hay jugadores seleccionados, la partida debe incluir SOLO a esos jugadores
