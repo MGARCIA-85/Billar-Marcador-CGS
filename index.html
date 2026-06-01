@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v326</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v327</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v326</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v327</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -2332,7 +2332,7 @@ function BillarApp() {
                     )}
                     {isAdmin && (
                       <div style={{marginBottom:10}}>
-                        <span style={{fontSize:11,color:"#888",display:"block",marginBottom:6}}>PIN de acceso (Admin/Operario):</span>
+                        <span style={{fontSize:11,color:"#888",display:"block",marginBottom:6}}>PIN de acceso:</span>
                         <input id={"edit-pin-"+i}
                           style={{width:"100%",padding:"9px 12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(249,224,75,0.2)",color:"#f9e04b",fontFamily:"inherit",fontSize:15,fontWeight:700,outline:"none",letterSpacing:4,textAlign:"center",boxSizing:"border-box"}}
                           defaultValue={p.pin||""} placeholder="---- sin PIN" maxLength={6}
@@ -2369,7 +2369,7 @@ function BillarApp() {
                         color:(p.role||"jugador")==="admin"?"#f9e04b":(p.role||"jugador")==="operario"?"#4ade80":"#888"}}>
                         {(p.role||"jugador")==="admin"?"👑 Admin":(p.role||"jugador")==="operario"?"⚙️ Operario":"🎱 Jugador"}
                       </span>}
-                      {isAdmin && ((p.role||"jugador")==="admin"||(p.role||"jugador")==="operario") && (
+                      {isAdmin && (
                         <span style={{fontSize:10,padding:"2px 7px",borderRadius:5,
                           background:p.pin?"rgba(74,222,128,0.08)":"rgba(239,68,68,0.08)",
                           color:p.pin?"#4ade80":"#f87171"}}>
