@@ -2027,13 +2027,13 @@ function BillarApp() {
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
             <div style={{fontSize:22,fontWeight:800,color:"#63b3ed"}}>📊 Estadísticas</div>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              {isAdmin && <button onClick={()=>setFiltrosOpen(o=>!o)} style={{background:filtrosOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:"1px solid "+(filtrosOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"),color:filtrosOpen?"#63b3ed":"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>🔍 {filtrosOpen?"▲":"▼"}</button>}
+              <button onClick={()=>setFiltrosOpen(o=>!o)} style={{background:filtrosOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:"1px solid "+(filtrosOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"),color:filtrosOpen?"#63b3ed":"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>🔍 {filtrosOpen?"▲":"▼"}</button>
               <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
             </div>
           </div>
 
           {/* Filtros */}
-          {isAdmin && filtrosOpen && <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"12px",marginBottom:14}}>
+          {filtrosOpen && <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"12px",marginBottom:14}}>
             <>
             {/* Período */}
             <div style={{fontSize:10,color:"#555",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Período</div>
@@ -2123,7 +2123,46 @@ function BillarApp() {
                 </div>;
               })()}
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
-                {rows.slice(0,3).map((r,i)=>(
+                {(()=>{
+                // Calcular insignias históricas (historial completo, sin filtro)
+                const histIns = {};
+                const ensureHist = (name) => { if(!histIns[name]) histIns[name]={br:0,ro:0,gb:0,rem:0,imp:0,gd:0,tal:0}; };
+                closed.forEach(m => {
+                  if (m.modalidad==="Contrarreloj") return;
+                  [["p1",m.p1Name],["p2",m.p2Name]].forEach(([key,name])=>{
+                    if(!name) return;
+                    ensureHist(name);
+                    const hist = m.seriesHistory||[];
+                    hist.forEach(ser => {
+                      const won = ser.winner===key;
+                      const serG = ser.games||[];
+                      serG.forEach(g => {
+                        if(g.winner===key){
+                          if(g.ballType==="breakrun") histIns[name].br++;
+                          if(g.ballType==="diamond") histIns[name].ro++;
+                          if(g.ballType==="gold") histIns[name].gb++;
+                          if(g.ballType==="grandefensa") histIns[name].gd++;
+                        }
+                      });
+                      if(won){
+                        const riv = key==="p1"?(ser.p2wins||0):(ser.p1wins||0);
+                        if(riv===0&&m.carrera>1) histIns[name].imp++;
+                        if(m.carrera>1){
+                          let my=0,rv=0,rem=false;
+                          for(let g of serG){if(my===0&&rv>=(m.carrera-1)){rem=true;break;}if(g.winner===key)my++;else rv++;}
+                          if(rem) histIns[name].rem++;
+                        }
+                      }
+                    });
+                    // 3 al hilo
+                    let consec=0,maxC=0;
+                    hist.forEach(ser=>{if(ser.winner===key){consec++;if(consec>maxC)maxC=consec;}else consec=0;});
+                    if(maxC>=3) histIns[name].tal++;
+                  });
+                });
+                return null;
+              })()}
+              {rows.slice(0,3).map((r,i)=>(
                   <div key={r.name} style={{background:i===0?"rgba(249,224,75,0.08)":i===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:"1px solid "+(i===0?"rgba(249,224,75,0.25)":i===1?"rgba(200,200,200,0.15)":"rgba(150,100,50,0.2)"),borderRadius:14,padding:"14px 16px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
                       <img src={i===0?"https://em-content.zobj.net/source/google/387/1st-place-medal_1f947.png":i===1?"https://em-content.zobj.net/source/google/387/2nd-place-medal_1f948.png":"https://em-content.zobj.net/source/google/387/3rd-place-medal_1f949.png"} style={{width:i===0?42:34,height:i===0?42:34,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none";}}/>
@@ -2133,14 +2172,25 @@ function BillarApp() {
                       </div>
                     </div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:8}}>
-                      {r.breakRuns>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}><img src="insignia_break_run.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#ffd700",fontWeight:700}}>x{r.breakRuns}</span></div>}
-                      {r.mesas>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}><img src="insignia_run_out.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#63b3ed",fontWeight:700}}>x{r.mesas}</span></div>}
-                      {(r.imparables||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}><img src="insignia_imparable.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#a78bfa",fontWeight:700}}>x{r.imparables}</span></div>}
-                      {(r.remontadas||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}><img src="insignia_remontada.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#f87171",fontWeight:700}}>x{r.remontadas}</span></div>}
-                      {r.goldenBreaks>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}><img src="insignia_golden_break.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#f9e04b",fontWeight:700}}>x{r.goldenBreaks}</span></div>}
-                      {(r.granDefensas||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}><img src="insignia_gran_defensa.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#34d399",fontWeight:700}}>x{r.granDefensas}</span></div>}
-                      {(r.tresAlHilo||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}><img src="insignia_3s_al_hilo.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#f97316",fontWeight:700}}>x{r.tresAlHilo}</span></div>}
-                      {(r.reyDelDia||0)>0 && <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}><img src="insignia_rey_día.png" style={{width:64,height:64,objectFit:"contain"}}/><span style={{fontSize:11,color:"#fbbf24",fontWeight:700}}>x{r.reyDelDia}</span></div>}
+                      {(()=>{
+                        const h = histIns[r.name]||{};
+                        const ins = [
+                          {src:"insignia_break_run.png",hist:h.br||0,per:r.breakRuns||0,color:"#ffd700"},
+                          {src:"insignia_run_out.png",hist:h.ro||0,per:r.mesas||0,color:"#63b3ed"},
+                          {src:"insignia_imparable.png",hist:h.imp||0,per:r.imparables||0,color:"#a78bfa"},
+                          {src:"insignia_remontada.png",hist:h.rem||0,per:r.remontadas||0,color:"#f87171"},
+                          {src:"insignia_golden_break.png",hist:h.gb||0,per:r.goldenBreaks||0,color:"#f9e04b"},
+                          {src:"insignia_gran_defensa.png",hist:h.gd||0,per:r.granDefensas||0,color:"#34d399"},
+                          {src:"insignia_3s_al_hilo.png",hist:h.tal||0,per:r.tresAlHilo||0,color:"#f97316"},
+                          {src:"insignia_rey_día.png",hist:h.rey||0,per:r.reyDelDia||0,color:"#fbbf24"},
+                        ].filter(x=>x.hist>0||x.per>0);
+                        return ins.map((ins2,ii)=>(
+                          <div key={ii} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}>
+                            <img src={ins2.src} style={{width:64,height:64,objectFit:"contain",opacity:ins2.per>0?1:0.2,filter:ins2.per>0?"none":"grayscale(100%)"}}/>
+                            <span style={{fontSize:11,color:ins2.per>0?ins2.color:"#444",fontWeight:700}}>{ins2.per>0?"x"+ins2.per:""}</span>
+                          </div>
+                        ));
+                      })()}
                     </div>
                   </div>
                 ))}
