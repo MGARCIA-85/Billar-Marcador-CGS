@@ -2416,6 +2416,7 @@ function BillarApp() {
                         <button onClick={()=>{
                           if(!isThisDevice) {
                             const dn=jugKey;
+                            console.log("DEBUG pinReq:", p.name, p.pinReq, "pin:", p.pin);
                             if(p.pinReq) {
                               setPinRegistroModal({jugKey, jugName:p.name, existingDevs, newDev:dn, hasOtherDevs});
                               setPinRegistroInput('');
