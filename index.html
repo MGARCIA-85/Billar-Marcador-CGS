@@ -1318,7 +1318,7 @@ function BillarApp() {
                 <button key={i} onClick={()=>{
                   const dn = jugKey;
                   const rolElevado2 = (p.role||"jugador")==="admin"||(p.role||"jugador")==="operario";
-                  const necesitaPin = rolElevado2 && p.pin;
+                  const necesitaPin = p.pinReq && p.pin;
                   const doRegistro = () => {
                     if (yaRegistrado) {
                       setDevDialog({jugKey, jugName:p.name, existingDevs, newDev:dn});
