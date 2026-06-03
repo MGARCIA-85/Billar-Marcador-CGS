@@ -1982,6 +1982,7 @@ function BillarApp() {
         if(wbdStats[dayKey].byPlayer[winner].indexOf(loser)===-1) wbdStats[dayKey].byPlayer[winner].push(loser);
       });
       const reyCount={};
+      console.log('REY wbdStats keys:', JSON.stringify(Object.keys(wbdStats)));
       Object.values(wbdStats).forEach(({date,byPlayer})=>{
         const activosEnFecha=playersList.filter(pl=>typeof pl==="object"&&eraActivoEnFecha(pl,date,closed)).map(pl=>pl.name);
         console.log('REY date:', date, 'activos:', JSON.stringify(activosEnFecha), 'byPlayer:', JSON.stringify(byPlayer));
