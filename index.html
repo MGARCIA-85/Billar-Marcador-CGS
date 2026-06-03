@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v355</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v356</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v355</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v356</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -675,10 +675,10 @@ function BillarApp() {
                   const jms = matches.filter(m=>m.jornadaId===j.id);
                   const done = jms.filter(m=>m.matchClosed).length;
                   return (
-                    <div key={j.id} style={{padding:"12px 14px",borderRadius:12,background:j.finished?"rgba(255,255,255,0.01)":"rgba(249,224,75,0.04)",border:`1px solid ${j.finished?"rgba(255,255,255,0.05)":"rgba(249,224,75,0.3)"}`,marginBottom:8,opacity:j.finished?0.45:1}}>
+                    <div key={j.id} style={{padding:"12px 14px",borderRadius:12,background:j.finished?"rgba(239,68,68,0.04)":"rgba(249,224,75,0.04)",border:`1px solid ${j.finished?"rgba(239,68,68,0.25)":"rgba(249,224,75,0.3)"}`,marginBottom:8}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
                         <div onClick={()=>setJornadaScreenP(j.id)} style={{flex:1,cursor:"pointer"}}>
-                          <span style={{fontSize:"clamp(13px,3.8vw,15px)",fontWeight:700,color:j.finished?"#555":"#f9e04b"}}>{j.name}</span>
+                          <span style={{fontSize:"clamp(13px,3.8vw,15px)",fontWeight:700,color:j.finished?"#f87171":"#f9e04b"}}>{j.name}</span>
                           <span style={{fontSize:11,color:"#888",marginLeft:8}}>{done}/{jms.length} partidas</span>
                         </div>
                         <div style={{display:"flex",gap:6}}>
@@ -694,7 +694,7 @@ function BillarApp() {
                           }} style={{fontSize:11,padding:"4px 8px",borderRadius:6,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",color:"#f87171",fontFamily:"inherit",cursor:"pointer"}}>🗑</button>}
                         </div>
                       </div>
-                      <div onClick={()=>setJornadaScreenP(j.id)} style={{fontSize:11,color:"#666",cursor:"pointer"}}>{j.finished?"✅ Finalizada":"🟡 En curso"} · Toca para abrir</div>
+                      <div onClick={()=>setJornadaScreenP(j.id)} style={{fontSize:11,color:"#666",cursor:"pointer"}}>{j.finished?<span style={{color:"#f87171",fontWeight:800,fontSize:13}}>🔴 FINALIZADA</span>:<span>🟡 En curso · Toca para abrir</span>}</div>
                       {j.createdAt && <div style={{fontSize:10,color:"#444",marginTop:2}}>📅 {new Date(j.createdAt).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})}</div>}
                       <button onClick={()=>setJornadaResumenId(j.id)}
                         style={{marginTop:6,width:"100%",padding:"7px 0",borderRadius:9,background:"rgba(249,224,75,0.06)",border:"1px solid rgba(249,224,75,0.2)",color:"#f9e04b",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
@@ -979,7 +979,7 @@ function BillarApp() {
                 const bgColor = mm.matchClosed?"rgba(255,255,255,0.02)":isTurn?"rgba(74,222,128,0.13)":"rgba(255,255,255,0.03)";
                 const boxShadow = isTurn?"0 0 18px 4px rgba(74,222,128,0.35)":"none";
                 return (
-                  <div key={mid} style={{border:`2px solid ${borderColor}`,borderRadius:14,marginBottom:10,background:bgColor,opacity:mm.matchClosed?0.35:1,boxShadow,transition:"box-shadow 0.3s"}}>
+                  <div key={mid} style={{border:`2px solid ${borderColor}`,borderRadius:14,marginBottom:10,background:bgColor,boxShadow,transition:"box-shadow 0.3s"}}>
                     {/* Controles de turno dentro de la tarjeta */}
                     {/* Si la partida del turno actual se cerró, mostrar botón para avanzar */}
                     {mm.matchClosed && mid===currentMatchId && !allJDone && (
