@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v345d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v346d</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v345d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v346d</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -2000,139 +2000,7 @@ function BillarApp() {
         if(maxC>=3) histIns[name].tal++;
       });
     });
-    // Rey del día en histIns
-    const wbdH={};
-    closed.forEach(m=>{
-      const s1=m.seriesWins&&m.seriesWins.p1||0,s2=m.seriesWins&&m.seriesWins.p2||0;
-      const gw=s1>s2?m.p1Name:s2>s1?m.p2Name:null;
-      const gl=s1>s2?m.p2Name:s2>s1?m.p1Name:null;
-      if(!gw||!gl) return;
-      const dk=new Date(m.createdAt||0).toDateString();
-      const ds=new Date(m.createdAt||0).toISOString().slice(0,10);
-      if(!wbdH[dk]) wbdH[dk]={date:ds,byPlayer:{}};
-      if(!wbdH[dk].byPlayer[gw]) wbdH[dk].byPlayer[gw]=[];
-      if(wbdH[dk].byPlayer[gw].indexOf(gl)===-1) wbdH[dk].byPlayer[gw].push(gl);
-    });
-    const hoy0=new Date().toISOString().slice(0,10);
-    Object.values(wbdH).forEach(({date,byPlayer})=>{
-      const activos=(playersList||[]).filter(pl=>{
-        if(typeof pl!=="object"||!pl||pl.rankActivo===false) return false;
-        const hist=pl.rankActivoHistorial;
-        if(hist&&Array.isArray(hist)&&hist.length>0){
-          const sorted=[...hist].sort((a,b)=>(a.desde||"").localeCompare(b.desde||""));
-          let est=sorted[0].activo===false?true:false;
-          for(const h of sorted){if((h.desde||"")<=date)est=h.activo;else break;}
-          return est===true;
-        }
-        const tieneP=closed.some(m=>(m.p1Name===pl.name||m.p2Name===pl.name)&&new Date(m.createdAt||0).toISOString().slice(0,10)<hoy0);
-        return tieneP?true:date>=hoy0;
-      }).map(pl=>pl.name);
-      if(activos.length<2) return;
-      Object.keys(byPlayer).forEach(gw=>{
-        const needed=activos.filter(p=>p!==gw);
-        if(needed.length>0&&needed.every(p=>byPlayer[gw].indexOf(p)!==-1)){
-          ensureHist(gw);
-          histIns[gw].rey=(histIns[gw].rey||0)+1;
-        }
-      });
-    });
-    // Rey del día - acumulativo con verificación por momento exacto de cada victoria
-    {
-      const hoyR=new Date().toISOString();
-      const conPartidas=new Set();
-      closed.forEach(m=>{ if(m.p1Name) conPartidas.add(m.p1Name); if(m.p2Name) conPartidas.add(m.p2Name); });
-      const eraActivo=(pl,ts)=>{
-        if(typeof pl!=="object"||!pl) return false;
-        if(pl.rankActivo===false) return false;
-        const hist=pl.rankActivoHistorial;
-        if(hist&&Array.isArray(hist)&&hist.length>0){
-          const sorted=[...hist].sort((a,b)=>(a.desde||"").localeCompare(b.desde||""));
-          let est=sorted[0].activo===false?true:false;
-          for(const h of sorted){if((h.desde||"")<=ts)est=h.activo;else break;}
-          return est===true;
-        }
-        return conPartidas.has(pl.name)?true:ts>=hoyR;
-      };
-      // Agrupar partidas por día con su timestamp exacto, ordenadas cronológicamente
-      const porDia={};
-      filtered.forEach(m=>{
-        const s1=(m.seriesWins&&m.seriesWins.p1)||0;
-        const s2=(m.seriesWins&&m.seriesWins.p2)||0;
-        const gw=s1>s2?m.p1Name:(s2>s1?m.p2Name:null);
-        const gl=s1>s2?m.p2Name:(s2>s1?m.p1Name:null);
-        if(!gw||!gl) return;
-        const tsMs=m.closedAt||m.createdAt||0;
-        const dk=new Date(tsMs).toDateString();
-        const ts=new Date(tsMs).toISOString();
-        if(!porDia[dk]) porDia[dk]=[];
-        porDia[dk].push({gw,gl,ts});
-      });
-      // Rey del día: dividir el día en segmentos según cambios de activos
-      Object.values(porDia).forEach(partidas=>{
-        partidas.sort((a,b)=>a.ts.localeCompare(b.ts));
-        const reyHoy=new Set();
-        
-        // Recopilar todos los timestamps de cambios de activos del día
-        const cambios=new Set();
-        playersList.forEach(pl=>{
-          if(typeof pl!=="object"||!pl) return;
-          const hist=pl.rankActivoHistorial;
-          if(!hist||!Array.isArray(hist)) return;
-          hist.forEach(h=>{
-            if(h.desde) cambios.add(h.desde);
-          });
-        });
-        
-        // Ordenar timestamps de cambios
-        const tssCambios=[...cambios].sort();
-        
-        // Para cada partida, determinar su segmento (qué configuración de activos aplica)
-        // Un segmento es el período entre dos cambios consecutivos
-        // Las partidas del mismo segmento comparten la misma configuración de activos
-        
-        // Agrupar partidas por segmento
-        const segmentos={};
-        partidas.forEach(p=>{
-          // Encontrar el último cambio antes del timestamp de la partida
-          let segKey="inicio";
-          for(const tc of tssCambios){
-            if(tc<=p.ts) segKey=tc;
-            else break;
-          }
-          if(!segmentos[segKey]) segmentos[segKey]={ts:p.ts,partidas:[]};
-          segmentos[segKey].partidas.push(p);
-        });
-        
-        // Evaluar cada segmento independientemente
-        Object.values(segmentos).forEach(({ts:segTs,partidas:segPartidas})=>{
-          // Activos en este segmento
-          const activos=playersList.filter(pl=>eraActivo(pl,segTs)).map(pl=>pl.name);
-          if(activos.length<2) return;
-          
-          // Victorias dentro de este segmento
-          const vicSeg={};
-          segPartidas.forEach(({gw,gl})=>{
-            const plGl=playersList.find(pl=>typeof pl==="object"&&pl.name===gl);
-            if(!plGl||!eraActivo(plGl,segTs)) return;
-            if(!vicSeg[gw]) vicSeg[gw]=[];
-            if(vicSeg[gw].indexOf(gl)===-1) vicSeg[gw].push(gl);
-          });
-          
-          // Verificar si algún jugador venció a todos los activos en este segmento
-          Object.keys(vicSeg).forEach(gw=>{
-            if(reyHoy.has(gw)) return;
-            const needed=activos.filter(p=>p!==gw);
-            if(needed.length>0&&needed.every(p=>vicSeg[gw].indexOf(p)!==-1)){
-              reyHoy.add(gw);
-            }
-          });
-        });
-        
-        reyHoy.forEach(gw=>{
-          if(statsMap[gw]) statsMap[gw].reyDelDia=(statsMap[gw].reyDelDia||0)+1;
-        });
-      });
-    }
+
     let rows = Object.values(statsMap);
     playersList.forEach(pl => {
       const pname = typeof pl==="string"?pl:pl.name;
@@ -2558,10 +2426,7 @@ function BillarApp() {
                   <div style={{display:"flex",gap:6,alignItems:"center"}}>
                     {isAdmin && <div onClick={()=>{
                       const nuevoActivo = p.rankActivo===false?true:false;
-                      const ahora = new Date().toISOString(); // timestamp completo con hora
-                      const hist = p.rankActivoHistorial||[];
-                      const nuevoHist = [...hist,{activo:nuevoActivo,desde:ahora}];
-                      const u=playersList.map((pl,j2)=>j2===i?{...pl,rankActivo:nuevoActivo,rankActivoHistorial:nuevoHist}:pl);
+                      const u=playersList.map((pl,j2)=>j2===i?{...pl,rankActivo:nuevoActivo}:pl);
                       savePlayersList(u);
                     }} style={{cursor:"pointer",width:42,height:24,borderRadius:12,background:p.rankActivo!==false?"#4ade80":"#ef4444",position:"relative",flexShrink:0}}>
                       <div style={{position:"absolute",top:2,left:p.rankActivo!==false?20:2,width:20,height:20,borderRadius:10,background:"white",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
