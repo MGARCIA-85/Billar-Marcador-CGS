@@ -1965,6 +1965,77 @@ function BillarApp() {
       }
     });
 
+    // Calcular insignias históricas
+    const histIns = {};
+    const ensureHist = (name) => { if(!histIns[name]) histIns[name]={br:0,ro:0,gb:0,rem:0,imp:0,gd:0,tal:0,rey:0}; };
+    closed.forEach(m => {
+      if (m.modalidad==="Contrarreloj") return;
+      [["p1",m.p1Name],["p2",m.p2Name]].forEach(([key,name])=>{
+        if(!name) return;
+        ensureHist(name);
+        const hist = m.seriesHistory||[];
+        hist.forEach(ser => {
+          const won = ser.winner===key;
+          const serG = ser.games||[];
+          serG.forEach(g => {
+            if(g.winner===key){
+              if(g.ballType==="breakrun") histIns[name].br++;
+              if(g.ballType==="diamond") histIns[name].ro++;
+              if(g.ballType==="gold") histIns[name].gb++;
+              if(g.ballType==="grandefensa") histIns[name].gd++;
+            }
+          });
+          if(won){
+            const riv=key==="p1"?(ser.p2wins||0):(ser.p1wins||0);
+            if(riv===0&&m.carrera>1) histIns[name].imp++;
+            if(m.carrera>1){
+              let my=0,rv=0,rem=false;
+              for(let g of serG){if(my===0&&rv>=(m.carrera-1)){rem=true;break;}if(g.winner===key)my++;else rv++;}
+              if(rem) histIns[name].rem++;
+            }
+          }
+        });
+        let consec=0,maxC=0;
+        hist.forEach(ser=>{if(ser.winner===key){consec++;if(consec>maxC)maxC=consec;}else consec=0;});
+        if(maxC>=3) histIns[name].tal++;
+      });
+    });
+    // Rey del día en histIns
+    const wbdH={};
+    closed.forEach(m=>{
+      const s1=m.seriesWins&&m.seriesWins.p1||0,s2=m.seriesWins&&m.seriesWins.p2||0;
+      const gw=s1>s2?m.p1Name:s2>s1?m.p2Name:null;
+      const gl=s1>s2?m.p2Name:s2>s1?m.p1Name:null;
+      if(!gw||!gl) return;
+      const dk=new Date(m.createdAt||0).toDateString();
+      const ds=new Date(m.createdAt||0).toISOString().slice(0,10);
+      if(!wbdH[dk]) wbdH[dk]={date:ds,byPlayer:{}};
+      if(!wbdH[dk].byPlayer[gw]) wbdH[dk].byPlayer[gw]=[];
+      if(wbdH[dk].byPlayer[gw].indexOf(gl)===-1) wbdH[dk].byPlayer[gw].push(gl);
+    });
+    const hoy0=new Date().toISOString().slice(0,10);
+    Object.values(wbdH).forEach(({date,byPlayer})=>{
+      const activos=(playersList||[]).filter(pl=>{
+        if(typeof pl!=="object"||!pl||pl.rankActivo===false) return false;
+        const hist=pl.rankActivoHistorial;
+        if(hist&&Array.isArray(hist)&&hist.length>0){
+          const sorted=[...hist].sort((a,b)=>(a.desde||"").localeCompare(b.desde||""));
+          let est=sorted[0].activo===false?true:false;
+          for(const h of sorted){if((h.desde||"")<=date)est=h.activo;else break;}
+          return est===true;
+        }
+        const tieneP=closed.some(m=>(m.p1Name===pl.name||m.p2Name===pl.name)&&new Date(m.createdAt||0).toISOString().slice(0,10)<hoy0);
+        return tieneP?true:date>=hoy0;
+      }).map(pl=>pl.name);
+      if(activos.length<2) return;
+      Object.keys(byPlayer).forEach(gw=>{
+        const needed=activos.filter(p=>p!==gw);
+        if(needed.length>0&&needed.every(p=>byPlayer[gw].indexOf(p)!==-1)){
+          ensureHist(gw);
+          histIns[gw].rey=(histIns[gw].rey||0)+1;
+        }
+      });
+    });
     // Rey del día
     const wbdR={};
     (closed||[]).forEach(m=>{
