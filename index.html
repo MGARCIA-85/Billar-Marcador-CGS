@@ -27,14 +27,12 @@
       display: flex; flex-direction: column; overflow: hidden;
     }
     .app-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    .ptr-indicator { display:flex; align-items:center; justify-content:center; height:0; overflow:hidden; transition:height 0.2s; color:#63b3ed; font-size:13px; font-weight:700; }
-    .ptr-indicator.ptr-visible { height:40px; }
   </style>
 </head>
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v357</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v358</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v357</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v358</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -332,8 +330,6 @@ function BillarApp() {
   const [pinRegistroError, setPinRegistroError] = useState('');
   const [calStep, setCalStep] = useState(0); // 0=inicio, 1=seleccionando fin
   const [calMes, setCalMes] = useState(() => { const d=new Date(); return {y:d.getFullYear(),m:d.getMonth()}; });
-  const [ptrActive, setPtrActive] = useState(false);
-  const ptrRef = React.useRef({startY:0, active:false});
   const [sortDir, setSortDir] = useState("desc");
   const [sfFechaDesde, setSfFechaDesde] = useState("");
   const [sfFechaHasta, setSfFechaHasta] = useState("");
@@ -372,6 +368,43 @@ function BillarApp() {
   const setShowHistoryP = (v) => { setShowHistory(v); if(v) localStorage.setItem("bg_showHistory","1"); else localStorage.removeItem("bg_showHistory"); };
   const setActiveIdP = (id) => { setActiveId(id); if(id) localStorage.setItem("bg_activeId", id); else localStorage.removeItem("bg_activeId"); };
   const setJornadaScreenP = (s) => { setJornadaScreen(s); if(s) localStorage.setItem("bg_jornadaScreen", s); else localStorage.removeItem("bg_jornadaScreen"); };
+
+  // ── Historial de navegación para botón atrás Android ──
+  const navHistoryRef = React.useRef([]);
+  const goBack = React.useCallback(() => {
+    const hist = navHistoryRef.current;
+    if (hist.length > 1) {
+      hist.pop(); // quitar actual
+      const prev = hist[hist.length - 1];
+      if (prev.jornadaScreen !== undefined) setJornadaScreen(prev.jornadaScreen);
+      setScreen(prev.screen);
+      if (prev.screen) localStorage.setItem("bg_screen", prev.screen);
+      if (prev.jornadaScreen) localStorage.setItem("bg_jornadaScreen", prev.jornadaScreen);
+      else localStorage.removeItem("bg_jornadaScreen");
+    }
+    // Si no hay historial, no hacer nada (no cierra la app)
+  }, []);
+
+  // Interceptar botón atrás de Android
+  React.useEffect(() => {
+    const onPop = (e) => { e.preventDefault(); goBack(); };
+    window.addEventListener("popstate", onPop);
+    // Empujar estado inicial para que popstate funcione
+    window.history.pushState({bg:true}, "");
+    return () => window.removeEventListener("popstate", onPop);
+  }, [goBack]);
+
+  // Registrar cada cambio de pantalla en el historial
+  React.useEffect(() => {
+    const entry = {screen, jornadaScreen};
+    const hist = navHistoryRef.current;
+    const last = hist[hist.length-1];
+    if (!last || last.screen !== screen || last.jornadaScreen !== jornadaScreen) {
+      hist.push(entry);
+      if (hist.length > 20) hist.shift();
+      window.history.pushState({bg:true}, "");
+    }
+  }, [screen, jornadaScreen]);
 
   // Reparar matchOrder: si una partida tiene jornadaId pero no está en matchOrder, agregarla
   useEffect(() => {
@@ -641,6 +674,18 @@ function BillarApp() {
 
   // ===== LOBBY =====
   // ===== JORNADAS =====
+
+  // Botón flotante actualizar
+  const BtnActualizar = () => (
+    <div style={{position:"fixed",bottom:76,right:14,zIndex:9000}}>
+      <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }}
+        title="Actualizar y volver al lobby"
+        style={{width:44,height:44,borderRadius:"50%",background:"rgba(15,42,90,0.95)",border:"1px solid rgba(99,179,237,0.45)",color:"#63b3ed",fontSize:19,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:"0 2px 14px rgba(0,0,0,0.55)"}}>
+        🔄
+      </button>
+    </div>
+  );
+
   if (jornadaScreen) {
     const jornadaMatches = matches.filter(m => m.jornadaId === jornadaScreen && jornadaScreen !== "list");
     const currentJ = jornadas.find(j => j.id === jornadaScreen);
@@ -650,11 +695,7 @@ function BillarApp() {
       return (
         <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
           <div className="app-scroll"
-          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
-          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>160){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
-          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
           style={{padding:"20px 14px"}}>
-          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
               <div style={{fontSize:22,fontWeight:800,color:"#f9e04b"}}>🗓 Jornadas</div>
               <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
@@ -783,6 +824,7 @@ function BillarApp() {
           );
         })()}
         </div>
+      <BtnActualizar />
       );
     }
 
@@ -920,11 +962,7 @@ function BillarApp() {
           </div>
         )}
         <div className="app-scroll"
-          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
-          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>160){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
-          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
           style={{padding:"14px 12px"}}>
-          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
           {/* Header */}
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -1273,6 +1311,7 @@ function BillarApp() {
           </div>
         </div>
       )}
+      <BtnActualizar />
       </>
     );
   }
@@ -1655,11 +1694,7 @@ function BillarApp() {
           ))}
         </div>
         <div className="app-scroll"
-          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
-          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>160){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
-          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
           style={{padding:"0 14px"}}>
-          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
           {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
@@ -1913,6 +1948,7 @@ function BillarApp() {
         </div>
       )}
       </div>
+      <BtnActualizar />
     );
   }
 
@@ -2192,11 +2228,7 @@ function BillarApp() {
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
         <div className="app-scroll"
-          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
-          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>160){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
-          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
           style={{padding:"20px 14px"}}>
-          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
             <div style={{fontSize:22,fontWeight:800,color:"#63b3ed"}}>📊 Estadísticas</div>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -2394,6 +2426,7 @@ function BillarApp() {
           }
         </div>
       </div>
+      <BtnActualizar />
     );
   }
 
@@ -2405,11 +2438,7 @@ function BillarApp() {
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
         <div className="app-scroll"
-          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
-          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>160){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
-          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
           style={{padding:"20px 18px"}}>
-          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
           <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>← Volver</button>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
             <div style={{fontSize:22,fontWeight:800,color:"#63b3ed",marginBottom:4}}>👥 Jugadores</div>
@@ -2713,6 +2742,7 @@ function BillarApp() {
           </div>
         )}
       </div>
+      <BtnActualizar />
     );
   }
 
@@ -2726,11 +2756,7 @@ function BillarApp() {
     return (
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
         <div className="app-scroll"
-          onTouchStart={e=>{ptrRef.current.startY=e.touches[0].clientY;ptrRef.current.active=false;}}
-          onTouchMove={e=>{if(e.currentTarget.scrollTop===0&&e.touches[0].clientY-ptrRef.current.startY>160){ptrRef.current.active=true;setPtrActive(true);}else if(e.currentTarget.scrollTop>0){ptrRef.current.active=false;setPtrActive(false);}}}
-          onTouchEnd={e=>{if(ptrRef.current.active){ptrRef.current.active=false;setPtrActive(false);window.location.reload();}else{setPtrActive(false);}}}
           style={{padding:"24px 22px"}}>
-          <div className={"ptr-indicator"+(ptrActive?" ptr-visible":"")}>↓ Suelta para actualizar</div>
           <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.11)",color:"#bbb",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit",marginBottom:16}}>← Volver</button>
           <div style={{fontSize:20,fontWeight:800,color:"#63b3ed",marginBottom:18}}>Nueva Partida</div>
 
@@ -2837,6 +2863,7 @@ function BillarApp() {
           </div>
         </div>
       </div>
+      <BtnActualizar />
     );
   }
 
@@ -3206,6 +3233,7 @@ function BillarApp() {
           }:null}
         />
       )}
+    <BtnActualizar />
     </div>
   );
 }
