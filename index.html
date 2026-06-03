@@ -2002,7 +2002,7 @@ function BillarApp() {
         }
       });
     });
-    let rows    let rows = Object.values(statsMap);
+    let rows = Object.values(statsMap);
     playersList.forEach(pl => {
       const pname = typeof pl==="string"?pl:pl.name;
       const isActive = typeof pl==="object"?pl.rankActivo!==false:false;
