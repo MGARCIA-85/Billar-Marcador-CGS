@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v349d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v350</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v349d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v350</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1235,7 +1235,7 @@ function BillarApp() {
                   const updated=matches.map(m=>m.id===asignarJornadaModal?{...m,jornadaId:j.id}:m);
                   saveMatches(updated);
                   setAsignarJornadaModal(null);
-                  setScreenP("jornadas");
+                  setJornadaScreenP("list");
                 }} style={{padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}}>
                   📋 {j.name}
                 </button>
@@ -1249,7 +1249,7 @@ function BillarApp() {
               const updated=matches.map(m=>m.id===asignarJornadaModal?{...m,jornadaId:newJ.id}:m);
               saveMatches(updated);
               setAsignarJornadaModal(null);
-              setScreenP("jornadas");
+              setJornadaScreenP("list");
             }} style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(74,222,128,0.15)",border:"1px solid rgba(74,222,128,0.3)",color:"#4ade80",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:8}}>+ Nueva jornada</button>
             <button onClick={()=>setAsignarJornadaModal(null)} style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
           </div>
@@ -1831,7 +1831,7 @@ function BillarApp() {
                   const updated=matches.map(m=>m.id===asignarJornadaModal?{...m,jornadaId:j.id}:m);
                   saveMatches(updated);
                   setAsignarJornadaModal(null);
-                  setScreenP("jornadas");
+                  setJornadaScreenP("list");
                 }} style={{padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}}>
                   📋 {j.name}
                 </button>
@@ -1845,7 +1845,7 @@ function BillarApp() {
               const updated=matches.map(m=>m.id===asignarJornadaModal?{...m,jornadaId:newJ.id}:m);
               saveMatches(updated);
               setAsignarJornadaModal(null);
-              setScreenP("jornadas");
+              setJornadaScreenP("list");
             }} style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(74,222,128,0.15)",border:"1px solid rgba(74,222,128,0.3)",color:"#4ade80",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:8}}>+ Nueva jornada</button>
             <button onClick={()=>setAsignarJornadaModal(null)} style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
           </div>
