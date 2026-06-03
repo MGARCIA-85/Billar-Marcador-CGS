@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v339d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v340d</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v339d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v340d</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -2036,32 +2036,25 @@ function BillarApp() {
         }
       });
     });
-    // Rey del día - usa partidas del período filtrado con historial de actividad
+    // Rey del día - acumulativo con verificación por momento exacto de cada victoria
     {
       const hoyR=new Date().toISOString();
-      // Precalcular qué jugadores tenían partidas antes de hoy
       const conPartidas=new Set();
       closed.forEach(m=>{ if(m.p1Name) conPartidas.add(m.p1Name); if(m.p2Name) conPartidas.add(m.p2Name); });
-      // Función: ¿estaba activo en el momento exacto de la partida?
-      const eraActivo=(pl,tsPartida)=>{
+      const eraActivo=(pl,ts)=>{
         if(typeof pl!=="object"||!pl) return false;
         if(pl.rankActivo===false) return false;
         const hist=pl.rankActivoHistorial;
         if(hist&&Array.isArray(hist)&&hist.length>0){
-          // Ordenar por timestamp completo
           const sorted=[...hist].sort((a,b)=>(a.desde||"").localeCompare(b.desde||""));
-          // Estado antes del primer cambio: opuesto al primer cambio registrado
           let est=sorted[0].activo===false?true:false;
-          for(const h of sorted){
-            if((h.desde||"")<=tsPartida) est=h.activo;
-            else break;
-          }
+          for(const h of sorted){if((h.desde||"")<=ts)est=h.activo;else break;}
           return est===true;
         }
-        // Sin historial: activo desde siempre si tiene partidas anteriores, si no desde ahora
-        return conPartidas.has(pl.name)?true:tsPartida>=hoyR;
+        return conPartidas.has(pl.name)?true:ts>=hoyR;
       };
-      const wbdR={};
+      // Agrupar partidas por día con su timestamp exacto, ordenadas cronológicamente
+      const porDia={};
       filtered.forEach(m=>{
         const s1=(m.seriesWins&&m.seriesWins.p1)||0;
         const s2=(m.seriesWins&&m.seriesWins.p2)||0;
@@ -2069,19 +2062,33 @@ function BillarApp() {
         const gl=s1>s2?m.p2Name:(s2>s1?m.p1Name:null);
         if(!gw||!gl) return;
         const dk=new Date(m.createdAt||0).toDateString();
-        const ts=new Date(m.createdAt||0).toISOString(); // timestamp completo
-        if(!wbdR[dk]) wbdR[dk]={ts,byP:{}};
-        if(!wbdR[dk].byP[gw]) wbdR[dk].byP[gw]=[];
-        if(wbdR[dk].byP[gw].indexOf(gl)===-1) wbdR[dk].byP[gw].push(gl);
+        const ts=new Date(m.createdAt||0).toISOString();
+        if(!porDia[dk]) porDia[dk]=[];
+        porDia[dk].push({gw,gl,ts});
       });
-      Object.values(wbdR).forEach(({ts,byP})=>{
-        const activos=playersList.filter(pl=>eraActivo(pl,ts)).map(pl=>pl.name);
-        if(activos.length<2) return;
-        Object.keys(byP).forEach(gw=>{
-          const needed=activos.filter(p=>p!==gw);
-          if(needed.length>0&&needed.every(p=>byP[gw].indexOf(p)!==-1)){
-            if(statsMap[gw]) statsMap[gw].reyDelDia=(statsMap[gw].reyDelDia||0)+1;
+      // Para cada día, procesar victorias en orden y verificar acumulado vs activos en ese momento
+      Object.values(porDia).forEach(partidas=>{
+        // Ordenar por timestamp
+        partidas.sort((a,b)=>a.ts.localeCompare(b.ts));
+        // Para cada jugador, acumular victorias y verificar en cada momento
+        const victorias={}; // {jugador: Set de vencidos}
+        const reyHoy=new Set();
+        partidas.forEach(({gw,gl,ts})=>{
+          if(!victorias[gw]) victorias[gw]=[];
+          if(victorias[gw].indexOf(gl)===-1) victorias[gw].push(gl);
+          // Verificar si en este momento gw ya venció a todos los activos
+          if(!reyHoy.has(gw)){
+            const activos=playersList.filter(pl=>eraActivo(pl,ts)).map(pl=>pl.name);
+            if(activos.length>1){
+              const needed=activos.filter(p=>p!==gw);
+              if(needed.length>0&&needed.every(p=>victorias[gw].indexOf(p)!==-1)){
+                reyHoy.add(gw);
+              }
+            }
           }
+        });
+        reyHoy.forEach(gw=>{
+          if(statsMap[gw]) statsMap[gw].reyDelDia=(statsMap[gw].reyDelDia||0)+1;
         });
       });
     }
