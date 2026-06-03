@@ -1970,6 +1970,7 @@ function BillarApp() {
       console.log('REY inicio, closed:', closed.length);
       const wbdStats={};
       closed.forEach(m=>{
+        console.log('REY partida:', m.p1Name, 'vs', m.p2Name, 'createdAt:', m.createdAt, 'closedAt:', m.closedAt);
         const sw1=m.seriesWins?.p1||0,sw2=m.seriesWins?.p2||0;
         const winner=sw1>sw2?m.p1Name:sw2>sw1?m.p2Name:null;
         const loser=sw1>sw2?m.p2Name:sw2>sw1?m.p1Name:null;
