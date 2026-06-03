@@ -1965,133 +1965,44 @@ function BillarApp() {
       }
     });
 
-    // Rey del día: ganó al menos 1 partida a cada jugador activo en un mismo día
-    try {
-      console.log('REY inicio, closed:', closed.length);
-      const wbdStats={};
-      closed.forEach(m=>{
-        const sw1=m.seriesWins?.p1||0,sw2=m.seriesWins?.p2||0;
-        const winner=sw1>sw2?m.p1Name:sw2>sw1?m.p2Name:null;
-        const loser=sw1>sw2?m.p2Name:sw2>sw1?m.p1Name:null;
-        if(!winner||!loser) return;
-        const dayStr=new Date(m.createdAt||0).toISOString().slice(0,10);
-        const dayKey=new Date(m.createdAt||0).toDateString();
-        console.log('REY valid:', m.p1Name, 'vs', m.p2Name, 'winner:', winner, 'dayStr:', dayStr, 'dayKey:', dayKey);
-        if(!wbdStats[dayKey]) wbdStats[dayKey]={date:dayStr,byPlayer:{}};
-        if(!wbdStats[dayKey].byPlayer[winner]) wbdStats[dayKey].byPlayer[winner]=[];
-        if(wbdStats[dayKey].byPlayer[winner].indexOf(loser)===-1) wbdStats[dayKey].byPlayer[winner].push(loser);
-      });
-      const reyCount={};
-      console.log('REY wbdStats keys:', JSON.stringify(Object.keys(wbdStats)));
-      Object.values(wbdStats).forEach(({date,byPlayer})=>{
-        const activosEnFecha=playersList.filter(pl=>typeof pl==="object"&&eraActivoEnFecha(pl,date,closed)).map(pl=>pl.name);
-        console.log('REY date:', date, 'activos:', JSON.stringify(activosEnFecha), 'byPlayer:', JSON.stringify(byPlayer));
-        if(activosEnFecha.length<2) return;
-        Object.keys(byPlayer).forEach(winner=>{
-          const needed=activosEnFecha.filter(p=>p!==winner);
-          console.log('REY check:', winner, 'needed:', JSON.stringify(needed), 'beaten:', JSON.stringify(byPlayer[winner]));
-          if(needed.length>0&&needed.every(p=>byPlayer[winner].indexOf(p)!==-1)){
-            console.log('REY OTORGADO:', winner, date);
-            reyCount[winner]=(reyCount[winner]||0)+1;
-          }
-        });
-      });
-      Object.keys(reyCount).forEach(winner=>{
-        if(statsMap[winner]) statsMap[winner].reyDelDia=reyCount[winner];
-      });
-    } catch(e){}
-    // Calcular insignias históricas (historial completo, sin filtro)
-    const histIns = {};
-    const ensureHist = (name) => { if(!histIns[name]) histIns[name]={br:0,ro:0,gb:0,rem:0,imp:0,gd:0,tal:0,rey:0}; };
-    closed.forEach(m => {
-      if (m.modalidad==="Contrarreloj") return;
-      [["p1",m.p1Name],["p2",m.p2Name]].forEach(([key,name])=>{
-        if(!name) return;
-        ensureHist(name);
-        const hist = m.seriesHistory||[];
-        hist.forEach(ser => {
-          const won = ser.winner===key;
-          const serG = ser.games||[];
-          serG.forEach(g => {
-            if(g.winner===key){
-              if(g.ballType==="breakrun") histIns[name].br++;
-              if(g.ballType==="diamond") histIns[name].ro++;
-              if(g.ballType==="gold") histIns[name].gb++;
-              if(g.ballType==="grandefensa") histIns[name].gd++;
-            }
-          });
-          if(won){
-            const riv = key==="p1"?(ser.p2wins||0):(ser.p1wins||0);
-            if(riv===0&&m.carrera>1) histIns[name].imp++;
-            if(m.carrera>1){
-              let my=0,rv=0,rem=false;
-              for(let g of serG){if(my===0&&rv>=(m.carrera-1)){rem=true;break;}if(g.winner===key)my++;else rv++;}
-              if(rem) histIns[name].rem++;
-            }
-          }
-        });
-        let consec=0,maxC=0;
-        hist.forEach(ser=>{if(ser.winner===key){consec++;if(consec>maxC)maxC=consec;}else consec=0;});
-        if(maxC>=3) histIns[name].tal++;
+    // Rey del día
+    const wbdR={};
+    (closed||[]).forEach(m=>{
+      const s1=m.seriesWins&&m.seriesWins.p1||0, s2=m.seriesWins&&m.seriesWins.p2||0;
+      const gw=s1>s2?m.p1Name:s2>s1?m.p2Name:null;
+      const gl=s1>s2?m.p2Name:s2>s1?m.p1Name:null;
+      if(!gw||!gl) return;
+      const dk=new Date(m.createdAt||0).toDateString();
+      if(!wbdR[dk]) wbdR[dk]={};
+      if(!wbdR[dk][gw]) wbdR[dk][gw]=[];
+      if(wbdR[dk][gw].indexOf(gl)===-1) wbdR[dk][gw].push(gl);
+    });
+    Object.keys(wbdR).forEach(dk=>{
+      const byP=wbdR[dk];
+      const dStr=new Date(dk).toISOString().slice(0,10);
+      const hoy=new Date().toISOString().slice(0,10);
+      const activos=(playersList||[]).filter(pl=>{
+        if(typeof pl!=="object"||!pl) return false;
+        if(pl.rankActivo===false) return false;
+        const hist=pl.rankActivoHistorial;
+        if(hist&&Array.isArray(hist)&&hist.length>0){
+          const sorted=[...hist].sort((a,b)=>(a.desde||"").localeCompare(b.desde||""));
+          let est=sorted[0].activo===false?true:false;
+          for(const h of sorted){if((h.desde||"")<=dStr)est=h.activo;else break;}
+          return est===true;
+        }
+        const tieneP=(closed||[]).some(m=>(m.p1Name===pl.name||m.p2Name===pl.name)&&new Date(m.createdAt||0).toISOString().slice(0,10)<hoy);
+        return tieneP?true:dStr>=hoy;
+      }).map(pl=>pl.name);
+      if(activos.length<2) return;
+      Object.keys(byP).forEach(gw=>{
+        const needed=activos.filter(p=>p!==gw);
+        if(needed.length>0&&needed.every(p=>byP[gw].indexOf(p)!==-1)){
+          if(statsMap[gw]) statsMap[gw].reyDelDia=(statsMap[gw].reyDelDia||0)+1;
+        }
       });
     });
-    // Helper: saber si un jugador estaba activo en una fecha dada
-    const eraActivoEnFecha = (pl, fechaStr, allMatches) => {
-      try {
-        if (typeof pl !== "object" || !pl) return false;
-        // Si tiene historial de cambios, usarlo
-        const hist = pl.rankActivoHistorial;
-        if (hist && Array.isArray(hist) && hist.length > 0) {
-          const sorted = [...hist].sort((a,b)=>(a.desde||"").localeCompare(b.desde||""));
-          let estado = sorted[0].activo === false ? true : false;
-          for (const h of sorted) {
-            if ((h.desde||"") <= fechaStr) estado = h.activo;
-            else break;
-          }
-          return estado === true;
-        }
-        // Sin historial: si rankActivo===false es inactivo
-        if (pl.rankActivo === false) return false;
-        // Sin historial y activo: verificar si tiene partidas anteriores a hoy
-        const hoy = new Date().toISOString().slice(0,10);
-        if (!allMatches || !Array.isArray(allMatches)) return true;
-        const tienePartidas = allMatches.some(m =>
-          (m.p1Name===pl.name||m.p2Name===pl.name) &&
-          new Date(m.createdAt||0).toISOString().slice(0,10) < hoy
-        );
-        return tienePartidas ? true : fechaStr >= hoy;
-      } catch(e) {
-        console.log('eraActivoEnFecha ERROR:', e.message, pl && pl.name);
-        return true;
-      }
-    };
-    // Rey del día en histIns - usando historial de actividad por fecha
-    try {
-      const wbdH={};
-      closed.forEach(m=>{
-        const sw1=m.seriesWins?.p1||0,sw2=m.seriesWins?.p2||0;
-        const winner=sw1>sw2?m.p1Name:sw2>sw1?m.p2Name:null;
-        const loser=sw1>sw2?m.p2Name:sw2>sw1?m.p1Name:null;
-        if(!winner||!loser) return;
-        const dayStr=new Date(m.createdAt||0).toISOString().slice(0,10);
-        const dayKey=new Date(m.createdAt||0).toDateString();
-        if(!wbdH[dayKey]) wbdH[dayKey]={date:dayStr,byPlayer:{}};
-        if(!wbdH[dayKey].byPlayer[winner]) wbdH[dayKey].byPlayer[winner]=[];
-        if(wbdH[dayKey].byPlayer[winner].indexOf(loser)===-1) wbdH[dayKey].byPlayer[winner].push(loser);
-      });
-      Object.values(wbdH).forEach(({date,byPlayer})=>{
-        const activosEnFecha=playersList.filter(pl=>typeof pl==="object"&&eraActivoEnFecha(pl,date,closed)).map(pl=>pl.name);
-        if(activosEnFecha.length<2) return;
-        Object.keys(byPlayer).forEach(winner=>{
-          const needed=activosEnFecha.filter(p=>p!==winner);
-          if(needed.length>0&&needed.every(p=>byPlayer[winner].indexOf(p)!==-1)){
-            ensureHist(winner);
-            histIns[winner].rey=(histIns[winner].rey||0)+1;
-          }
-        });
-      });
-    } catch(e){ console.log('REY ERROR:', e.message, e.stack); }
-    let rows = Object.values(statsMap);
+    let rows    let rows = Object.values(statsMap);
     playersList.forEach(pl => {
       const pname = typeof pl==="string"?pl:pl.name;
       const isActive = typeof pl==="object"?pl.rankActivo!==false:false;
@@ -2532,7 +2443,6 @@ function BillarApp() {
                         <button onClick={()=>{
                           if(!isThisDevice) {
                             const dn=jugKey;
-                            console.log("DEBUG pinReq:", p.name, p.pinReq, "pin:", p.pin);
                             if(p.pinReq) {
                               setPinRegistroModal({jugKey, jugName:p.name, existingDevs, newDev:dn, hasOtherDevs});
                               setPinRegistroInput('');
