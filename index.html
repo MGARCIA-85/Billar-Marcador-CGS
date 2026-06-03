@@ -1967,6 +1967,7 @@ function BillarApp() {
 
     // Rey del día: ganó al menos 1 partida a cada jugador activo en un mismo día
     try {
+      console.log('REY inicio, closed:', closed.length);
       const wbdStats={};
       closed.forEach(m=>{
         const sw1=m.seriesWins?.p1||0,sw2=m.seriesWins?.p2||0;
