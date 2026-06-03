@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v342d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v343d</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v342d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v343d</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -2066,30 +2066,28 @@ function BillarApp() {
         if(!porDia[dk]) porDia[dk]=[];
         porDia[dk].push({gw,gl,ts});
       });
-      // Para cada día, procesar victorias en orden y verificar acumulado vs activos en ese momento
+      // Para cada día, procesar victorias en orden verificando activos en cada momento
       Object.values(porDia).forEach(partidas=>{
-        // Ordenar por timestamp
         partidas.sort((a,b)=>a.ts.localeCompare(b.ts));
-        // Para cada jugador, acumular victorias y verificar en cada momento
-        const victorias={}; // {jugador: Set de vencidos}
         const reyHoy=new Set();
-        partidas.forEach(({gw,gl,ts})=>{
-          // Solo acumular victoria si el vencido también estaba activo en ese momento
-          const plGl=playersList.find(pl=>typeof pl==="object"&&pl.name===gl);
-          if(plGl&&eraActivo(plGl,ts)){
-            if(!victorias[gw]) victorias[gw]=[];
-            if(victorias[gw].indexOf(gl)===-1) victorias[gw].push(gl);
-          }
-          // Verificar si en este momento gw ya venció a todos los activos
-          if(!reyHoy.has(gw)){
-            const activos=playersList.filter(pl=>eraActivo(pl,ts)).map(pl=>pl.name);
-            if(activos.length>1){
-              const needed=activos.filter(p=>p!==gw);
-              const gwVictorias=victorias[gw]||[];
-              if(needed.length>0&&needed.every(p=>gwVictorias.indexOf(p)!==-1)){
-                reyHoy.add(gw);
-              }
-            }
+        // Para cada partida, verificar si el ganador en ESE momento ya venció a todos los activos
+        // Solo contando victorias contra jugadores que TAMBIÉN estaban activos en ese momento
+        partidas.forEach(({gw,ts})=>{
+          if(reyHoy.has(gw)) return;
+          const activosTs=playersList.filter(pl=>eraActivo(pl,ts)).map(pl=>pl.name);
+          if(activosTs.length<2) return;
+          // Victorias de gw SOLO contra jugadores activos en ese mismo timestamp
+          const victoriasEnMomento=partidas
+            .filter(p=>p.ts<=ts&&p.gw===gw)
+            .map(p=>p.gl)
+            .filter(gl=>{ 
+              const plGl=playersList.find(pl=>typeof pl==="object"&&pl.name===gl);
+              // El vencido debe haber estado activo en el momento de esa victoria específica
+              return plGl&&eraActivo(plGl,partidas.find(p=>p.gw===gw&&p.gl===gl).ts);
+            });
+          const needed=activosTs.filter(p=>p!==gw);
+          if(needed.length>0&&needed.every(p=>victoriasEnMomento.indexOf(p)!==-1)){
+            reyHoy.add(gw);
           }
         });
         reyHoy.forEach(gw=>{
