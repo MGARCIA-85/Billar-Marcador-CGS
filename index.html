@@ -2084,7 +2084,7 @@ function BillarApp() {
           }
         });
       });
-    } catch(e){}
+    } catch(e){ console.log('REY ERROR:', e.message, e.stack); }
     let rows = Object.values(statsMap);
     playersList.forEach(pl => {
       const pname = typeof pl==="string"?pl:pl.name;
