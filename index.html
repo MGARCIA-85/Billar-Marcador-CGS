@@ -20,7 +20,7 @@
   <meta name="theme-color" content="#081530" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { background: #081530; font-family: Georgia, serif; }
+    html, body { background: #081530; font-family: Georgia, serif; overscroll-behavior-y: contain; }
     #root { min-height: 100vh; }
     .app-screen { 
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v361</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v362</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v361</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v362</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1687,13 +1687,18 @@ function BillarApp() {
             </button>}
           </div>
         </div>
-        <div style={{display:"flex",padding:"12px 16px 0",gap:8}}>
+        <div style={{display:"flex",padding:"12px 16px 0",gap:8,alignItems:"flex-end"}}>
           {["active","closed"].map(tab => (
             <button key={tab} onClick={()=>{ setLobbyTab(tab); localStorage.setItem("bg_lobbyTab",tab); }} style={{flex:1,padding:"9px 0",borderRadius:"10px 10px 0 0",border:lobbyTab===tab?"1px solid rgba(74,222,128,0.25)":"1px solid rgba(255,255,255,0.07)",borderBottom:"none",background:lobbyTab===tab?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.04)",color:lobbyTab===tab?"#4ade80":"#777",fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer"}}>
               {tab==="active"?"En juego":"Terminadas"}
               {tab==="active" && activeMatches.length > 0 && <span style={{background:"#4ade80",color:"#081530",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:800,marginLeft:6}}>{activeMatches.length}</span>}
             </button>
           ))}
+          <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }}
+            title="Actualizar"
+            style={{padding:"6px 10px",borderRadius:"10px 10px 0 0",background:"rgba(99,179,237,0.08)",border:"1px solid rgba(99,179,237,0.25)",borderBottom:"none",color:"#63b3ed",fontSize:16,cursor:"pointer",lineHeight:1}}>
+            🔄
+          </button>
         </div>
         <div className="app-scroll"
           style={{padding:"0 14px"}}>
@@ -1950,7 +1955,6 @@ function BillarApp() {
         </div>
       )}
       </div>
-      <BtnActualizar />
     </>
     );
   }
