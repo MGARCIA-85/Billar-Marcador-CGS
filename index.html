@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v334d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v334</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v334d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v334</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1965,37 +1965,35 @@ function BillarApp() {
       }
     });
 
-    // Rey del día: ganó al menos 1 partida a cada jugador activo en un mismo día (historial completo)
+    // Rey del día: ganó al menos 1 partida a cada jugador activo en un mismo día
     try {
-      const activePlayers = playersList.filter(pl=>typeof pl==="object"&&pl.rankActivo!==false&&pl.rankActivo!==0).map(pl=>pl.name);
-      if (activePlayers.length > 1) {
-        const winsByDay = {};
-        closed.forEach(m => {
-          const sw1 = m.seriesWins?.p1||0;
-          const sw2 = m.seriesWins?.p2||0;
-          const winner = sw1>sw2?m.p1Name:sw2>sw1?m.p2Name:null;
-          const loser = sw1>sw2?m.p2Name:sw2>sw1?m.p1Name:null;
-          if (!winner||!loser) return;
-          const day = new Date(m.createdAt||0).toDateString();
-          if (!winsByDay[day]) winsByDay[day]={};
-          if (!winsByDay[day][winner]) winsByDay[day][winner]=[];
-          if (winsByDay[day][winner].indexOf(loser)===-1) winsByDay[day][winner].push(loser);
+      const wbdStats={};
+      closed.forEach(m=>{
+        const sw1=m.seriesWins?.p1||0,sw2=m.seriesWins?.p2||0;
+        const winner=sw1>sw2?m.p1Name:sw2>sw1?m.p2Name:null;
+        const loser=sw1>sw2?m.p2Name:sw2>sw1?m.p1Name:null;
+        if(!winner||!loser) return;
+        const dayStr=new Date(m.createdAt||0).toISOString().slice(0,10);
+        const dayKey=new Date(m.createdAt||0).toDateString();
+        if(!wbdStats[dayKey]) wbdStats[dayKey]={date:dayStr,byPlayer:{}};
+        if(!wbdStats[dayKey].byPlayer[winner]) wbdStats[dayKey].byPlayer[winner]=[];
+        if(wbdStats[dayKey].byPlayer[winner].indexOf(loser)===-1) wbdStats[dayKey].byPlayer[winner].push(loser);
+      });
+      const reyCount={};
+      Object.values(wbdStats).forEach(({date,byPlayer})=>{
+        const activosEnFecha=playersList.filter(pl=>typeof pl==="object"&&eraActivoEnFecha(pl,date,closed)).map(pl=>pl.name);
+        if(activosEnFecha.length<2) return;
+        Object.keys(byPlayer).forEach(winner=>{
+          const needed=activosEnFecha.filter(p=>p!==winner);
+          if(needed.length>0&&needed.every(p=>byPlayer[winner].indexOf(p)!==-1)){
+            reyCount[winner]=(reyCount[winner]||0)+1;
+          }
         });
-        const reyCount = {};
-        Object.values(winsByDay).forEach(byPlayer => {
-          Object.keys(byPlayer).forEach(winner => {
-            const beaten = byPlayer[winner];
-            const needed = activePlayers.filter(p=>p!==winner);
-            if (needed.length>0 && needed.every(p=>beaten.indexOf(p)!==-1)) {
-              reyCount[winner] = (reyCount[winner]||0)+1;
-            }
-          });
-        });
-        Object.keys(reyCount).forEach(winner => {
-          if (statsMap[winner]) statsMap[winner].reyDelDia = reyCount[winner];
-        });
-      }
-    } catch(e) {}
+      });
+      Object.keys(reyCount).forEach(winner=>{
+        if(statsMap[winner]) statsMap[winner].reyDelDia=reyCount[winner];
+      });
+    } catch(e){}
     // Calcular insignias históricas (historial completo, sin filtro)
     const histIns = {};
     const ensureHist = (name) => { if(!histIns[name]) histIns[name]={br:0,ro:0,gb:0,rem:0,imp:0,gd:0,tal:0,rey:0}; };
@@ -2031,34 +2029,55 @@ function BillarApp() {
         if(maxC>=3) histIns[name].tal++;
       });
     });
-    // Rey del día en histIns
-    try {
-      const activePlayers = playersList.filter(pl=>typeof pl==="object"&&pl.rankActivo!==false&&pl.rankActivo!==0).map(pl=>pl.name);
-      console.log('REY activePlayers:', JSON.stringify(activePlayers));
-      if(activePlayers.length>1){
-        const wbd={};
-        closed.forEach(m=>{
-          const sw1=m.seriesWins?.p1||0,sw2=m.seriesWins?.p2||0;
-          const winner=sw1>sw2?m.p1Name:sw2>sw1?m.p2Name:null;
-          const loser=sw1>sw2?m.p2Name:sw2>sw1?m.p1Name:null;
-          if(!winner||!loser) return;
-          const day=new Date(m.createdAt||0).toDateString();
-          if(!wbd[day]) wbd[day]={};
-          if(!wbd[day][winner]) wbd[day][winner]=[];
-          if(wbd[day][winner].indexOf(loser)===-1) wbd[day][winner].push(loser);
-        });
-        Object.values(wbd).forEach(byP=>{
-          Object.keys(byP).forEach(winner=>{
-            const needed=activePlayers.filter(p=>p!==winner);
-            console.log('REY check:', winner, 'needed:', JSON.stringify(needed), 'beaten:', JSON.stringify(byP[winner]||[]));
-            if(needed.length>0&&needed.every(p=>byP[winner].indexOf(p)!==-1)){
-              console.log('REY OTORGADO a:', winner);
-              ensureHist(winner);
-              histIns[winner].rey=(histIns[winner].rey||0)+1;
-            }
-          });
-        });
+    // Helper: saber si un jugador estaba activo en una fecha dada
+    const eraActivoEnFecha = (pl, fechaStr, allMatches) => {
+      if (typeof pl !== "object") return false;
+      // Si tiene rankActivo===false explícito y sin historial, siempre inactivo
+      if (pl.rankActivo===false && (!pl.rankActivoHistorial||pl.rankActivoHistorial.length===0)) return false;
+      // Si tiene historial de cambios, usarlo
+      const hist = pl.rankActivoHistorial;
+      if (hist && hist.length > 0) {
+        const sorted = [...hist].sort((a,b)=>a.desde.localeCompare(b.desde));
+        // Estado antes del primer cambio
+        let estadoEnFecha = sorted[0].activo === false ? true : false;
+        for (const h of sorted) {
+          if (h.desde <= fechaStr) estadoEnFecha = h.activo;
+          else break;
+        }
+        return estadoEnFecha;
       }
+      // Sin historial: activo desde siempre SI tiene partidas anteriores, si no desde hoy
+      const hoy = new Date().toISOString().slice(0,10);
+      const tienePartidas = (allMatches||[]).some(m =>
+        (m.p1Name===pl.name||m.p2Name===pl.name) && new Date(m.createdAt||0).toISOString().slice(0,10) < hoy
+      );
+      return tienePartidas ? true : fechaStr >= hoy;
+    };
+    // Rey del día en histIns - usando historial de actividad por fecha
+    try {
+      const wbdH={};
+      closed.forEach(m=>{
+        const sw1=m.seriesWins?.p1||0,sw2=m.seriesWins?.p2||0;
+        const winner=sw1>sw2?m.p1Name:sw2>sw1?m.p2Name:null;
+        const loser=sw1>sw2?m.p2Name:sw2>sw1?m.p1Name:null;
+        if(!winner||!loser) return;
+        const dayStr=new Date(m.createdAt||0).toISOString().slice(0,10);
+        const dayKey=new Date(m.createdAt||0).toDateString();
+        if(!wbdH[dayKey]) wbdH[dayKey]={date:dayStr,byPlayer:{}};
+        if(!wbdH[dayKey].byPlayer[winner]) wbdH[dayKey].byPlayer[winner]=[];
+        if(wbdH[dayKey].byPlayer[winner].indexOf(loser)===-1) wbdH[dayKey].byPlayer[winner].push(loser);
+      });
+      Object.values(wbdH).forEach(({date,byPlayer})=>{
+        const activosEnFecha=playersList.filter(pl=>typeof pl==="object"&&eraActivoEnFecha(pl,date,closed)).map(pl=>pl.name);
+        if(activosEnFecha.length<2) return;
+        Object.keys(byPlayer).forEach(winner=>{
+          const needed=activosEnFecha.filter(p=>p!==winner);
+          if(needed.length>0&&needed.every(p=>byPlayer[winner].indexOf(p)!==-1)){
+            ensureHist(winner);
+            histIns[winner].rey=(histIns[winner].rey||0)+1;
+          }
+        });
+      });
     } catch(e){}
     let rows = Object.values(statsMap);
     playersList.forEach(pl => {
@@ -2483,7 +2502,14 @@ function BillarApp() {
                   )}
 
                   <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                    {isAdmin && <div onClick={()=>{const u=playersList.map((pl,j2)=>j2===i?{...pl,rankActivo:p.rankActivo===false?true:false}:pl);savePlayersList(u);}} style={{cursor:"pointer",width:42,height:24,borderRadius:12,background:p.rankActivo!==false?"#4ade80":"#ef4444",position:"relative",flexShrink:0}}>
+                    {isAdmin && <div onClick={()=>{
+                      const nuevoActivo = p.rankActivo===false?true:false;
+                      const hoy = new Date().toISOString().slice(0,10);
+                      const hist = p.rankActivoHistorial||[];
+                      const nuevoHist = [...hist,{activo:nuevoActivo,desde:hoy}];
+                      const u=playersList.map((pl,j2)=>j2===i?{...pl,rankActivo:nuevoActivo,rankActivoHistorial:nuevoHist}:pl);
+                      savePlayersList(u);
+                    }} style={{cursor:"pointer",width:42,height:24,borderRadius:12,background:p.rankActivo!==false?"#4ade80":"#ef4444",position:"relative",flexShrink:0}}>
                       <div style={{position:"absolute",top:2,left:p.rankActivo!==false?20:2,width:20,height:20,borderRadius:10,background:"white",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
                     </div>}
                     {(()=>{
