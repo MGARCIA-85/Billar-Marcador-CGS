@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v335d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v336d</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v335d</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v336d</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -2037,42 +2037,30 @@ function BillarApp() {
       });
     });
     // Rey del día
-    const wbdR={};
-    (closed||[]).forEach(m=>{
-      const s1=m.seriesWins&&m.seriesWins.p1||0, s2=m.seriesWins&&m.seriesWins.p2||0;
-      const gw=s1>s2?m.p1Name:s2>s1?m.p2Name:null;
-      const gl=s1>s2?m.p2Name:s2>s1?m.p1Name:null;
-      if(!gw||!gl) return;
-      const dk=new Date(m.createdAt||0).toDateString();
-      if(!wbdR[dk]) wbdR[dk]={};
-      if(!wbdR[dk][gw]) wbdR[dk][gw]=[];
-      if(wbdR[dk][gw].indexOf(gl)===-1) wbdR[dk][gw].push(gl);
-    });
-    Object.keys(wbdR).forEach(dk=>{
-      const byP=wbdR[dk];
-      const dStr=new Date(dk).toISOString().slice(0,10);
-      const hoy=new Date().toISOString().slice(0,10);
-      const activos=(playersList||[]).filter(pl=>{
-        if(typeof pl!=="object"||!pl) return false;
-        if(pl.rankActivo===false) return false;
-        const hist=pl.rankActivoHistorial;
-        if(hist&&Array.isArray(hist)&&hist.length>0){
-          const sorted=[...hist].sort((a,b)=>(a.desde||"").localeCompare(b.desde||""));
-          let est=sorted[0].activo===false?true:false;
-          for(const h of sorted){if((h.desde||"")<=dStr)est=h.activo;else break;}
-          return est===true;
-        }
-        const tieneP=(closed||[]).some(m=>(m.p1Name===pl.name||m.p2Name===pl.name)&&new Date(m.createdAt||0).toISOString().slice(0,10)<hoy);
-        return tieneP?true:dStr>=hoy;
-      }).map(pl=>pl.name);
-      if(activos.length<2) return;
-      Object.keys(byP).forEach(gw=>{
-        const needed=activos.filter(p=>p!==gw);
-        if(needed.length>0&&needed.every(p=>byP[gw].indexOf(p)!==-1)){
-          if(statsMap[gw]) statsMap[gw].reyDelDia=(statsMap[gw].reyDelDia||0)+1;
-        }
+    {
+      const wbdR={};
+      closed.forEach(m=>{
+        const s1=(m.seriesWins&&m.seriesWins.p1)||0;
+        const s2=(m.seriesWins&&m.seriesWins.p2)||0;
+        const gw=s1>s2?m.p1Name:(s2>s1?m.p2Name:null);
+        const gl=s1>s2?m.p2Name:(s2>s1?m.p1Name:null);
+        if(!gw||!gl) return;
+        const dk=new Date(m.createdAt||0).toDateString();
+        if(!wbdR[dk]) wbdR[dk]={};
+        if(!wbdR[dk][gw]) wbdR[dk][gw]=[];
+        if(wbdR[dk][gw].indexOf(gl)===-1) wbdR[dk][gw].push(gl);
       });
-    });
+      const activos=playersList.filter(pl=>typeof pl==="object"&&pl&&pl.rankActivo!==false).map(pl=>pl.name);
+      Object.keys(wbdR).forEach(dk=>{
+        const byP=wbdR[dk];
+        Object.keys(byP).forEach(gw=>{
+          const needed=activos.filter(p=>p!==gw);
+          if(needed.length>0&&needed.every(p=>byP[gw].indexOf(p)!==-1)){
+            if(statsMap[gw]) statsMap[gw].reyDelDia=(statsMap[gw].reyDelDia||0)+1;
+          }
+        });
+      });
+    }
     let rows = Object.values(statsMap);
     playersList.forEach(pl => {
       const pname = typeof pl==="string"?pl:pl.name;
