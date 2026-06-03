@@ -2037,27 +2037,33 @@ function BillarApp() {
     });
     // Helper: saber si un jugador estaba activo en una fecha dada
     const eraActivoEnFecha = (pl, fechaStr, allMatches) => {
-      if (typeof pl !== "object") return false;
-      // Si tiene rankActivo===false explícito y sin historial, siempre inactivo
-      if (pl.rankActivo===false && (!pl.rankActivoHistorial||pl.rankActivoHistorial.length===0)) return false;
-      // Si tiene historial de cambios, usarlo
-      const hist = pl.rankActivoHistorial;
-      if (hist && hist.length > 0) {
-        const sorted = [...hist].sort((a,b)=>a.desde.localeCompare(b.desde));
-        // Estado antes del primer cambio
-        let estadoEnFecha = sorted[0].activo === false ? true : false;
-        for (const h of sorted) {
-          if (h.desde <= fechaStr) estadoEnFecha = h.activo;
-          else break;
+      try {
+        if (typeof pl !== "object" || !pl) return false;
+        // Si tiene historial de cambios, usarlo
+        const hist = pl.rankActivoHistorial;
+        if (hist && Array.isArray(hist) && hist.length > 0) {
+          const sorted = [...hist].sort((a,b)=>(a.desde||"").localeCompare(b.desde||""));
+          let estado = sorted[0].activo === false ? true : false;
+          for (const h of sorted) {
+            if ((h.desde||"") <= fechaStr) estado = h.activo;
+            else break;
+          }
+          return estado === true;
         }
-        return estadoEnFecha;
+        // Sin historial: si rankActivo===false es inactivo
+        if (pl.rankActivo === false) return false;
+        // Sin historial y activo: verificar si tiene partidas anteriores a hoy
+        const hoy = new Date().toISOString().slice(0,10);
+        if (!allMatches || !Array.isArray(allMatches)) return true;
+        const tienePartidas = allMatches.some(m =>
+          (m.p1Name===pl.name||m.p2Name===pl.name) &&
+          new Date(m.createdAt||0).toISOString().slice(0,10) < hoy
+        );
+        return tienePartidas ? true : fechaStr >= hoy;
+      } catch(e) {
+        console.log('eraActivoEnFecha ERROR:', e.message, pl && pl.name);
+        return true;
       }
-      // Sin historial: activo desde siempre SI tiene partidas anteriores, si no desde hoy
-      const hoy = new Date().toISOString().slice(0,10);
-      const tienePartidas = (allMatches||[]).some(m =>
-        (m.p1Name===pl.name||m.p2Name===pl.name) && new Date(m.createdAt||0).toISOString().slice(0,10) < hoy
-      );
-      return tienePartidas ? true : fechaStr >= hoy;
     };
     // Rey del día en histIns - usando historial de actividad por fecha
     try {
