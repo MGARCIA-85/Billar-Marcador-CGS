@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v362</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v363</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v362</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v363</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -699,7 +699,10 @@ function BillarApp() {
           style={{padding:"20px 14px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
               <div style={{fontSize:22,fontWeight:800,color:"#f9e04b"}}>🗓 Jornadas</div>
-              <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }} style={{background:"rgba(99,179,237,0.08)",border:"1px solid rgba(99,179,237,0.25)",color:"#63b3ed",borderRadius:10,padding:"7px 10px",fontSize:14,cursor:"pointer",lineHeight:1}}>🔄</button>
+                <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
+              </div>
             </div>
             {isJugador && <button onClick={()=>{
               const newJNombre = prompt("Nombre para la jornada:", "Jornada "+(jornadas.length+1));
@@ -825,7 +828,6 @@ function BillarApp() {
           );
         })()}
         </div>
-      </>
       );
     }
 
@@ -2241,6 +2243,7 @@ function BillarApp() {
             <div style={{fontSize:22,fontWeight:800,color:"#63b3ed"}}>📊 Estadísticas</div>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <button onClick={()=>setFiltrosOpen(o=>!o)} style={{background:filtrosOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:"1px solid "+(filtrosOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"),color:filtrosOpen?"#63b3ed":"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>🔍 {filtrosOpen?"▲":"▼"}</button>
+              <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }} style={{background:"rgba(99,179,237,0.08)",border:"1px solid rgba(99,179,237,0.25)",color:"#63b3ed",borderRadius:10,padding:"7px 10px",fontSize:14,cursor:"pointer",lineHeight:1}}>🔄</button>
               <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
             </div>
           </div>
@@ -2434,7 +2437,6 @@ function BillarApp() {
           }
         </div>
       </div>
-      <BtnActualizar />
     </>
     );
   }
@@ -2449,7 +2451,10 @@ function BillarApp() {
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
         <div className="app-scroll"
           style={{padding:"20px 18px"}}>
-          <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>← Volver</button>
+          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:18}}>
+            <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
+            <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }} style={{background:"rgba(99,179,237,0.08)",border:"1px solid rgba(99,179,237,0.25)",color:"#63b3ed",borderRadius:10,padding:"7px 10px",fontSize:14,cursor:"pointer",lineHeight:1}}>🔄</button>
+          </div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
             <div style={{fontSize:22,fontWeight:800,color:"#63b3ed",marginBottom:4}}>👥 Jugadores</div>
             {deviceName && isAdmin && (
@@ -2752,7 +2757,6 @@ function BillarApp() {
           </div>
         )}
       </div>
-      <BtnActualizar />
     </>
     );
   }
