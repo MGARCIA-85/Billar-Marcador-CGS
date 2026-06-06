@@ -2095,26 +2095,111 @@ function shareOrderReportSel() {
   let filtered = getReportFiltered().filter(o => selIds.includes(o.id));
   if (!filtered.length) return toast('Sin pedidos para compartir','#f59e0b');
 
-  const mailLines = filtered.map((o, i) => {
-    const oTot = orderTotal(o.items, o.clientId);
-    const oDisp = o.applyIva ? oTot*1.12 : oTot;
-    const cmts = (o.comments&&o.comments.length?o.comments:(o.note?[o.note]:[])).filter(c=>c&&c.trim());
-    const cotLine = o.quote ? `Cot: ${o.quote}` : '';
-    const ocLine  = o.oc    ? `OC: ${o.oc}` : '';
-    const cmtLines = cmts.map(c => `• ${c}`).join('\n');
-    const prodLines = o.items.map(it => {
+  // Helper: extraer comentarios de un pedido
+  function getCmts(o) {
+    return (o.comments&&o.comments.length ? o.comments : (o.note?[o.note]:[])).filter(c=>c&&c.trim());
+  }
+
+  // Helper: líneas de productos de un pedido
+  function getProdLines(o) {
+    return o.items.map(it => {
       const p = S.products.find(x=>x.id===(it.productId||Number(it.pid)));
       const pr = (it.customPrice!=null)?it.customPrice:cliPrice(o.clientId,it.productId||it.pid,p?.basePrice||0);
       const ul = p?.unitLabel||'unidad';
       const spec = p?.presentation ? ` (${p.presentation})` : '';
       return `》${it.qty} ${p?p.name:'—'}${spec}\nPrecio: ${Q(pr)}/${ul}`;
     }).join('\n');
-    const parts = [`#${i+1} ${o.clientName}`, cotLine, ocLine, cmtLines, '', prodLines, '', `TOTAL: ${Q(oDisp)}`];
-    return parts.filter(l=>l!==null&&l!==undefined&&l!=='').join('\n');
-  }).join('\n\n');
+  }
 
-  const subject = 'Informe de Pedidos';
-  const body = 'Buen día, por favor facturar:\n\n' + mailLines;
+  // Helper: bloque de bonificación
+  function getBonusBlock(o) {
+    if (!o.bonusLines || !o.bonusLines.length) return '';
+    const lines = o.bonusLines.map(bl => {
+      const p = S.products.find(x=>x.id===Number(bl.productId));
+      const ul = p?.unitLabel||'unidad';
+      const spec = p?.presentation ? ` (${p.presentation})` : '';
+      return `${bl.qty} ${p?p.name:'—'}${spec}\nPrecio: ${Q(bl.price||0)}/${ul}`;
+    }).join('\n');
+    return `\n》BONIFICACIÓN《\n${lines}`;
+  }
+
+  // Helper: total de un pedido
+  function getTotal(o) {
+    const t = orderTotal(o.items, o.clientId);
+    return o.applyIva ? t*1.12 : t;
+  }
+
+  const uniqueClients = [...new Set(filtered.map(o => o.clientId))];
+  const sameClient = uniqueClients.length === 1;
+
+  let subject, body;
+
+  if (sameClient) {
+    const clientName = filtered[0].clientName;
+    const quotes = filtered.map(o => o.quote||'').filter(q=>q);
+    const uniqueQuotes = [...new Set(quotes)];
+    const sameQuote = uniqueQuotes.length === 1;
+
+    // Asunto
+    subject = sameQuote && uniqueQuotes[0]
+      ? `${uniqueQuotes[0]} ${clientName}`
+      : clientName;
+
+    // Verificar si todos los pedidos tienen exactamente los mismos comentarios
+    const firstCmts = getCmts(filtered[0]).join('||');
+    const sameCmts = filtered.every(o => getCmts(o).join('||') === firstCmts);
+
+    if (sameCmts) {
+      // Caso 1: mismo cliente, comentarios idénticos — comentarios una sola vez al inicio
+      const sharedCmts = getCmts(filtered[0]);
+      const cmtBlock = sharedCmts.length ? sharedCmts.join('\n') + '\n\n' : '';
+
+      const pedidoLines = filtered.map((o, i) => {
+        const cotLine = (!sameQuote && o.quote) ? `Cotización ${o.quote}\n` : '';
+        const ocLine = o.oc ? `Orden ${o.oc}\n` : '';
+        const prodLines = getProdLines(o);
+        const bonusBlock = getBonusBlock(o);
+        return `Pedido #${i+1}\n${cotLine}${ocLine}${prodLines}${bonusBlock}\n\nTOTAL: ${Q(getTotal(o))}`;
+      }).join('\n\n');
+
+      body = `Buen día, por favor facturar y coordinar despacho.\n\n${cmtBlock}${pedidoLines}`;
+
+    } else {
+      // Caso 2: comentarios mixtos — comunes arriba, únicos en cada pedido
+      const allCmtSets = filtered.map(o => getCmts(o));
+      const commonCmts = allCmtSets[0].filter(c =>
+        allCmtSets.every(cmts => cmts.includes(c))
+      );
+      const commonBlock = commonCmts.length ? commonCmts.join('\n') + '\n\n' : '';
+
+      const pedidoLines = filtered.map((o, i) => {
+        const cotLine = (!sameQuote && o.quote) ? `Cotización ${o.quote}\n` : '';
+        const ocLine = o.oc ? `Orden ${o.oc}\n` : '';
+        const uniqueCmts = getCmts(o).filter(c => !commonCmts.includes(c));
+        const cmtBlock = uniqueCmts.length ? uniqueCmts.join('\n') + '\n' : '';
+        const prodLines = getProdLines(o);
+        const bonusBlock = getBonusBlock(o);
+        return `Pedido #${i+1}\n${cotLine}${ocLine}${cmtBlock}${prodLines}${bonusBlock}\n\nTOTAL: ${Q(getTotal(o))}`;
+      }).join('\n\n');
+
+      body = `Buen día, por favor facturar y coordinar despacho.\n\n${commonBlock}${pedidoLines}`;
+    }
+
+  } else {
+    // Caso 3: múltiples clientes — texto general actual
+    subject = 'Informe de Pedidos';
+    const mailLines = filtered.map((o, i) => {
+      const cmts = getCmts(o);
+      const cotLine = o.quote ? `Cot: ${o.quote}` : '';
+      const ocLine  = o.oc    ? `Orden ${o.oc}` : '';
+      const cmtLines = cmts.map(c => `${c}`).join('\n');
+      const prodLines = getProdLines(o);
+      const bonusBlock = getBonusBlock(o);
+      const parts = [`#${i+1} ${o.clientName}`, cotLine, ocLine, cmtLines, '', prodLines + bonusBlock, '', `TOTAL: ${Q(getTotal(o))}`];
+      return parts.filter(l=>l!==null&&l!==undefined&&l!=='').join('\n');
+    }).join('\n\n');
+    body = 'Buen día, por favor facturar:\n\n' + mailLines;
+  }
 
   if (navigator.share) {
     navigator.share({ title: subject, text: body }).catch(() => {});
