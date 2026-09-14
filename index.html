@@ -3867,8 +3867,9 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
   onLongPressRef.current = onLongPress;
 
   React.useEffect(() => {
+    console.log("[LP] useEffect montado, cardRef:", !!cardRef.current, "onLP:", !!onLongPressRef.current);
     const el = cardRef.current;
-    if (!el) return;
+    if (!el) { console.log("[LP] cardRef es null - no se registra listener"); return; }
     const onStart = () => {
       console.log("[LP] touchstart capture, hasLP:", !!onLongPressRef.current);
       if (!onLongPressRef.current) return;
