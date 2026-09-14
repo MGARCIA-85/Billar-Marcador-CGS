@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v388</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v389</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v388</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v389</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1935,7 +1935,7 @@ function BillarApp() {
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
               <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v388</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v389</div>
             </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -3761,20 +3761,34 @@ function CrTimer({ startTs, base=0, big=false }) {
 
 function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false, onAsignarJornada=null, compact=false, onLongPress=null}) {
   const cPad = compact ? "8px 10px" : "12px 14px";
-  // Long press en la tarjeta raíz
+  // Long press via capture — no puede ser bloqueado por stopPropagation de hijos
+  const cardRef = React.useRef(null);
   const lpTimer = React.useRef(null);
   const lpMoved = React.useRef(false);
-  const onCardTouchStart = onLongPress ? (e) => {
-    lpMoved.current = false;
-    lpTimer.current = setTimeout(() => {
-      if (!lpMoved.current) { if(navigator.vibrate) navigator.vibrate(50); onLongPress(); }
-    }, 450);
-  } : null;
-  const onCardTouchMove = onLongPress ? (e) => {
-    lpMoved.current = true;
-    clearTimeout(lpTimer.current);
-  } : null;
-  const onCardTouchEnd = onLongPress ? () => { clearTimeout(lpTimer.current); } : null;
+  React.useEffect(() => {
+    if (!onLongPress || !cardRef.current) return;
+    const el = cardRef.current;
+    const onStart = (e) => {
+      lpMoved.current = false;
+      clearTimeout(lpTimer.current);
+      lpTimer.current = setTimeout(() => {
+        if (!lpMoved.current) { if(navigator.vibrate) navigator.vibrate(50); onLongPress(); }
+      }, 450);
+    };
+    const onMove = () => { lpMoved.current = true; clearTimeout(lpTimer.current); };
+    const onEnd = () => { clearTimeout(lpTimer.current); };
+    el.addEventListener('touchstart', onStart, {capture: true, passive: true});
+    el.addEventListener('touchmove', onMove, {capture: true, passive: true});
+    el.addEventListener('touchend', onEnd, {capture: true, passive: true});
+    return () => {
+      el.removeEventListener('touchstart', onStart, {capture: true});
+      el.removeEventListener('touchmove', onMove, {capture: true});
+      el.removeEventListener('touchend', onEnd, {capture: true});
+    };
+  }, [onLongPress]);
+  const onCardTouchStart = null;
+  const onCardTouchMove = null;
+  const onCardTouchEnd = null;
   const cFontName = compact ? 13 : 15;
   const cFontSub = compact ? 10 : 11;
   const cFontScore = compact ? 22 : 28;
@@ -3979,9 +3993,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
 
     return (
       <div
-        onTouchStart={onCardTouchStart||undefined}
-        onTouchMove={onCardTouchMove||undefined}
-        onTouchEnd={onCardTouchEnd||undefined}
+        ref={cardRef}
         style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(74,222,128,0.18)",borderRadius:16,padding:"12px 14px",marginBottom:12}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
