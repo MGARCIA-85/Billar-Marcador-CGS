@@ -33,7 +33,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v381</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v382</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -62,7 +62,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v381</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v382</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -535,6 +535,10 @@ function BillarApp() {
           try { localStorage.setItem("bg_players", JSON.stringify(d.list)); } catch{}
         }}
       }, () => {});
+    db.collection("billar").doc("config").onSnapshot(snap => {
+      if (snap.exists) { const d = snap.data(); if (d && Array.isArray(d.matchOrder)) setMatchOrder(d.matchOrder); }
+    });
+
     const unsub4 = db.collection("billar").doc("dispositivos").onSnapshot(snap => {
       if (snap.exists) {
         const d = snap.data();
@@ -603,6 +607,11 @@ function BillarApp() {
     };
   }, []);
 
+  const saveMatchOrder = (newIds) => {
+    setMatchOrder(newIds);
+    db.collection("billar").doc("config").set({matchOrder: newIds}).catch(e=>console.error(e));
+  };
+
   const moveMatch = (id, dir) => {
     const ids = activeMatches.map(m=>m.id);
     const i = ids.indexOf(id);
@@ -610,7 +619,7 @@ function BillarApp() {
     if(dir===1 && i===ids.length-1) return;
     const newIds = [...ids];
     [newIds[i], newIds[i+dir]] = [newIds[i+dir], newIds[i]];
-    setMatchOrder(newIds);
+    saveMatchOrder(newIds);
   };
 
   const saveMatches = async (nm) => {
@@ -763,6 +772,15 @@ function BillarApp() {
   // Botón flotante actualizar
   const [modoTV, setModoTV] = React.useState(false);
   const isLandscape = modoTV; // alias para compatibilidad
+  const [isDeviceLandscape, setIsDeviceLandscape] = React.useState(
+    () => window.matchMedia("(orientation: landscape)").matches
+  );
+  React.useEffect(() => {
+    const mq = window.matchMedia("(orientation: landscape)");
+    const update = (e) => { setIsDeviceLandscape(e.matches); if (!e.matches) setModoTV(false); };
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
   const BtnActualizar = () => null;
 
   if (jornadaScreen) {
@@ -1699,6 +1717,8 @@ function BillarApp() {
 
   if (screen === "lobby") {
     const list = lobbyTab === "active" ? activeMatches : closedMatches;
+    const [dragIdx, setDragIdx] = React.useState(null);
+    const [dragOver, setDragOver] = React.useState(null);
 
     // ── MODO ESPECTADOR (horizontal automático) ──
     if (isLandscape) {
@@ -1840,11 +1860,13 @@ function BillarApp() {
               {tab==="active" && activeMatches.length > 0 && <span style={{background:"#4ade80",color:"#081530",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:800,marginLeft:6}}>{activeMatches.length}</span>}
             </button>
           ))}
-          <button onClick={()=>setModoTV(v=>!v)}
-            title="Modo TV"
-            style={{padding:"6px 10px",borderRadius:"10px 10px 0 0",background:modoTV?"rgba(249,224,75,0.15)":"rgba(99,179,237,0.08)",border:`1px solid ${modoTV?"rgba(249,224,75,0.4)":"rgba(99,179,237,0.25)"}`,borderBottom:"none",color:modoTV?"#f9e04b":"#63b3ed",fontSize:16,cursor:"pointer",lineHeight:1}}>
-            📺
-          </button>
+          {isDeviceLandscape && (
+            <button onClick={()=>setModoTV(v=>!v)}
+              title="Modo TV"
+              style={{padding:"6px 10px",borderRadius:"10px 10px 0 0",background:modoTV?"rgba(249,224,75,0.15)":"rgba(99,179,237,0.08)",border:`1px solid ${modoTV?"rgba(249,224,75,0.4)":"rgba(99,179,237,0.25)"}`,borderBottom:"none",color:modoTV?"#f9e04b":"#63b3ed",fontSize:16,cursor:"pointer",lineHeight:1}}>
+              📺
+            </button>
+          )}
           <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }}
             title="Actualizar"
             style={{padding:"6px 10px",borderRadius:"10px 10px 0 0",background:"rgba(99,179,237,0.08)",border:"1px solid rgba(99,179,237,0.25)",borderBottom:"none",color:"#63b3ed",fontSize:16,cursor:"pointer",lineHeight:1}}>
@@ -1855,7 +1877,23 @@ function BillarApp() {
           style={{padding:"0 14px"}}>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
           <div style={isLandscape?{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,paddingBottom:20}:{}}>
-          {list.map(m => <LobbyCard key={m.id} m={m} compact={isLandscape} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+          {list.map((m,idx) => (
+            <div key={m.id}
+              draggable={lobbyTab==="active"}
+              onDragStart={()=>setDragIdx(idx)}
+              onDragOver={e=>{e.preventDefault();setDragOver(idx);}}
+              onDrop={()=>{
+                if(dragIdx===null||dragIdx===idx) return;
+                const ids=activeMatches.map(x=>x.id);
+                const moved=[...ids];
+                const [removed]=moved.splice(dragIdx,1);
+                moved.splice(idx,0,removed);
+                saveMatchOrder(moved);
+                setDragIdx(null);setDragOver(null);
+              }}
+              onDragEnd={()=>{setDragIdx(null);setDragOver(null);}}
+              style={{opacity:dragIdx===idx?0.4:1,outline:dragOver===idx&&dragIdx!==idx?"2px solid rgba(74,222,128,0.6)":"none",borderRadius:12,transition:"opacity 0.15s"}}>
+            <LobbyCard m={m} compact={isLandscape} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
                 // Deshacer último juego
@@ -1887,7 +1925,7 @@ function BillarApp() {
             isLast={lobbyTab==="active"&&activeMatches.indexOf(activeMatches.find(x=>x.id===m.id))===activeMatches.length-1}
             onEditName={!m.matchClosed ? (key)=>setEditingNameKey(key) : null}
             editingNameKey={editingNameKey}
-             />)}
+             /></div>))}
           </div>
         </div>
 
