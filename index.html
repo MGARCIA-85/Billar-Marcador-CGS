@@ -27,12 +27,14 @@
       display: flex; flex-direction: column; overflow: hidden;
     }
     .app-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    #root.rotated .app-screen { position: relative; min-height: 100%; height: 100%; }
+    #root.rotated .app-scroll { overflow-y: auto; }
   </style>
 </head>
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v375</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v376</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v375</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v376</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -418,6 +420,7 @@ function BillarApp() {
           "transform:rotate(90deg) translateY(-" + vw + "px)",
           "overflow:hidden"
         ].join(";");
+        root.classList.add("rotated");
         document.body.style.overflow = "hidden";
         btn.textContent = "↕️";
         btn.title = "Volver a vertical";
@@ -425,6 +428,7 @@ function BillarApp() {
         btn.style.right = "14px";
       } else {
         root.style.cssText = "";
+        root.classList.remove("rotated");
         document.body.style.overflow = "";
         btn.textContent = "↔️";
         btn.title = "Modo horizontal";
@@ -1832,8 +1836,8 @@ function BillarApp() {
         <div className="app-scroll"
           style={{padding:"0 14px"}}>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
-          <div style={isLandscape?{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}:{}}>
-          {list.map(m => <LobbyCard key={m.id} m={m} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+          <div style={isLandscape?{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,paddingBottom:20}:{}}>
+          {list.map(m => <LobbyCard key={m.id} m={m} compact={isLandscape} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
                 // Deshacer último juego
@@ -3596,7 +3600,11 @@ function CrTimer({ startTs, base=0, big=false }) {
   return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
 }
 
-function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false, onAsignarJornada=null}) {
+function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false, onAsignarJornada=null, compact=false}) {
+  const cPad = compact ? "8px 10px" : "12px 14px";
+  const cFontName = compact ? 13 : 15;
+  const cFontSub = compact ? 10 : 11;
+  const cFontScore = compact ? 22 : 28;
   const getPlayerColor = (name) => {
     const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
     return (p && typeof p!=="string" && p.color) ? p.color : null;
