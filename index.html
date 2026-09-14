@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v392</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v393</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v392</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v393</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -244,6 +244,84 @@ function SelectJugador({val, setVal, opts, placeholder, style}) {
     </div>
   );
 }
+
+const MemoLobbyCard = React.memo(function MemoLobbyCard({m, onLongPress, onOpen, onDelete, onHistory, updateMatch, replayMatch, setLobbyBallMenu, deviceName, playersList, isAdmin, isOperario, setAsignarJornadaModal}) {
+  return (
+    <LobbyCard m={m} compact={true} onLongPress={onLongPress}
+      onOpen={()=>onOpen(m.id)}
+      onDelete={isAdmin?()=>onDelete(m.id):null}
+      isAdminMode={isAdmin}
+      onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null}
+      onReplay={replayMatch}
+      onUpdateMatch={updateMatch}
+      onLobbyBallMenu={setLobbyBallMenu}
+      onOpenHistory={(id)=>onHistory(id||m.id)}
+      deviceName={deviceName}
+      playersList={playersList}
+      onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+      onUndo={(id)=>{ updateMatch(id, mm => {
+        if (mm.games.length > 0) { const last=mm.games[mm.games.length-1]; return {...mm,games:mm.games.slice(0,-1),wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1},currentServe:last.serve,seriesFinished:false,seriesWinner:null}; }
+        if (mm.seriesHistory.length > 0) { const ls=mm.seriesHistory[mm.seriesHistory.length-1]; return {...mm,seriesHistory:mm.seriesHistory.slice(0,-1),seriesWins:{p1:mm.seriesWins.p1-(ls.winner==="p1"?1:0),p2:mm.seriesWins.p2-(ls.winner==="p2"?1:0)},seriesCount:ls.seriesNum,games:ls.games||[],wins:{p1:ls.p1wins||0,p2:ls.p2wins||0},seriesFinished:true,seriesWinner:ls.winner}; }
+        return mm;
+      }); }}
+      onReactivar={isOperario?()=>{updateMatch(m.id,mm=>{const csw=mm.closedSeriesWins?mm.closedSeriesWins:mm.seriesWins;return{...mm,matchClosed:false,closedAt:null,seriesWins:csw,closedSeriesWins:null};});}:null}
+      onTerminar={isAdmin?()=>{updateMatch(m.id,mm=>{if(!mm.seriesFinished)return mm;const sw=mm.seriesWinner;const nh=[...mm.seriesHistory,{seriesNum:mm.seriesCount,winner:sw,games:mm.games,p1wins:mm.wins.p1,p2wins:mm.wins.p2,partial:false}];const nsw={p1:mm.seriesWins.p1+(sw==="p1"?1:0),p2:mm.seriesWins.p2+(sw==="p2"?1:0)};return{...mm,seriesHistory:nh,seriesWins:nsw,matchClosed:true,closedSeriesWins:mm.seriesWins,closedAt:Date.now()};});}:null}
+    />
+  );
+});
+
+const MemoTvGrid = React.memo(function MemoTvGrid({matches, onReorder, isAdmin, isOperario, onOpen, onDelete, onHistory, updateMatch, replayMatch, setLobbyBallMenu, deviceName, playersList, setAsignarJornadaModal}) {
+  const stateRef = React.useRef({dragFrom: null});
+  const [dragIdx, setDragIdx] = React.useState(null);
+  const gridRef = React.useRef(null);
+  const matchesRef = React.useRef(matches);
+  const onReorderRef = React.useRef(onReorder);
+  matchesRef.current = matches;
+  onReorderRef.current = onReorder;
+
+  React.useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const onMove = (e) => {
+      if (stateRef.current.dragFrom === null) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      const over = document.elementFromPoint(t.clientX, t.clientY);
+      const card = over && over.closest('[data-tv-idx]');
+      if (!card) return;
+      const toIdx = parseInt(card.dataset.tvIdx);
+      if (toIdx === stateRef.current.dragFrom) return;
+      const ids = matchesRef.current.map(x=>x.id);
+      const moved = [...ids];
+      const [removed] = moved.splice(stateRef.current.dragFrom, 1);
+      moved.splice(toIdx, 0, removed);
+      onReorderRef.current(moved);
+      stateRef.current.dragFrom = toIdx;
+      setDragIdx(toIdx);
+    };
+    const onEnd = () => { stateRef.current.dragFrom = null; setDragIdx(null); };
+    el.addEventListener('touchmove', onMove, {passive:false});
+    el.addEventListener('touchend', onEnd, {passive:true});
+    return () => { el.removeEventListener('touchmove', onMove); el.removeEventListener('touchend', onEnd); };
+  }, []);
+
+  return (
+    <div ref={gridRef} onContextMenu={e=>{e.preventDefault();return false;}}
+      style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
+      {matches.map((m,idx) => (
+        <div key={m.id} data-tv-idx={idx}
+          style={{opacity:dragIdx===idx?0.4:1,outline:dragIdx===idx?"2px solid rgba(74,222,128,0.6)":"none",borderRadius:12,transition:"opacity 0.15s"}}>
+          <MemoLobbyCard m={m} isAdmin={isAdmin} isOperario={isOperario}
+            onLongPress={()=>{ stateRef.current.dragFrom=idx; setDragIdx(idx); if(navigator.vibrate) navigator.vibrate(50); }}
+            onOpen={onOpen} onDelete={onDelete} onHistory={onHistory}
+            updateMatch={updateMatch} replayMatch={replayMatch}
+            setLobbyBallMenu={setLobbyBallMenu} deviceName={deviceName}
+            playersList={playersList} setAsignarJornadaModal={setAsignarJornadaModal} />
+        </div>
+      ))}
+    </div>
+  );
+});
 
 function TvGrid({matches, onReorder, renderCard}) {
   const stateRef = React.useRef({dragIdx: null, dragFrom: null});
@@ -1866,28 +1944,21 @@ function BillarApp() {
           {activeMatches.length === 0 && (
             <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>No hay partidas en juego.</div>
           )}
-          <TvGrid matches={activeMatches} onReorder={saveMatchOrder} renderCard={(m, onLongPress, onDragEnd)=>(
-                  <LobbyCard m={m} compact={true} onLongPress={onLongPress}
-                onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}}
-                onDelete={isAdmin?()=>deleteMatch(m.id):null}
-                isAdminMode={isAdmin}
-                onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null}
-                onReplay={replayMatch}
-                onUpdateMatch={updateMatch}
-                onLobbyBallMenu={setLobbyBallMenu}
-                onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}}
-                deviceName={deviceName}
-                playersList={playersList}
-                onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
-                onUndo={(id)=>{ updateMatch(id, mm => {
-                  if (mm.games.length > 0) { const last=mm.games[mm.games.length-1]; return {...mm,games:mm.games.slice(0,-1),wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1},currentServe:last.serve,seriesFinished:false,seriesWinner:null}; }
-                  if (mm.seriesHistory.length > 0) { const ls=mm.seriesHistory[mm.seriesHistory.length-1]; return {...mm,seriesHistory:mm.seriesHistory.slice(0,-1),seriesWins:{p1:mm.seriesWins.p1-(ls.winner==="p1"?1:0),p2:mm.seriesWins.p2-(ls.winner==="p2"?1:0)},seriesCount:ls.seriesNum,games:ls.games||[],wins:{p1:ls.p1wins||0,p2:ls.p2wins||0},seriesFinished:true,seriesWinner:ls.winner}; }
-                  return mm;
-                }); }}
-                onReactivar={isAdmin?(id=>{updateMatch(id,m=>{const csw=m.closedSeriesWins?m.closedSeriesWins:m.seriesWins;return{...m,matchClosed:false,closedAt:null,seriesWins:csw,closedSeriesWins:null};});})():null}
-                onTerminar={isAdmin?(id=>{updateMatch(id,m=>{if(!m.seriesFinished)return m;const sw=m.seriesWinner;const nh=[...m.seriesHistory,{seriesNum:m.seriesCount,winner:sw,games:m.games,p1wins:m.wins.p1,p2wins:m.wins.p2,partial:false}];const nsw={p1:m.seriesWins.p1+(sw==="p1"?1:0),p2:m.seriesWins.p2+(sw==="p2"?1:0)};return{...m,seriesHistory:nh,seriesWins:nsw,matchClosed:true,closedSeriesWins:m.seriesWins,closedAt:Date.now()};});})():null}
-              />
-          )} />
+          <MemoTvGrid
+            matches={activeMatches}
+            onReorder={saveMatchOrder}
+            isAdmin={isAdmin}
+            isOperario={isOperario}
+            onOpen={(id)=>{setActiveIdP(id);setScreenP("match");}}
+            onDelete={isAdmin?(id=>deleteMatch(id)):null}
+            onHistory={(id)=>{setActiveIdP(id);setShowHistoryP(true);}}
+            updateMatch={updateMatch}
+            replayMatch={replayMatch}
+            setLobbyBallMenu={setLobbyBallMenu}
+            deviceName={deviceName}
+            playersList={playersList}
+            setAsignarJornadaModal={setAsignarJornadaModal}
+          />
         {/* Historial desde modo TV */}
         {showHistory && activeId && !fbLoaded && (
           <div style={{position:"fixed",inset:0,background:"#081530",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -1963,7 +2034,7 @@ function BillarApp() {
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
               <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v392</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v393</div>
             </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
