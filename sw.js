@@ -1,4 +1,4 @@
-const CACHE = 'billares-v374';
+const CACHE = 'billares-v375';
 const FILES = ['/index.html'];
 self.addEventListener('install', e => {
   self.skipWaiting();

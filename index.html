@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v374</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v375</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v374</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v375</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -219,6 +219,27 @@ function Acceso({ ok }) {
           {loading?"Verificando...":"Entrar"}
         </button>
       </div>
+    </div>
+  );
+}
+
+function SelectJugador({val, setVal, opts, placeholder, style}) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{position:"relative",...(style||{})}}>
+      <div onClick={()=>setOpen(o=>!o)}
+        style={{width:"100%",padding:"12px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${val?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:val?"#fff":"#888",fontFamily:"inherit",fontSize:15,boxSizing:"border-box",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span>{val||(placeholder||"Selecciona un jugador...")}</span>
+        <span style={{fontSize:10,color:"#666"}}>{open?"▲":"▼"}</span>
+      </div>
+      {open && <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#0d1f0d",border:"1px solid rgba(74,222,128,0.3)",borderRadius:10,zIndex:500,maxHeight:200,overflowY:"auto",marginTop:4}}>
+        {opts.map((pn,oi)=>(
+          <div key={oi} onClick={()=>{setVal(pn);setOpen(false);}}
+            style={{padding:"11px 14px",color:"#fff",fontSize:14,cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,0.05)",background:val===pn?"rgba(74,222,128,0.12)":"transparent"}}>
+            {pn}
+          </div>
+        ))}
+      </div>}
     </div>
   );
 }
@@ -2929,26 +2950,7 @@ function BillarApp() {
               const opts = playersList.map(p=>plName(p)).filter(pn=>pn!==other);
               return (<React.Fragment key={pi}>
                 <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:pi===1?14:0}}>{label}</div>
-                {(()=>{
-                  const [open,setOpen] = React.useState(false);
-                  return (
-                    <div style={{position:"relative",marginBottom:6}}>
-                      <div onClick={()=>setOpen(o=>!o)}
-                        style={{width:"100%",padding:"12px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${val?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:val?"#fff":"#888",fontFamily:"inherit",fontSize:15,boxSizing:"border-box",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span>{val||"Selecciona un jugador..."}</span>
-                        <span style={{fontSize:10,color:"#666"}}>{open?"▲":"▼"}</span>
-                      </div>
-                      {open && <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#0d1f0d",border:"1px solid rgba(74,222,128,0.3)",borderRadius:10,zIndex:500,maxHeight:200,overflowY:"auto",marginTop:4}}>
-                        {opts.map((pn,oi)=>(
-                          <div key={oi} onClick={()=>{setVal(pn);setOpen(false);}}
-                            style={{padding:"11px 14px",color:"#fff",fontSize:14,cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,0.05)",background:val===pn?"rgba(74,222,128,0.12)":"transparent"}}>
-                            {pn}
-                          </div>
-                        ))}
-                      </div>}
-                    </div>
-                  );
-                })()}
+                <SelectJugador val={val} setVal={setVal} opts={opts} style={{marginBottom:6}} />
               </React.Fragment>);
             })}
           </>) : (<>
@@ -2958,26 +2960,7 @@ function BillarApp() {
               const opts = playersList.map(pl=>plName(pl)).filter(pn=>!otherPlayers.includes(pn));
               return (
               <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
-                {(()=>{
-                  const [open,setOpen] = React.useState(false);
-                  return (
-                    <div style={{flex:1,position:"relative"}}>
-                      <div onClick={()=>setOpen(o=>!o)}
-                        style={{width:"100%",padding:"11px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${p?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:p?"#fff":"#888",fontFamily:"inherit",fontSize:14,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",boxSizing:"border-box"}}>
-                        <span>{p||"Selecciona..."}</span>
-                        <span style={{fontSize:10,color:"#666"}}>{open?"▲":"▼"}</span>
-                      </div>
-                      {open && <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#0d1f0d",border:"1px solid rgba(74,222,128,0.3)",borderRadius:10,zIndex:500,maxHeight:180,overflowY:"auto",marginTop:4}}>
-                        {opts.map((pn,oi)=>(
-                          <div key={oi} onClick={()=>{const n=[...wPlayers];n[i]=pn;setWPlayers(n);setWOrder([]);setOpen(false);}}
-                            style={{padding:"10px 14px",color:"#fff",fontSize:13,cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,0.05)",background:p===pn?"rgba(74,222,128,0.12)":"transparent"}}>
-                            {pn}
-                          </div>
-                        ))}
-                      </div>}
-                    </div>
-                  );
-                })()}
+                <SelectJugador val={p} setVal={pn=>{const n=[...wPlayers];n[i]=pn;setWPlayers(n);setWOrder([]);}} opts={opts} placeholder="Selecciona..." style={{flex:1}} />
                 {wPlayers.length > 2 && <button onClick={()=>{const n=wPlayers.filter((_,j)=>j!==i);setWPlayers(n);setWOrder([]);}} style={{background:"rgba(255,80,80,0.15)",border:"1px solid rgba(255,80,80,0.3)",color:"#f87171",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:14,fontFamily:"inherit"}}>✕</button>}
               </div>
               );
