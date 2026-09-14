@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v390</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v391</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v390</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v391</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -248,47 +248,57 @@ function SelectJugador({val, setVal, opts, placeholder, style}) {
 function TvGrid({matches, onReorder, renderCard}) {
   const [dragIdx, setDragIdx] = React.useState(null);
   const dragFrom = React.useRef(null);
+  const gridRef = React.useRef(null);
 
-  const startDrag = (idx) => {
+  const startDrag = React.useCallback((idx) => {
     dragFrom.current = idx;
     setDragIdx(idx);
-  };
+  }, []);
 
-  const moveTo = (toIdx) => {
-    if (dragFrom.current === null || toIdx === dragFrom.current) return;
-    const ids = matches.map(x=>x.id);
+  const endDrag = React.useCallback(() => {
+    dragFrom.current = null;
+    setDragIdx(null);
+  }, []);
+
+  const onTouchMove = React.useCallback((e) => {
+    if (dragFrom.current === null) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    const card = el && el.closest('[data-tv-idx]');
+    if (!card) return;
+    const toIdx = parseInt(card.dataset.tvIdx);
+    if (toIdx === dragFrom.current) return;
+    const ids = matches.map(x => x.id);
     const moved = [...ids];
     const [removed] = moved.splice(dragFrom.current, 1);
     moved.splice(toIdx, 0, removed);
     onReorder(moved);
     dragFrom.current = toIdx;
     setDragIdx(toIdx);
-  };
+  }, [matches, onReorder]);
 
-  const endDrag = () => {
-    dragFrom.current = null;
-    setDragIdx(null);
-  };
+  React.useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    el.addEventListener('touchmove', onTouchMove, {passive: false});
+    return () => el.removeEventListener('touchmove', onTouchMove);
+  }, [onTouchMove]);
 
   return (
-    <div onContextMenu={e=>{e.preventDefault();return false;}}
-      style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,WebkitTouchCallout:"none"}}>
-      {matches.map((m,idx) => (
+    <div ref={gridRef}
+      onContextMenu={e=>{e.preventDefault();return false;}}
+      style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
+      {matches.map((m, idx) => (
         <div key={m.id} data-tv-idx={idx}
-          onTouchMove={dragFrom.current!==null?(e)=>{
-            e.preventDefault();
-            const t=e.touches[0];
-            const el=document.elementFromPoint(t.clientX,t.clientY);
-            const card=el&&el.closest("[data-tv-idx]");
-            if(card) moveTo(parseInt(card.dataset.tvIdx));
-          }:undefined}
-          style={{opacity:dragIdx===idx?0.4:1,outline:dragIdx===idx?"2px solid rgba(74,222,128,0.6)":"none",borderRadius:12,transition:"opacity 0.15s",touchAction:"pan-y"}}>
+          style={{opacity:dragIdx===idx?0.4:1,outline:dragIdx===idx?"2px solid rgba(74,222,128,0.6)":"none",borderRadius:12,transition:"opacity 0.15s"}}>
           {renderCard(m, ()=>startDrag(idx), endDrag)}
         </div>
       ))}
     </div>
   );
 }
+
 
 function DraggableCard({children, idx, onDrop, enabled, style}) {
   const longPressTimer = React.useRef(null);
@@ -1935,7 +1945,7 @@ function BillarApp() {
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
               <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v390</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v391</div>
             </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -3771,10 +3781,8 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
     const onStart = (e) => {
       lpMoved.current = false;
       clearTimeout(lpTimer.current);
-      console.log("[LP] touchstart capturado en tarjeta");
       lpTimer.current = setTimeout(() => {
         if (!lpMoved.current) {
-          console.log("[LP] LONG PRESS ACTIVADO");
           if(navigator.vibrate) navigator.vibrate(50);
           onLongPress();
         }
