@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v387</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v388</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v387</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v388</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -246,97 +246,46 @@ function SelectJugador({val, setVal, opts, placeholder, style}) {
 }
 
 function TvGrid({matches, onReorder, renderCard}) {
-  const dragTimer = React.useRef(null);
-  const dragFrom = React.useRef(null);
-  const startPos = React.useRef({x:0,y:0});
-  const [dragActive, setDragActive] = React.useState(false);
   const [dragIdx, setDragIdx] = React.useState(null);
-  const [overIdx, setOverIdx] = React.useState(null);
+  const dragFrom = React.useRef(null);
 
-  // Cada tarjeta tiene un overlay transparente que captura el long press
-  // Cuando se activa el drag, el overlay se vuelve pointer-events:none
-  // para que los toques lleguen a los botones internos normalmente
-  const CardWrapper = ({m, idx}) => {
-    const overlayRef = React.useRef(null);
+  const startDrag = (idx) => {
+    dragFrom.current = idx;
+    setDragIdx(idx);
+  };
 
-    const onOverlayTouchStart = (e) => {
-      const t = e.touches[0];
-      startPos.current = {x:t.clientX, y:t.clientY};
-      dragFrom.current = idx;
-      clearTimeout(dragTimer.current);
-      dragTimer.current = setTimeout(() => {
-        setDragActive(true);
-        setDragIdx(idx);
-        if (navigator.vibrate) navigator.vibrate(50);
-      }, 450);
-    };
+  const moveTo = (toIdx) => {
+    if (dragFrom.current === null || toIdx === dragFrom.current) return;
+    const ids = matches.map(x=>x.id);
+    const moved = [...ids];
+    const [removed] = moved.splice(dragFrom.current, 1);
+    moved.splice(toIdx, 0, removed);
+    onReorder(moved);
+    dragFrom.current = toIdx;
+    setDragIdx(toIdx);
+  };
 
-    const onOverlayTouchMove = (e) => {
-      const t = e.touches[0];
-      const dx = Math.abs(t.clientX - startPos.current.x);
-      const dy = Math.abs(t.clientY - startPos.current.y);
-      if (!dragActive) {
-        if (dx > 8 || dy > 8) clearTimeout(dragTimer.current);
-        return;
-      }
-      e.preventDefault();
-      // Detectar sobre qué tarjeta está el dedo
-      if (overlayRef.current) overlayRef.current.style.pointerEvents = "none";
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      if (overlayRef.current) overlayRef.current.style.pointerEvents = "auto";
-      const card = el && el.closest("[data-tv-idx]");
-      if (card) {
-        const toIdx = parseInt(card.dataset.tvIdx);
-        if (toIdx !== dragFrom.current) {
-          setOverIdx(toIdx);
-          const ids = matches.map(x=>x.id);
-          const moved = [...ids];
-          const [removed] = moved.splice(dragFrom.current, 1);
-          moved.splice(toIdx, 0, removed);
-          onReorder(moved);
-          dragFrom.current = toIdx;
-          setDragIdx(toIdx);
-        }
-      }
-    };
-
-    const onOverlayTouchEnd = () => {
-      clearTimeout(dragTimer.current);
-      if (!dragActive) {
-        // Fue un tap normal — dejar pasar al contenido
-        dragFrom.current = null;
-      } else {
-        setDragActive(false);
-        setDragIdx(null);
-        setOverIdx(null);
-        dragFrom.current = null;
-      }
-    };
-
-    return (
-      <div data-tv-idx={idx}
-        style={{position:"relative",opacity:dragActive&&dragIdx===idx?0.4:1,outline:overIdx===idx&&dragIdx!==idx?"2px solid rgba(74,222,128,0.6)":"none",borderRadius:12,transition:"opacity 0.15s"}}>
-        {renderCard(m)}
-        {/* Overlay que captura el long press sin bloquear toques normales */}
-        <div ref={overlayRef}
-          onTouchStart={onOverlayTouchStart}
-          onTouchMove={onOverlayTouchMove}
-          onTouchEnd={onOverlayTouchEnd}
-          onContextMenu={e=>{e.preventDefault();return false;}}
-          style={{position:"absolute",inset:0,zIndex:10,borderRadius:12,
-            background:dragActive&&dragIdx===idx?"rgba(74,222,128,0.08)":"transparent",
-            WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none",
-            // Solo bloquear eventos cuando está en modo drag
-            pointerEvents: dragActive && dragIdx !== idx ? "none" : "auto"
-          }} />
-      </div>
-    );
+  const endDrag = () => {
+    dragFrom.current = null;
+    setDragIdx(null);
   };
 
   return (
     <div onContextMenu={e=>{e.preventDefault();return false;}}
       style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,WebkitTouchCallout:"none"}}>
-      {matches.map((m,idx) => <CardWrapper key={m.id} m={m} idx={idx} />)}
+      {matches.map((m,idx) => (
+        <div key={m.id} data-tv-idx={idx}
+          onTouchMove={dragFrom.current!==null?(e)=>{
+            e.preventDefault();
+            const t=e.touches[0];
+            const el=document.elementFromPoint(t.clientX,t.clientY);
+            const card=el&&el.closest("[data-tv-idx]");
+            if(card) moveTo(parseInt(card.dataset.tvIdx));
+          }:undefined}
+          style={{opacity:dragIdx===idx?0.4:1,outline:dragIdx===idx?"2px solid rgba(74,222,128,0.6)":"none",borderRadius:12,transition:"opacity 0.15s",touchAction:"pan-y"}}>
+          {renderCard(m, ()=>startDrag(idx), endDrag)}
+        </div>
+      ))}
     </div>
   );
 }
@@ -1889,8 +1838,8 @@ function BillarApp() {
           {activeMatches.length === 0 && (
             <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>No hay partidas en juego.</div>
           )}
-          <TvGrid matches={activeMatches} onReorder={saveMatchOrder} renderCard={(m)=>(
-                  <LobbyCard m={m} compact={true}
+          <TvGrid matches={activeMatches} onReorder={saveMatchOrder} renderCard={(m, onLongPress, onDragEnd)=>(
+                  <LobbyCard m={m} compact={true} onLongPress={onLongPress}
                 onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}}
                 onDelete={isAdmin?()=>deleteMatch(m.id):null}
                 isAdminMode={isAdmin}
@@ -1986,7 +1935,7 @@ function BillarApp() {
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
               <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v387</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v388</div>
             </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -3810,8 +3759,22 @@ function CrTimer({ startTs, base=0, big=false }) {
   return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
 }
 
-function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false, onAsignarJornada=null, compact=false}) {
+function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false, onAsignarJornada=null, compact=false, onLongPress=null}) {
   const cPad = compact ? "8px 10px" : "12px 14px";
+  // Long press en la tarjeta raíz
+  const lpTimer = React.useRef(null);
+  const lpMoved = React.useRef(false);
+  const onCardTouchStart = onLongPress ? (e) => {
+    lpMoved.current = false;
+    lpTimer.current = setTimeout(() => {
+      if (!lpMoved.current) { if(navigator.vibrate) navigator.vibrate(50); onLongPress(); }
+    }, 450);
+  } : null;
+  const onCardTouchMove = onLongPress ? (e) => {
+    lpMoved.current = true;
+    clearTimeout(lpTimer.current);
+  } : null;
+  const onCardTouchEnd = onLongPress ? () => { clearTimeout(lpTimer.current); } : null;
   const cFontName = compact ? 13 : 15;
   const cFontSub = compact ? 10 : 11;
   const cFontScore = compact ? 22 : 28;
@@ -4015,7 +3978,11 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
     };
 
     return (
-      <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(74,222,128,0.18)",borderRadius:16,padding:"12px 14px",marginBottom:12}}>
+      <div
+        onTouchStart={onCardTouchStart||undefined}
+        onTouchMove={onCardTouchMove||undefined}
+        onTouchEnd={onCardTouchEnd||undefined}
+        style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(74,222,128,0.18)",borderRadius:16,padding:"12px 14px",marginBottom:12}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:18}}>⏱</span>
