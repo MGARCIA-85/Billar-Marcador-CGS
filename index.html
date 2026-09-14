@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v397</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v398</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v397</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v398</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -219,292 +219,6 @@ function Acceso({ ok }) {
           style={{marginTop:12,width:"100%",padding:"13px 0",borderRadius:12,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer",opacity:loading?0.7:1}}>
           {loading?"Verificando...":"Entrar"}
         </button>
-      </div>
-    </div>
-  );
-}
-
-function SelectJugador({val, setVal, opts, placeholder, style}) {
-  const [open, setOpen] = React.useState(false);
-  return (
-    <div style={{position:"relative",...(style||{})}}>
-      <div onClick={()=>setOpen(o=>!o)}
-        style={{width:"100%",padding:"12px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${val?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:val?"#fff":"#888",fontFamily:"inherit",fontSize:15,boxSizing:"border-box",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span>{val||(placeholder||"Selecciona un jugador...")}</span>
-        <span style={{fontSize:10,color:"#666"}}>{open?"▲":"▼"}</span>
-      </div>
-      {open && <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#0d1f0d",border:"1px solid rgba(74,222,128,0.3)",borderRadius:10,zIndex:500,maxHeight:200,overflowY:"auto",marginTop:4}}>
-        {opts.map((pn,oi)=>(
-          <div key={oi} onClick={()=>{setVal(pn);setOpen(false);}}
-            style={{padding:"11px 14px",color:"#fff",fontSize:14,cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,0.05)",background:val===pn?"rgba(74,222,128,0.12)":"transparent"}}>
-            {pn}
-          </div>
-        ))}
-      </div>}
-    </div>
-  );
-}
-
-const MemoLobbyCard = React.memo(function MemoLobbyCard({m, onOpen, onDelete, onHistory, updateMatch, replayMatch, setLobbyBallMenu, deviceName, playersList, isAdmin, isOperario, setAsignarJornadaModal}) {
-  return (
-    <LobbyCard m={m} compact={true}
-      onOpen={()=>onOpen(m.id)}
-      onDelete={isAdmin?()=>onDelete(m.id):null}
-      isAdminMode={isAdmin}
-      onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null}
-      onReplay={replayMatch}
-      onUpdateMatch={updateMatch}
-      onLobbyBallMenu={setLobbyBallMenu}
-      onOpenHistory={(id)=>onHistory(id||m.id)}
-      deviceName={deviceName}
-      playersList={playersList}
-      onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
-      onUndo={(id)=>{ updateMatch(id, mm => {
-        if (mm.games.length > 0) { const last=mm.games[mm.games.length-1]; return {...mm,games:mm.games.slice(0,-1),wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1},currentServe:last.serve,seriesFinished:false,seriesWinner:null}; }
-        if (mm.seriesHistory.length > 0) { const ls=mm.seriesHistory[mm.seriesHistory.length-1]; return {...mm,seriesHistory:mm.seriesHistory.slice(0,-1),seriesWins:{p1:mm.seriesWins.p1-(ls.winner==="p1"?1:0),p2:mm.seriesWins.p2-(ls.winner==="p2"?1:0)},seriesCount:ls.seriesNum,games:ls.games||[],wins:{p1:ls.p1wins||0,p2:ls.p2wins||0},seriesFinished:true,seriesWinner:ls.winner}; }
-        return mm;
-      }); }}
-      onReactivar={isOperario?()=>{updateMatch(m.id,mm=>{const csw=mm.closedSeriesWins?mm.closedSeriesWins:mm.seriesWins;return{...mm,matchClosed:false,closedAt:null,seriesWins:csw,closedSeriesWins:null};});}:null}
-      onTerminar={isAdmin?()=>{updateMatch(m.id,mm=>{if(!mm.seriesFinished)return mm;const sw=mm.seriesWinner;const nh=[...mm.seriesHistory,{seriesNum:mm.seriesCount,winner:sw,games:mm.games,p1wins:mm.wins.p1,p2wins:mm.wins.p2,partial:false}];const nsw={p1:mm.seriesWins.p1+(sw==="p1"?1:0),p2:mm.seriesWins.p2+(sw==="p2"?1:0)};return{...mm,seriesHistory:nh,seriesWins:nsw,matchClosed:true,closedSeriesWins:mm.seriesWins,closedAt:Date.now()};});}:null}
-    />
-  );
-});
-
-const MemoTvGrid = React.memo(function MemoTvGrid({matches, onReorder, isAdmin, isOperario, onOpen, onDelete, onHistory, updateMatch, replayMatch, setLobbyBallMenu, deviceName, playersList, setAsignarJornadaModal}) {
-  const stateRef = React.useRef({dragFrom: null});
-  const [dragIdx, setDragIdx] = React.useState(null);
-  const gridRef = React.useRef(null);
-  const matchesRef = React.useRef(matches);
-  const onReorderRef = React.useRef(onReorder);
-  matchesRef.current = matches;
-  onReorderRef.current = onReorder;
-
-  React.useEffect(() => {
-    const el = gridRef.current;
-    if (!el) return;
-    const onMove = (e) => {
-      if (stateRef.current.dragFrom === null) return;
-      e.preventDefault();
-      const t = e.touches[0];
-      const over = document.elementFromPoint(t.clientX, t.clientY);
-      const card = over && over.closest('[data-tv-idx]');
-      if (!card) return;
-      const toIdx = parseInt(card.dataset.tvIdx);
-      if (toIdx === stateRef.current.dragFrom) return;
-      const ids = matchesRef.current.map(x=>x.id);
-      const moved = [...ids];
-      const [removed] = moved.splice(stateRef.current.dragFrom, 1);
-      moved.splice(toIdx, 0, removed);
-      onReorderRef.current(moved);
-      stateRef.current.dragFrom = toIdx;
-      setDragIdx(toIdx);
-    };
-    const onEnd = () => { stateRef.current.dragFrom = null; setDragIdx(null); };
-    el.addEventListener('touchmove', onMove, {passive:false});
-    el.addEventListener('touchend', onEnd, {passive:true});
-    return () => { el.removeEventListener('touchmove', onMove); el.removeEventListener('touchend', onEnd); };
-  }, []);
-
-  return (
-    <div ref={gridRef} onContextMenu={e=>{e.preventDefault();return false;}}
-      style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
-      {matches.map((m,idx) => (
-        <div key={m.id} data-tv-idx={idx}
-          ref={(el)=>{
-            if (!el || el._lpRegistered) return;
-            el._lpRegistered = true;
-            let timer = null, moved = false;
-            el.addEventListener('touchstart', ()=>{
-              moved = false;
-              timer = setTimeout(()=>{
-                if (!moved) {
-                  stateRef.current.dragFrom = idx;
-                  setDragIdx(idx);
-                  if(navigator.vibrate) navigator.vibrate(50);
-                }
-              }, 450);
-            }, {capture:true, passive:true});
-            el.addEventListener('touchmove', ()=>{ moved=true; clearTimeout(timer); }, {capture:true, passive:true});
-            el.addEventListener('touchend', ()=>{ clearTimeout(timer); }, {capture:true, passive:true});
-          }}
-          style={{opacity:dragIdx===idx?0.4:1,outline:dragIdx===idx?"2px solid rgba(74,222,128,0.6)":"none",borderRadius:12,transition:"opacity 0.15s"}}>
-          <MemoLobbyCard m={m} isAdmin={isAdmin} isOperario={isOperario}
-            onOpen={onOpen} onDelete={onDelete} onHistory={onHistory}
-            updateMatch={updateMatch} replayMatch={replayMatch}
-            setLobbyBallMenu={setLobbyBallMenu} deviceName={deviceName}
-            playersList={playersList} setAsignarJornadaModal={setAsignarJornadaModal} />
-        </div>
-      ))}
-    </div>
-  );
-});
-
-function TvGrid({matches, onReorder, renderCard}) {
-  const stateRef = React.useRef({dragIdx: null, dragFrom: null});
-  const [dragIdx, setDragIdx] = React.useState(null);
-  const gridRef = React.useRef(null);
-  const matchesRef = React.useRef(matches);
-  const onReorderRef = React.useRef(onReorder);
-  matchesRef.current = matches;
-  onReorderRef.current = onReorder;
-
-  React.useEffect(() => {
-    const el = gridRef.current;
-    if (!el) return;
-
-    const onMove = (e) => {
-      if (stateRef.current.dragFrom === null) return;
-      e.preventDefault();
-      const t = e.touches[0];
-      const el2 = document.elementFromPoint(t.clientX, t.clientY);
-      const card = el2 && el2.closest('[data-tv-idx]');
-      if (!card) return;
-      const toIdx = parseInt(card.dataset.tvIdx);
-      if (toIdx === stateRef.current.dragFrom) return;
-      const ids = matchesRef.current.map(x => x.id);
-      const moved = [...ids];
-      const [removed] = moved.splice(stateRef.current.dragFrom, 1);
-      moved.splice(toIdx, 0, removed);
-      onReorderRef.current(moved);
-      stateRef.current.dragFrom = toIdx;
-      stateRef.current.dragIdx = toIdx;
-      setDragIdx(toIdx);
-    };
-
-    const onEnd = () => {
-      stateRef.current.dragFrom = null;
-      stateRef.current.dragIdx = null;
-      setDragIdx(null);
-    };
-
-    el.addEventListener('touchmove', onMove, {passive: false});
-    el.addEventListener('touchend', onEnd, {passive: true});
-    return () => {
-      el.removeEventListener('touchmove', onMove);
-      el.removeEventListener('touchend', onEnd);
-    };
-  }, []); // solo al montar
-
-  const startDrag = (idx) => {
-    stateRef.current.dragFrom = idx;
-    stateRef.current.dragIdx = idx;
-    setDragIdx(idx);
-  };
-
-  const endDrag = () => {
-    stateRef.current.dragFrom = null;
-    stateRef.current.dragIdx = null;
-    setDragIdx(null);
-  };
-
-  return (
-    <div ref={gridRef}
-      onContextMenu={e=>{e.preventDefault();return false;}}
-      style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
-      {matches.map((m, idx) => (
-        <div key={m.id} data-tv-idx={idx}
-          style={{opacity:dragIdx===idx?0.4:1,outline:dragIdx===idx?"2px solid rgba(74,222,128,0.6)":"none",borderRadius:12,transition:"opacity 0.15s"}}>
-          {renderCard(m, ()=>startDrag(idx), endDrag)}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-
-function DraggableCard({children, idx, onDrop, enabled, style}) {
-  const longPressTimer = React.useRef(null);
-  const isDragging = React.useRef(false);
-  const startPos = React.useRef({x:0,y:0});
-  const [active, setActive] = React.useState(false);
-  const divRef = React.useRef(null);
-
-  const onTouchStart = (e) => {
-    if (!enabled) return;
-    const t = e.touches[0];
-    startPos.current = {x:t.clientX, y:t.clientY};
-    isDragging.current = false;
-    longPressTimer.current = setTimeout(() => {
-      isDragging.current = true;
-      setActive(true);
-      if (navigator.vibrate) navigator.vibrate(50);
-    }, 450);
-  };
-
-  const onTouchMove = (e) => {
-    const t = e.touches[0];
-    const dx = Math.abs(t.clientX - startPos.current.x);
-    const dy = Math.abs(t.clientY - startPos.current.y);
-    if (!isDragging.current) {
-      if (dx > 6 || dy > 6) clearTimeout(longPressTimer.current);
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-    const els = document.elementsFromPoint(t.clientX, t.clientY);
-    const target = els.find(el => el.dataset && el.dataset.dragIdx !== undefined && el.dataset.dragIdx !== String(idx));
-    if (target) {
-      onDrop(idx, parseInt(target.dataset.dragIdx));
-      isDragging.current = false;
-      setActive(false);
-    }
-  };
-
-  const onTouchEnd = () => {
-    clearTimeout(longPressTimer.current);
-    isDragging.current = false;
-    setActive(false);
-  };
-
-  return (
-    <div
-      ref={divRef}
-      data-drag-idx={idx}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      onContextMenu={e=>{ e.preventDefault(); e.stopPropagation(); return false; }}
-      style={{...style, opacity:active?0.5:1, outline:active?"2px solid rgba(74,222,128,0.6)":"none", borderRadius:12, touchAction:"pan-y", userSelect:"none", WebkitUserSelect:"none"}}>
-      {children}
-    </div>
-  );
-}
-
-function BtnSalirTV({onSalir}) {
-  const posRef = React.useRef({x: window.innerWidth - 100, y: 14});
-  const dragging = React.useRef(false);
-  const offset = React.useRef({x:0, y:0});
-  const [pos, setPos] = React.useState({x: window.innerWidth - 100, y: 14});
-  const moved = React.useRef(false);
-
-  const onTouchStart = (e) => {
-    const t = e.touches[0];
-    offset.current = {x: t.clientX - posRef.current.x, y: t.clientY - posRef.current.y};
-    dragging.current = true;
-    moved.current = false;
-  };
-  const onTouchMove = (e) => {
-    if (!dragging.current) return;
-    moved.current = true;
-    const t = e.touches[0];
-    const nx = Math.max(0, Math.min(window.innerWidth - 80, t.clientX - offset.current.x));
-    const ny = Math.max(0, Math.min(window.innerHeight - 50, t.clientY - offset.current.y));
-    posRef.current = {x: nx, y: ny};
-    setPos({x: nx, y: ny});
-  };
-  const onTouchEnd = () => {
-    dragging.current = false;
-    if (!moved.current) onSalir();
-  };
-
-  return (
-    <div
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      style={{position:"fixed",left:pos.x,top:pos.y,zIndex:9999,touchAction:"none",userSelect:"none"}}>
-      <div style={{padding:"10px 16px",borderRadius:24,background:"rgba(249,224,75,0.2)",border:"2px solid rgba(249,224,75,0.6)",color:"#f9e04b",fontFamily:"inherit",fontSize:14,fontWeight:800,boxShadow:"0 2px 12px rgba(0,0,0,0.5)",whiteSpace:"nowrap",cursor:"grab"}}>
-        📺 Salir
       </div>
     </div>
   );
@@ -995,20 +709,7 @@ function BillarApp() {
   // ===== JORNADAS =====
 
   // Botón flotante actualizar
-  const [modoTV, setModoTV] = React.useState(false);
-  // isLandscape = orientación real del dispositivo (solo afecta cuadrícula)
-  const [isLandscape, setIsLandscape] = React.useState(
-    () => window.matchMedia("(orientation: landscape)").matches
-  );
-  React.useEffect(() => {
-    const mq = window.matchMedia("(orientation: landscape)");
-    const update = (e) => {
-      setIsLandscape(e.matches);
-      if (!e.matches) setModoTV(false); // salir de TV si se vuelve vertical
-    };
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
+
   const BtnActualizar = () => null;
 
   if (jornadaScreen) {
@@ -1945,65 +1646,7 @@ function BillarApp() {
 
   if (screen === "lobby") {
     const list = lobbyTab === "active" ? activeMatches : closedMatches;
-    const [dragIdx, setDragIdx] = React.useState(null);
-    const [dragOver, setDragOver] = React.useState(null);
-
-    // ── MODO ESPECTADOR (horizontal automático) ──
-    if (modoTV) {
-      return (
-        <div
-          onContextMenu={e=>{e.preventDefault();return false;}}
-          style={{position:"fixed",inset:0,background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"10px 10px 80px",WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
-          {/* Botón salir modo TV — arrastrable */}
-          <BtnSalirTV onSalir={()=>setModoTV(false)} />
-          {activeMatches.length === 0 && (
-            <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>No hay partidas en juego.</div>
-          )}
-          <MemoTvGrid
-            matches={activeMatches}
-            onReorder={saveMatchOrder}
-            isAdmin={isAdmin}
-            isOperario={isOperario}
-            onOpen={(id)=>{setActiveIdP(id);setScreenP("match");}}
-            onDelete={isAdmin?(id=>deleteMatch(id)):null}
-            onHistory={(id)=>{setActiveIdP(id);setShowHistoryP(true);}}
-            updateMatch={updateMatch}
-            replayMatch={replayMatch}
-            setLobbyBallMenu={setLobbyBallMenu}
-            deviceName={deviceName}
-            playersList={playersList}
-            setAsignarJornadaModal={setAsignarJornadaModal}
-          />
-        {/* Historial desde modo TV */}
-        {showHistory && activeId && !fbLoaded && (
-          <div style={{position:"fixed",inset:0,background:"#081530",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <div style={{color:"#63b3ed",fontSize:14,fontFamily:"Georgia,serif",letterSpacing:1}}>Cargando...</div>
-          </div>
-        )}
-        {showHistory && activeId && fbLoaded && (() => {
-          const hm = matches.find(mm=>mm.id===activeId);
-          if (!hm) { setShowHistoryP(false); return null; }
-          return <HistorialEditable
-            p1Name={hm.p1Name} p2Name={hm.p2Name}
-            modalidad={hm.modalidad} carrera={hm.carrera}
-            seriesHistory={hm.seriesHistory} seriesWins={hm.seriesWins}
-            games={hm.games} seriesCount={hm.seriesCount}
-            seriesFinished={hm.seriesFinished} seriesWinner={hm.seriesWinner}
-            matchClosed={hm.matchClosed} playersList={playersList}
-            onClose={()=>setShowHistoryP(false)}
-            onEditSeriesWinner={(idx,nw)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.map((s,i)=>i!==idx?s:{...s,winner:nw});const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw};});}}
-            onEditCurrentGame={(ji,k)=>{updateMatch(activeId,(m)=>{const ng=m.games.map((g,i)=>i===ji?{...g,winner:k}:g);const nww={p1:0,p2:0};ng.forEach(g=>nww[g.winner]++);const sf=nww.p1>=m.carrera||nww.p2>=m.carrera;const sw=nww.p1>=m.carrera?"p1":nww.p2>=m.carrera?"p2":null;return{...m,games:ng,wins:nww,seriesFinished:sf,seriesWinner:sw};});}}
-            onDeleteLastSeries={()=>{updateMatch(activeId,(m)=>{if(m.seriesHistory.length===0)return m;const last=m.seriesHistory[m.seriesHistory.length-1];const nh=m.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:last.seriesNum,games:last.games||[],wins:{p1:last.p1wins,p2:last.p2wins},seriesFinished:true,seriesWinner:last.winner};});}}
-            onEditHistoryGame={(si,ji,k,fb)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.map((ser,idx)=>{if(idx!==si)return ser;const bg=ser.games||fb;const ng=bg.map((g,i)=>i===ji?{...g,winner:k}:g);const p1=ng.filter(g=>g.winner==="p1").length;const p2=ng.filter(g=>g.winner==="p2").length;const nww=p1>=m.carrera?"p1":p2>=m.carrera?"p2":ser.winner;return{...ser,games:ng,p1wins:p1,p2wins:p2,winner:nww};});const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw};});}}
-            onRestoreLastSeries={(ls,lg)=>{updateMatch(activeId,(m)=>{const nh=m.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});const rg=ls.games||lg;const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):m.firstServe;return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:false,seriesWinner:null};});setShowHistoryP(false);}}
-            onRestoreAnySeries={(si,ls,lg)=>{updateMatch(activeId,(m)=>{const rg=ls.games||lg;const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):m.firstServe;const nh=m.seriesHistory.slice(0,si);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});return{...m,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:false,seriesWinner:null};});setShowHistoryP(false);}}
-            onReactivar={isOperario?()=>{updateMatch(activeId,m=>{const correctedSW=m.closedSeriesWins?m.closedSeriesWins:m.seriesWins;return{...m,matchClosed:false,closedAt:null,seriesWins:correctedSW,closedSeriesWins:null};});setShowHistoryP(false);}:null}
-          />;
-        })()}
-        </div>
-      );
-    }
-
+    // ── Sin modo TV ──
     return (
       <>
       <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
@@ -2049,7 +1692,7 @@ function BillarApp() {
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
               <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v397</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v398</div>
             </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -2084,13 +1727,7 @@ function BillarApp() {
               {tab==="active" && activeMatches.length > 0 && <span style={{background:"#4ade80",color:"#081530",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:800,marginLeft:6}}>{activeMatches.length}</span>}
             </button>
           ))}
-          {isLandscape && (
-            <button onClick={()=>setModoTV(v=>!v)}
-              title="Modo TV"
-              style={{padding:"6px 10px",borderRadius:"10px 10px 0 0",background:modoTV?"rgba(249,224,75,0.15)":"rgba(99,179,237,0.08)",border:`1px solid ${modoTV?"rgba(249,224,75,0.4)":"rgba(99,179,237,0.25)"}`,borderBottom:"none",color:modoTV?"#f9e04b":"#63b3ed",fontSize:16,cursor:"pointer",lineHeight:1}}>
-              📺
-            </button>
-          )}
+
           <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }}
             title="Actualizar"
             style={{padding:"6px 10px",borderRadius:"10px 10px 0 0",background:"rgba(99,179,237,0.08)",border:"1px solid rgba(99,179,237,0.25)",borderBottom:"none",color:"#63b3ed",fontSize:16,cursor:"pointer",lineHeight:1}}>
@@ -2102,15 +1739,8 @@ function BillarApp() {
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
           <div style={isLandscape?{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,paddingBottom:20}:{}}>
           {list.map((m,idx) => (
-            <DraggableCard key={m.id} idx={idx} enabled={lobbyTab==="active"}
-              onDrop={(fromIdx, toIdx)=>{
-                const ids=activeMatches.map(x=>x.id);
-                const moved=[...ids];
-                const [removed]=moved.splice(fromIdx,1);
-                moved.splice(toIdx,0,removed);
-                saveMatchOrder(moved);
-              }}>
-            <LobbyCard m={m} compact={isLandscape} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+            <div key={m.id}>
+            <LobbyCard m={m} compact={false} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
                 // Deshacer último juego
@@ -2142,7 +1772,7 @@ function BillarApp() {
             isLast={lobbyTab==="active"&&activeMatches.indexOf(activeMatches.find(x=>x.id===m.id))===activeMatches.length-1}
             onEditName={!m.matchClosed ? (key)=>setEditingNameKey(key) : null}
             editingNameKey={editingNameKey}
-             /></DraggableCard>))}
+             /></div>))}
           </div>
         </div>
 
@@ -3227,7 +2857,11 @@ function BillarApp() {
               const opts = playersList.map(p=>plName(p)).filter(pn=>pn!==other);
               return (<React.Fragment key={pi}>
                 <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:pi===1?14:0}}>{label}</div>
-                <SelectJugador val={val} setVal={setVal} opts={opts} style={{marginBottom:6}} />
+                <select value={val} onChange={e=>setVal(e.target.value)}
+                  style={{width:"100%",padding:"12px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${val?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:val?"#fff":"#888",fontFamily:"inherit",fontSize:15,outline:"none",boxSizing:"border-box",marginBottom:6,cursor:"pointer"}}>
+                  <option value="" style={{color:"#888",background:"#081530"}}>Selecciona un jugador...</option>
+                  {opts.map((pn,oi)=>(<option key={oi} value={pn} style={{color:"#fff",background:"#081530"}}>{pn}</option>))}
+                </select>
               </React.Fragment>);
             })}
           </>) : (<>
@@ -3237,7 +2871,11 @@ function BillarApp() {
               const opts = playersList.map(pl=>plName(pl)).filter(pn=>!otherPlayers.includes(pn));
               return (
               <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
-                <SelectJugador val={p} setVal={pn=>{const n=[...wPlayers];n[i]=pn;setWPlayers(n);setWOrder([]);}} opts={opts} placeholder="Selecciona..." style={{flex:1}} />
+                <select value={p} onChange={e=>{const n=[...wPlayers];n[i]=e.target.value;setWPlayers(n);setWOrder([]);}}
+                  style={{flex:1,padding:"11px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${p?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:p?"#fff":"#888",fontFamily:"inherit",fontSize:14,outline:"none",cursor:"pointer"}}>
+                  <option value="" style={{color:"#888",background:"#081530"}}>Selecciona un jugador...</option>
+                  {opts.map((pn,oi)=>(<option key={oi} value={pn} style={{color:"#fff",background:"#081530"}}>{pn}</option>))}
+                </select>
                 {wPlayers.length > 2 && <button onClick={()=>{const n=wPlayers.filter((_,j)=>j!==i);setWPlayers(n);setWOrder([]);}} style={{background:"rgba(255,80,80,0.15)",border:"1px solid rgba(255,80,80,0.3)",color:"#f87171",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:14,fontFamily:"inherit"}}>✕</button>}
               </div>
               );
