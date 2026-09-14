@@ -33,7 +33,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v382</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v383</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -62,7 +62,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v382</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v383</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -240,6 +240,63 @@ function SelectJugador({val, setVal, opts, placeholder, style}) {
           </div>
         ))}
       </div>}
+    </div>
+  );
+}
+
+function DraggableCard({children, idx, onDrop, enabled, style}) {
+  const longPressTimer = React.useRef(null);
+  const isDragging = React.useRef(false);
+  const startPos = React.useRef({x:0,y:0});
+  const [active, setActive] = React.useState(false);
+  const [ghost, setGhost] = React.useState(null); // {x,y}
+
+  const onTouchStart = (e) => {
+    if (!enabled) return;
+    const t = e.touches[0];
+    startPos.current = {x:t.clientX, y:t.clientY};
+    isDragging.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isDragging.current = true;
+      setActive(true);
+      setGhost({x:t.clientX, y:t.clientY});
+      if (navigator.vibrate) navigator.vibrate(40);
+    }, 400);
+  };
+
+  const onTouchMove = (e) => {
+    if (!isDragging.current) {
+      // Cancelar long press si se mueve mucho
+      const t = e.touches[0];
+      const dx = Math.abs(t.clientX - startPos.current.x);
+      const dy = Math.abs(t.clientY - startPos.current.y);
+      if (dx > 8 || dy > 8) { clearTimeout(longPressTimer.current); }
+      return;
+    }
+    e.preventDefault();
+    const t = e.touches[0];
+    setGhost({x:t.clientX, y:t.clientY});
+    // Detectar sobre qué elemento está
+    const els = document.elementsFromPoint(t.clientX, t.clientY);
+    const target = els.find(el => el.dataset && el.dataset.dragIdx !== undefined && el.dataset.dragIdx !== String(idx));
+    if (target) onDrop(idx, parseInt(target.dataset.dragIdx));
+  };
+
+  const onTouchEnd = () => {
+    clearTimeout(longPressTimer.current);
+    isDragging.current = false;
+    setActive(false);
+    setGhost(null);
+  };
+
+  return (
+    <div
+      data-drag-idx={idx}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{...style, opacity:active?0.5:1, outline:active?"2px solid rgba(74,222,128,0.6)":"none", borderRadius:12, touchAction: isDragging.current?"none":"auto", userSelect:"none"}}>
+      {children}
     </div>
   );
 }
@@ -771,13 +828,12 @@ function BillarApp() {
 
   // Botón flotante actualizar
   const [modoTV, setModoTV] = React.useState(false);
-  const isLandscape = modoTV; // alias para compatibilidad
-  const [isDeviceLandscape, setIsDeviceLandscape] = React.useState(
+  const [isLandscape, setIsLandscape] = React.useState(
     () => window.matchMedia("(orientation: landscape)").matches
   );
   React.useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
-    const update = (e) => { setIsDeviceLandscape(e.matches); if (!e.matches) setModoTV(false); };
+    const update = (e) => { setIsLandscape(e.matches); if (!e.matches) setModoTV(false); };
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
@@ -1730,8 +1786,16 @@ function BillarApp() {
             <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>No hay partidas en juego.</div>
           )}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            {activeMatches.map(m => (
-              <LobbyCard key={m.id} m={m} compact={true}
+            {activeMatches.map((m,idx) => (
+              <DraggableCard key={m.id} idx={idx} enabled={true}
+                onDrop={(fromIdx,toIdx)=>{
+                  const ids=activeMatches.map(x=>x.id);
+                  const moved=[...ids];
+                  const [removed]=moved.splice(fromIdx,1);
+                  moved.splice(toIdx,0,removed);
+                  saveMatchOrder(moved);
+                }}>
+              <LobbyCard m={m} compact={true}
                 onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}}
                 onDelete={isAdmin?()=>deleteMatch(m.id):null}
                 isAdminMode={isAdmin}
@@ -1751,6 +1815,7 @@ function BillarApp() {
                 onReactivar={isAdmin?(id=>{updateMatch(id,m=>{const csw=m.closedSeriesWins?m.closedSeriesWins:m.seriesWins;return{...m,matchClosed:false,closedAt:null,seriesWins:csw,closedSeriesWins:null};});})():null}
                 onTerminar={isAdmin?(id=>{updateMatch(id,m=>{if(!m.seriesFinished)return m;const sw=m.seriesWinner;const nh=[...m.seriesHistory,{seriesNum:m.seriesCount,winner:sw,games:m.games,p1wins:m.wins.p1,p2wins:m.wins.p2,partial:false}];const nsw={p1:m.seriesWins.p1+(sw==="p1"?1:0),p2:m.seriesWins.p2+(sw==="p2"?1:0)};return{...m,seriesHistory:nh,seriesWins:nsw,matchClosed:true,closedSeriesWins:m.seriesWins,closedAt:Date.now()};});})():null}
               />
+              </DraggableCard>
             ))}
           </div>
         {/* Historial desde modo TV */}
@@ -1860,7 +1925,7 @@ function BillarApp() {
               {tab==="active" && activeMatches.length > 0 && <span style={{background:"#4ade80",color:"#081530",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:800,marginLeft:6}}>{activeMatches.length}</span>}
             </button>
           ))}
-          {isDeviceLandscape && (
+          {isLandscape && (
             <button onClick={()=>setModoTV(v=>!v)}
               title="Modo TV"
               style={{padding:"6px 10px",borderRadius:"10px 10px 0 0",background:modoTV?"rgba(249,224,75,0.15)":"rgba(99,179,237,0.08)",border:`1px solid ${modoTV?"rgba(249,224,75,0.4)":"rgba(99,179,237,0.25)"}`,borderBottom:"none",color:modoTV?"#f9e04b":"#63b3ed",fontSize:16,cursor:"pointer",lineHeight:1}}>
@@ -1878,21 +1943,14 @@ function BillarApp() {
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
           <div style={isLandscape?{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,paddingBottom:20}:{}}>
           {list.map((m,idx) => (
-            <div key={m.id}
-              draggable={lobbyTab==="active"}
-              onDragStart={()=>setDragIdx(idx)}
-              onDragOver={e=>{e.preventDefault();setDragOver(idx);}}
-              onDrop={()=>{
-                if(dragIdx===null||dragIdx===idx) return;
+            <DraggableCard key={m.id} idx={idx} enabled={lobbyTab==="active"}
+              onDrop={(fromIdx, toIdx)=>{
                 const ids=activeMatches.map(x=>x.id);
                 const moved=[...ids];
-                const [removed]=moved.splice(dragIdx,1);
-                moved.splice(idx,0,removed);
+                const [removed]=moved.splice(fromIdx,1);
+                moved.splice(toIdx,0,removed);
                 saveMatchOrder(moved);
-                setDragIdx(null);setDragOver(null);
-              }}
-              onDragEnd={()=>{setDragIdx(null);setDragOver(null);}}
-              style={{opacity:dragIdx===idx?0.4:1,outline:dragOver===idx&&dragIdx!==idx?"2px solid rgba(74,222,128,0.6)":"none",borderRadius:12,transition:"opacity 0.15s"}}>
+              }}>
             <LobbyCard m={m} compact={isLandscape} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
@@ -1925,7 +1983,7 @@ function BillarApp() {
             isLast={lobbyTab==="active"&&activeMatches.indexOf(activeMatches.find(x=>x.id===m.id))===activeMatches.length-1}
             onEditName={!m.matchClosed ? (key)=>setEditingNameKey(key) : null}
             editingNameKey={editingNameKey}
-             /></div>))}
+             /></DraggableCard>))}
           </div>
         </div>
 
