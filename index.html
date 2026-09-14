@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v385</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v386</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v385</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v386</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -241,6 +241,77 @@ function SelectJugador({val, setVal, opts, placeholder, style}) {
           </div>
         ))}
       </div>}
+    </div>
+  );
+}
+
+function TvGrid({matches, onReorder, renderCard}) {
+  const gridRef = React.useRef(null);
+  const dragTimer = React.useRef(null);
+  const dragFrom = React.useRef(null);
+  const [dragActive, setDragActive] = React.useState(false);
+  const [dragIdx, setDragIdx] = React.useState(null);
+
+  const getIdx = (x, y) => {
+    if (!gridRef.current) return null;
+    const cards = gridRef.current.querySelectorAll("[data-tv-idx]");
+    for (let c of cards) {
+      const r = c.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom)
+        return parseInt(c.dataset.tvIdx);
+    }
+    return null;
+  };
+
+  const onTouchStart = (e) => {
+    const t = e.touches[0];
+    const idx = getIdx(t.clientX, t.clientY);
+    if (idx === null) return;
+    dragFrom.current = idx;
+    dragTimer.current = setTimeout(() => {
+      setDragActive(true);
+      setDragIdx(idx);
+      if (navigator.vibrate) navigator.vibrate(50);
+    }, 450);
+  };
+
+  const onTouchMove = (e) => {
+    if (!dragActive) { clearTimeout(dragTimer.current); return; }
+    e.preventDefault();
+    e.stopPropagation();
+    const t = e.touches[0];
+    const toIdx = getIdx(t.clientX, t.clientY);
+    if (toIdx !== null && toIdx !== dragFrom.current) {
+      const ids = matches.map(x=>x.id);
+      const moved = [...ids];
+      const [removed] = moved.splice(dragFrom.current, 1);
+      moved.splice(toIdx, 0, removed);
+      onReorder(moved);
+      dragFrom.current = toIdx;
+      setDragIdx(toIdx);
+    }
+  };
+
+  const onTouchEnd = () => {
+    clearTimeout(dragTimer.current);
+    dragFrom.current = null;
+    setDragActive(false);
+    setDragIdx(null);
+  };
+
+  return (
+    <div ref={gridRef}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onContextMenu={e=>{e.preventDefault();return false;}}
+      style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none",touchAction:"pan-y"}}>
+      {matches.map((m,idx) => (
+        <div key={m.id} data-tv-idx={idx}
+          style={{opacity:dragActive&&dragIdx===idx?0.4:1,outline:dragActive&&dragIdx===idx?"2px solid rgba(74,222,128,0.6)":"none",borderRadius:12,transition:"opacity 0.15s"}}>
+          {renderCard(m)}
+        </div>
+      ))}
     </div>
   );
 }
@@ -1793,17 +1864,8 @@ function BillarApp() {
           {activeMatches.length === 0 && (
             <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>No hay partidas en juego.</div>
           )}
-          <div className="no-callout" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            {activeMatches.map((m,idx) => (
-              <DraggableCard key={m.id} idx={idx} enabled={true}
-                onDrop={(fromIdx,toIdx)=>{
-                  const ids=activeMatches.map(x=>x.id);
-                  const moved=[...ids];
-                  const [removed]=moved.splice(fromIdx,1);
-                  moved.splice(toIdx,0,removed);
-                  saveMatchOrder(moved);
-                }}>
-              <LobbyCard m={m} compact={true}
+          <TvGrid matches={activeMatches} onReorder={saveMatchOrder} renderCard={(m)=>(
+                  <LobbyCard m={m} compact={true}
                 onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}}
                 onDelete={isAdmin?()=>deleteMatch(m.id):null}
                 isAdminMode={isAdmin}
@@ -1823,9 +1885,7 @@ function BillarApp() {
                 onReactivar={isAdmin?(id=>{updateMatch(id,m=>{const csw=m.closedSeriesWins?m.closedSeriesWins:m.seriesWins;return{...m,matchClosed:false,closedAt:null,seriesWins:csw,closedSeriesWins:null};});})():null}
                 onTerminar={isAdmin?(id=>{updateMatch(id,m=>{if(!m.seriesFinished)return m;const sw=m.seriesWinner;const nh=[...m.seriesHistory,{seriesNum:m.seriesCount,winner:sw,games:m.games,p1wins:m.wins.p1,p2wins:m.wins.p2,partial:false}];const nsw={p1:m.seriesWins.p1+(sw==="p1"?1:0),p2:m.seriesWins.p2+(sw==="p2"?1:0)};return{...m,seriesHistory:nh,seriesWins:nsw,matchClosed:true,closedSeriesWins:m.seriesWins,closedAt:Date.now()};});})():null}
               />
-              </DraggableCard>
-            ))}
-          </div>
+          )} />
         {/* Historial desde modo TV */}
         {showHistory && activeId && !fbLoaded && (
           <div style={{position:"fixed",inset:0,background:"#081530",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -1899,7 +1959,10 @@ function BillarApp() {
         )}
         <div style={{padding:"14px 14px 0",position:"relative",zIndex:10}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-            <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
+            <div style={{display:"flex",alignItems:"baseline",gap:6}}>
+              <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v386</div>
+            </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
               background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
