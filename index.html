@@ -27,14 +27,13 @@
       display: flex; flex-direction: column; overflow: hidden;
     }
     .app-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    #root.rotated .app-screen { position: relative; min-height: 100%; height: 100%; }
-    #root.rotated .app-scroll { overflow-y: auto; }
+
   </style>
 </head>
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v376</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v377</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +62,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v376</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v377</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -85,7 +84,6 @@
   setTimeout(function() { clearInterval(_splashCheck); _hideSplash(); }, 10000);
 </script>
 <div id="root"></div>
-<div id="floating-btns"></div>
 <script type="text/babel">
 const { useState, useEffect } = React;
 
@@ -393,66 +391,13 @@ function BillarApp() {
   const setActiveIdP = (id) => { setActiveId(id); if(id) localStorage.setItem("bg_activeId", id); else localStorage.removeItem("bg_activeId"); };
   const setJornadaScreenP = (s) => { setJornadaScreen(s); if(s) localStorage.setItem("bg_jornadaScreen", s); else localStorage.removeItem("bg_jornadaScreen"); };
 
-  // Botón flotante de orientación CSS
+  // Detectar orientación automáticamente
   React.useEffect(() => {
-    const portal = document.getElementById("floating-btns");
-    if (!portal) return;
-
-    let landscape = false;
-
-    const btn = document.createElement("button");
-    btn.textContent = "↔️";
-    btn.title = "Modo horizontal";
-    btn.style.cssText = "position:fixed;bottom:80px;right:14px;z-index:9999;width:46px;height:46px;border-radius:50%;background:rgba(15,42,90,0.95);border:1px solid rgba(99,179,237,0.5);color:#63b3ed;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 16px rgba(0,0,0,0.6);";
-
-    const applyOrientation = () => {
-      const root = document.getElementById("root");
-      if (landscape) {
-        const vw = window.innerWidth, vh = window.innerHeight;
-        // Rotar 90deg: el ancho pasa a ser vh y el alto vw
-        const scale = vw / vh; // escalar para que ocupe todo el ancho
-        root.style.cssText = [
-          "position:fixed",
-          "top:0","left:0",
-          "width:" + vh + "px",
-          "height:" + vw + "px",
-          "transform-origin:top left",
-          "transform:rotate(90deg) translateY(-" + vw + "px)",
-          "overflow:hidden"
-        ].join(";");
-        root.classList.add("rotated");
-        document.body.style.overflow = "hidden";
-        btn.textContent = "↕️";
-        btn.title = "Volver a vertical";
-        btn.style.bottom = "14px";
-        btn.style.right = "14px";
-      } else {
-        root.style.cssText = "";
-        root.classList.remove("rotated");
-        document.body.style.overflow = "";
-        btn.textContent = "↔️";
-        btn.title = "Modo horizontal";
-        btn.style.bottom = "80px";
-        btn.style.right = "14px";
-      }
-    };
-
-    btn.onclick = () => {
-      landscape = !landscape;
-      applyOrientation();
-      // Notificar a React del cambio de orientación
-      window.dispatchEvent(new CustomEvent("orientationToggle", {detail: {landscape}}));
-    };
-
-    portal.appendChild(btn);
-    return () => { portal.innerHTML = ""; document.getElementById("root").style.cssText = ""; };
-  }, []);
-
-  // Escuchar cambio de orientación desde botón DOM
-  React.useEffect(() => {
-    const onOrient = (e) => setIsLandscape(e.detail.landscape);
-    window.addEventListener("orientationToggle", onOrient);
-    return () => window.removeEventListener("orientationToggle", onOrient);
+    const mq = window.matchMedia("(orientation: landscape)");
+    const update = (e) => setIsLandscape(e.matches);
+    setIsLandscape(mq.matches);
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
   }, []);
 
   // ── Historial de navegación para botón atrás Android ──
@@ -783,37 +728,6 @@ function BillarApp() {
 
   // Botón flotante actualizar
   const [isLandscape, setIsLandscape] = React.useState(false);
-  const toggleOrientation = async () => {
-    try {
-      if (!isLandscape) {
-        await screen.orientation.lock("landscape");
-        setIsLandscape(true);
-      } else {
-        screen.orientation.unlock();
-        setIsLandscape(false);
-      }
-    } catch(e) {
-      alert("Gira el celular manualmente.");
-    }
-  };
-
-  // Portal global — siempre visible en todas las pantallas
-  const FloatingButtons = () => ReactDOM.createPortal(
-    <div style={{position:"fixed",bottom:80,right:14,zIndex:9999,display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
-      <button onClick={toggleOrientation}
-        title={isLandscape?"Volver a vertical":"Modo horizontal"}
-        style={{width:46,height:46,borderRadius:"50%",background:"rgba(15,42,90,0.95)",border:"1px solid rgba(99,179,237,0.5)",color:"#63b3ed",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:"0 2px 16px rgba(0,0,0,0.6)"}}>
-        {isLandscape ? "↕️" : "↔️"}
-      </button>
-      <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }}
-        title="Actualizar"
-        style={{width:46,height:46,borderRadius:"50%",background:"rgba(15,42,90,0.95)",border:"1px solid rgba(99,179,237,0.5)",color:"#63b3ed",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:"0 2px 16px rgba(0,0,0,0.6)"}}>
-        🔄
-      </button>
-    </div>,
-    document.getElementById("floating-btns")
-  );
-
   const BtnActualizar = () => null;
 
   if (jornadaScreen) {
