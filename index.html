@@ -34,7 +34,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v396</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v397</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v396</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v397</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -245,9 +245,9 @@ function SelectJugador({val, setVal, opts, placeholder, style}) {
   );
 }
 
-const MemoLobbyCard = React.memo(function MemoLobbyCard({m, onLongPress, onOpen, onDelete, onHistory, updateMatch, replayMatch, setLobbyBallMenu, deviceName, playersList, isAdmin, isOperario, setAsignarJornadaModal}) {
+const MemoLobbyCard = React.memo(function MemoLobbyCard({m, onOpen, onDelete, onHistory, updateMatch, replayMatch, setLobbyBallMenu, deviceName, playersList, isAdmin, isOperario, setAsignarJornadaModal}) {
   return (
-    <LobbyCard m={m} compact={true} onLongPress={onLongPress}
+    <LobbyCard m={m} compact={true}
       onOpen={()=>onOpen(m.id)}
       onDelete={isAdmin?()=>onDelete(m.id):null}
       isAdminMode={isAdmin}
@@ -310,9 +310,25 @@ const MemoTvGrid = React.memo(function MemoTvGrid({matches, onReorder, isAdmin, 
       style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
       {matches.map((m,idx) => (
         <div key={m.id} data-tv-idx={idx}
+          ref={(el)=>{
+            if (!el || el._lpRegistered) return;
+            el._lpRegistered = true;
+            let timer = null, moved = false;
+            el.addEventListener('touchstart', ()=>{
+              moved = false;
+              timer = setTimeout(()=>{
+                if (!moved) {
+                  stateRef.current.dragFrom = idx;
+                  setDragIdx(idx);
+                  if(navigator.vibrate) navigator.vibrate(50);
+                }
+              }, 450);
+            }, {capture:true, passive:true});
+            el.addEventListener('touchmove', ()=>{ moved=true; clearTimeout(timer); }, {capture:true, passive:true});
+            el.addEventListener('touchend', ()=>{ clearTimeout(timer); }, {capture:true, passive:true});
+          }}
           style={{opacity:dragIdx===idx?0.4:1,outline:dragIdx===idx?"2px solid rgba(74,222,128,0.6)":"none",borderRadius:12,transition:"opacity 0.15s"}}>
           <MemoLobbyCard m={m} isAdmin={isAdmin} isOperario={isOperario}
-            onLongPress={()=>{ stateRef.current.dragFrom=idx; setDragIdx(idx); if(navigator.vibrate) navigator.vibrate(50); }}
             onOpen={onOpen} onDelete={onDelete} onHistory={onHistory}
             updateMatch={updateMatch} replayMatch={replayMatch}
             setLobbyBallMenu={setLobbyBallMenu} deviceName={deviceName}
@@ -2033,7 +2049,7 @@ function BillarApp() {
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
               <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v396</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v397</div>
             </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -3857,37 +3873,13 @@ function CrTimer({ startTs, base=0, big=false }) {
   return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
 }
 
-function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false, onAsignarJornada=null, compact=false, onLongPress=null}) {
+function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false, onAsignarJornada=null, compact=false}) {
   const cPad = compact ? "8px 10px" : "12px 14px";
   // Long press via capture — no puede ser bloqueado por stopPropagation de hijos
-  const lpTimer = React.useRef(null);
-  const lpMoved = React.useRef(false);
-  const onLongPressRef = React.useRef(onLongPress);
-  onLongPressRef.current = onLongPress;
-
-  // Callback ref — se llama cuando el DOM está listo
-  const cardRef = React.useCallback((el) => {
-    if (!el) return;
-    const onStart = () => {
-      if (!onLongPressRef.current) return;
-      lpMoved.current = false;
-      clearTimeout(lpTimer.current);
-      lpTimer.current = setTimeout(() => {
-        if (!lpMoved.current && onLongPressRef.current) {
-          if(navigator.vibrate) navigator.vibrate(50);
-          onLongPressRef.current();
-        }
-      }, 450);
-    };
-    const onMove = () => { lpMoved.current = true; clearTimeout(lpTimer.current); };
-    const onEnd = () => { clearTimeout(lpTimer.current); };
-    el.addEventListener('touchstart', onStart, {capture: true, passive: true});
-    el.addEventListener('touchmove', onMove, {capture: true, passive: true});
-    el.addEventListener('touchend', onEnd, {capture: true, passive: true});
-  }, []);
   const onCardTouchStart = null;
   const onCardTouchMove = null;
   const onCardTouchEnd = null;
+  const cardRef = React.useRef(null);
   const cFontName = compact ? 13 : 15;
   const cFontSub = compact ? 10 : 11;
   const cFontScore = compact ? 22 : 28;
