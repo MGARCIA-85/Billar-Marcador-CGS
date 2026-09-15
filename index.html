@@ -27,14 +27,12 @@
       display: flex; flex-direction: column; overflow: hidden;
     }
     .app-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    #root.rotated .app-screen { position: relative; min-height: 100%; height: 100%; }
-    #root.rotated .app-scroll { overflow-y: auto; }
   </style>
 </head>
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v376</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v407</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v376</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v407</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -85,7 +83,6 @@
   setTimeout(function() { clearInterval(_splashCheck); _hideSplash(); }, 10000);
 </script>
 <div id="root"></div>
-<div id="floating-btns"></div>
 <script type="text/babel">
 const { useState, useEffect } = React;
 
@@ -393,67 +390,7 @@ function BillarApp() {
   const setActiveIdP = (id) => { setActiveId(id); if(id) localStorage.setItem("bg_activeId", id); else localStorage.removeItem("bg_activeId"); };
   const setJornadaScreenP = (s) => { setJornadaScreen(s); if(s) localStorage.setItem("bg_jornadaScreen", s); else localStorage.removeItem("bg_jornadaScreen"); };
 
-  // Botón flotante de orientación CSS
-  React.useEffect(() => {
-    const portal = document.getElementById("floating-btns");
-    if (!portal) return;
-
-    let landscape = false;
-
-    const btn = document.createElement("button");
-    btn.textContent = "↔️";
-    btn.title = "Modo horizontal";
-    btn.style.cssText = "position:fixed;bottom:80px;right:14px;z-index:9999;width:46px;height:46px;border-radius:50%;background:rgba(15,42,90,0.95);border:1px solid rgba(99,179,237,0.5);color:#63b3ed;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 16px rgba(0,0,0,0.6);";
-
-    const applyOrientation = () => {
-      const root = document.getElementById("root");
-      if (landscape) {
-        const vw = window.innerWidth, vh = window.innerHeight;
-        // Rotar 90deg: el ancho pasa a ser vh y el alto vw
-        const scale = vw / vh; // escalar para que ocupe todo el ancho
-        root.style.cssText = [
-          "position:fixed",
-          "top:0","left:0",
-          "width:" + vh + "px",
-          "height:" + vw + "px",
-          "transform-origin:top left",
-          "transform:rotate(90deg) translateY(-" + vw + "px)",
-          "overflow:hidden"
-        ].join(";");
-        root.classList.add("rotated");
-        document.body.style.overflow = "hidden";
-        btn.textContent = "↕️";
-        btn.title = "Volver a vertical";
-        btn.style.bottom = "14px";
-        btn.style.right = "14px";
-      } else {
-        root.style.cssText = "";
-        root.classList.remove("rotated");
-        document.body.style.overflow = "";
-        btn.textContent = "↔️";
-        btn.title = "Modo horizontal";
-        btn.style.bottom = "80px";
-        btn.style.right = "14px";
-      }
-    };
-
-    btn.onclick = () => {
-      landscape = !landscape;
-      applyOrientation();
-      // Notificar a React del cambio de orientación
-      window.dispatchEvent(new CustomEvent("orientationToggle", {detail: {landscape}}));
-    };
-
-    portal.appendChild(btn);
-    return () => { portal.innerHTML = ""; document.getElementById("root").style.cssText = ""; };
-  }, []);
-
-  // Escuchar cambio de orientación desde botón DOM
-  React.useEffect(() => {
-    const onOrient = (e) => setIsLandscape(e.detail.landscape);
-    window.addEventListener("orientationToggle", onOrient);
-    return () => window.removeEventListener("orientationToggle", onOrient);
-  }, []);
+  // Sin botón de orientación
 
   // ── Historial de navegación para botón atrás Android ──
   const navHistoryRef = React.useRef([]);
@@ -782,37 +719,16 @@ function BillarApp() {
   // ===== JORNADAS =====
 
   // Botón flotante actualizar
-  const [isLandscape, setIsLandscape] = React.useState(false);
-  const toggleOrientation = async () => {
-    try {
-      if (!isLandscape) {
-        await screen.orientation.lock("landscape");
-        setIsLandscape(true);
-      } else {
-        screen.orientation.unlock();
-        setIsLandscape(false);
-      }
-    } catch(e) {
-      alert("Gira el celular manualmente.");
-    }
-  };
-
-  // Portal global — siempre visible en todas las pantallas
-  const FloatingButtons = () => ReactDOM.createPortal(
-    <div style={{position:"fixed",bottom:80,right:14,zIndex:9999,display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
-      <button onClick={toggleOrientation}
-        title={isLandscape?"Volver a vertical":"Modo horizontal"}
-        style={{width:46,height:46,borderRadius:"50%",background:"rgba(15,42,90,0.95)",border:"1px solid rgba(99,179,237,0.5)",color:"#63b3ed",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:"0 2px 16px rgba(0,0,0,0.6)"}}>
-        {isLandscape ? "↕️" : "↔️"}
-      </button>
-      <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }}
-        title="Actualizar"
-        style={{width:46,height:46,borderRadius:"50%",background:"rgba(15,42,90,0.95)",border:"1px solid rgba(99,179,237,0.5)",color:"#63b3ed",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:"0 2px 16px rgba(0,0,0,0.6)"}}>
-        🔄
-      </button>
-    </div>,
-    document.getElementById("floating-btns")
+  const [isLandscape, setIsLandscape] = React.useState(
+    () => window.matchMedia("(orientation: landscape)").matches
   );
+  const [navOpen, setNavOpen] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia("(orientation: landscape)");
+    const update = (e) => setIsLandscape(e.matches);
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   const BtnActualizar = () => null;
 
@@ -1752,7 +1668,7 @@ function BillarApp() {
     const list = lobbyTab === "active" ? activeMatches : closedMatches;
     return (
       <>
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
+      <div className="app-screen" onContextMenu={e=>e.preventDefault()} style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",WebkitTouchCallout:"none"}}>
         {saqueModal && (
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
             <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.3)",maxWidth:320,width:"100%",textAlign:"center"}}>
@@ -1793,32 +1709,35 @@ function BillarApp() {
         )}
         <div style={{padding:"14px 14px 0",position:"relative",zIndex:10}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-            <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
+            <div style={{display:"flex",alignItems:"baseline",gap:6}}>
+              <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v407</div>
+            </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
               background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
               color:isAdmin?"#f9e04b":isOperario?"#4ade80":"#888"}}>
               {isAdmin?"👑 ADMIN":isOperario?"⚙️ OPERARIO":"🎱 JUGADOR"}
             </div>
+            <div style={{position:"relative",marginLeft:"auto"}}>
+              <button onClick={()=>setNavOpen(o=>!o)}
+                style={{padding:"6px 12px",borderRadius:10,background:navOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:`1px solid ${navOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"}`,color:navOpen?"#63b3ed":"#bbb",fontFamily:"inherit",fontSize:16,fontWeight:700,cursor:"pointer"}}>
+                ☰
+              </button>
+              {navOpen && (
+                <>
+                  <div onClick={()=>setNavOpen(false)} style={{position:"fixed",inset:0,zIndex:998}} />
+                  <div style={{position:"absolute",top:"110%",right:0,zIndex:999,background:"#0f2a5a",border:"1px solid rgba(99,179,237,0.3)",borderRadius:12,padding:8,display:"flex",flexDirection:"column",gap:6,minWidth:180,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+                    <button style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"none",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setScreenP("stats");setNavOpen(false);}}>📊 Estadísticas</button>
+                    <button style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"none",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setScreenP("players");setNavOpen(false);}}>👥 Jugadores</button>
+                    <button style={{padding:"10px 14px",borderRadius:8,background:jornadaScreen?"rgba(249,224,75,0.12)":"rgba(255,255,255,0.07)",border:"none",color:jornadaScreen?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setJornadaScreenP("list");setNavOpen(false);}}>🗓 Jornadas</button>
+                    {isJugador && <button style={{padding:"10px 14px",borderRadius:8,background:"linear-gradient(135deg,rgba(30,58,138,0.5),rgba(74,222,128,0.2))",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");setNavOpen(false);}}>+ Nueva Partida</button>}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-          <div style={{display:"flex",gap:6,alignItems:"stretch"}}>
-            <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>setScreenP("stats")}>
-              <div style={{fontSize:15,lineHeight:1}}>📊</div>
-              <div style={{fontSize:9,marginTop:3,color:"#888",fontWeight:600}}>Estadísticas</div>
-            </button>
-            <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>setScreenP("players")}>
-              <div style={{fontSize:15,lineHeight:1}}>👥</div>
-              <div style={{fontSize:9,marginTop:3,color:"#888",fontWeight:600}}>Jugadores</div>
-            </button>
-            <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:jornadaScreen?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:jornadaScreen?"1px solid rgba(249,224,75,0.3)":"1px solid rgba(255,255,255,0.13)",color:jornadaScreen?"#f9e04b":"#bbb",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>setJornadaScreenP("list")}>
-              <div style={{fontSize:15,lineHeight:1}}>🗓</div>
-              <div style={{fontSize:9,marginTop:3,color:jornadaScreen?"#f9e04b":"#888",fontWeight:600}}>Jornadas</div>
-            </button>
-            {isJugador && <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>
-              <div style={{fontSize:15,lineHeight:1,fontWeight:800}}>+</div>
-              <div style={{fontSize:9,marginTop:3,fontWeight:700}}>Nueva</div>
-            </button>}
-          </div>
+
         </div>
         <div style={{display:"flex",padding:"12px 16px 0",gap:8,alignItems:"flex-end"}}>
           {["active","closed"].map(tab => (
