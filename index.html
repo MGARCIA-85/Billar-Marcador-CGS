@@ -21,20 +21,20 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { background: #081530; font-family: Georgia, serif; overscroll-behavior-y: contain; }
-    .no-callout { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
     #root { min-height: 100vh; }
     .app-screen { 
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       display: flex; flex-direction: column; overflow: hidden;
     }
     .app-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-
+    #root.rotated .app-screen { position: relative; min-height: 100%; height: 100%; }
+    #root.rotated .app-scroll { overflow-y: auto; }
   </style>
 </head>
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v403</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v376</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +63,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v403</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v376</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -85,6 +85,7 @@
   setTimeout(function() { clearInterval(_splashCheck); _hideSplash(); }, 10000);
 </script>
 <div id="root"></div>
+<div id="floating-btns"></div>
 <script type="text/babel">
 const { useState, useEffect } = React;
 
@@ -220,6 +221,27 @@ function Acceso({ ok }) {
           {loading?"Verificando...":"Entrar"}
         </button>
       </div>
+    </div>
+  );
+}
+
+function SelectJugador({val, setVal, opts, placeholder, style}) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{position:"relative",...(style||{})}}>
+      <div onClick={()=>setOpen(o=>!o)}
+        style={{width:"100%",padding:"12px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${val?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:val?"#fff":"#888",fontFamily:"inherit",fontSize:15,boxSizing:"border-box",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span>{val||(placeholder||"Selecciona un jugador...")}</span>
+        <span style={{fontSize:10,color:"#666"}}>{open?"▲":"▼"}</span>
+      </div>
+      {open && <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#0d1f0d",border:"1px solid rgba(74,222,128,0.3)",borderRadius:10,zIndex:500,maxHeight:200,overflowY:"auto",marginTop:4}}>
+        {opts.map((pn,oi)=>(
+          <div key={oi} onClick={()=>{setVal(pn);setOpen(false);}}
+            style={{padding:"11px 14px",color:"#fff",fontSize:14,cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,0.05)",background:val===pn?"rgba(74,222,128,0.12)":"transparent"}}>
+            {pn}
+          </div>
+        ))}
+      </div>}
     </div>
   );
 }
@@ -371,6 +393,67 @@ function BillarApp() {
   const setActiveIdP = (id) => { setActiveId(id); if(id) localStorage.setItem("bg_activeId", id); else localStorage.removeItem("bg_activeId"); };
   const setJornadaScreenP = (s) => { setJornadaScreen(s); if(s) localStorage.setItem("bg_jornadaScreen", s); else localStorage.removeItem("bg_jornadaScreen"); };
 
+  // Botón flotante de orientación CSS
+  React.useEffect(() => {
+    const portal = document.getElementById("floating-btns");
+    if (!portal) return;
+
+    let landscape = false;
+
+    const btn = document.createElement("button");
+    btn.textContent = "↔️";
+    btn.title = "Modo horizontal";
+    btn.style.cssText = "position:fixed;bottom:80px;right:14px;z-index:9999;width:46px;height:46px;border-radius:50%;background:rgba(15,42,90,0.95);border:1px solid rgba(99,179,237,0.5);color:#63b3ed;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 16px rgba(0,0,0,0.6);";
+
+    const applyOrientation = () => {
+      const root = document.getElementById("root");
+      if (landscape) {
+        const vw = window.innerWidth, vh = window.innerHeight;
+        // Rotar 90deg: el ancho pasa a ser vh y el alto vw
+        const scale = vw / vh; // escalar para que ocupe todo el ancho
+        root.style.cssText = [
+          "position:fixed",
+          "top:0","left:0",
+          "width:" + vh + "px",
+          "height:" + vw + "px",
+          "transform-origin:top left",
+          "transform:rotate(90deg) translateY(-" + vw + "px)",
+          "overflow:hidden"
+        ].join(";");
+        root.classList.add("rotated");
+        document.body.style.overflow = "hidden";
+        btn.textContent = "↕️";
+        btn.title = "Volver a vertical";
+        btn.style.bottom = "14px";
+        btn.style.right = "14px";
+      } else {
+        root.style.cssText = "";
+        root.classList.remove("rotated");
+        document.body.style.overflow = "";
+        btn.textContent = "↔️";
+        btn.title = "Modo horizontal";
+        btn.style.bottom = "80px";
+        btn.style.right = "14px";
+      }
+    };
+
+    btn.onclick = () => {
+      landscape = !landscape;
+      applyOrientation();
+      // Notificar a React del cambio de orientación
+      window.dispatchEvent(new CustomEvent("orientationToggle", {detail: {landscape}}));
+    };
+
+    portal.appendChild(btn);
+    return () => { portal.innerHTML = ""; document.getElementById("root").style.cssText = ""; };
+  }, []);
+
+  // Escuchar cambio de orientación desde botón DOM
+  React.useEffect(() => {
+    const onOrient = (e) => setIsLandscape(e.detail.landscape);
+    window.addEventListener("orientationToggle", onOrient);
+    return () => window.removeEventListener("orientationToggle", onOrient);
+  }, []);
 
   // ── Historial de navegación para botón atrás Android ──
   const navHistoryRef = React.useRef([]);
@@ -473,10 +556,6 @@ function BillarApp() {
           try { localStorage.setItem("bg_players", JSON.stringify(d.list)); } catch{}
         }}
       }, () => {});
-    db.collection("billar").doc("config").onSnapshot(snap => {
-      if (snap.exists) { const d = snap.data(); if (d && Array.isArray(d.matchOrder)) setMatchOrder(d.matchOrder); }
-    });
-
     const unsub4 = db.collection("billar").doc("dispositivos").onSnapshot(snap => {
       if (snap.exists) {
         const d = snap.data();
@@ -545,11 +624,6 @@ function BillarApp() {
     };
   }, []);
 
-  const saveMatchOrder = (newIds) => {
-    setMatchOrder(newIds);
-    db.collection("billar").doc("config").set({matchOrder: newIds}).catch(e=>console.error(e));
-  };
-
   const moveMatch = (id, dir) => {
     const ids = activeMatches.map(m=>m.id);
     const i = ids.indexOf(id);
@@ -557,7 +631,7 @@ function BillarApp() {
     if(dir===1 && i===ids.length-1) return;
     const newIds = [...ids];
     [newIds[i], newIds[i+dir]] = [newIds[i+dir], newIds[i]];
-    saveMatchOrder(newIds);
+    setMatchOrder(newIds);
   };
 
   const saveMatches = async (nm) => {
@@ -708,16 +782,38 @@ function BillarApp() {
   // ===== JORNADAS =====
 
   // Botón flotante actualizar
+  const [isLandscape, setIsLandscape] = React.useState(false);
+  const toggleOrientation = async () => {
+    try {
+      if (!isLandscape) {
+        await screen.orientation.lock("landscape");
+        setIsLandscape(true);
+      } else {
+        screen.orientation.unlock();
+        setIsLandscape(false);
+      }
+    } catch(e) {
+      alert("Gira el celular manualmente.");
+    }
+  };
 
-  const [isLandscape, setIsLandscape] = React.useState(
-    () => window.matchMedia("(orientation: landscape)").matches
+  // Portal global — siempre visible en todas las pantallas
+  const FloatingButtons = () => ReactDOM.createPortal(
+    <div style={{position:"fixed",bottom:80,right:14,zIndex:9999,display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
+      <button onClick={toggleOrientation}
+        title={isLandscape?"Volver a vertical":"Modo horizontal"}
+        style={{width:46,height:46,borderRadius:"50%",background:"rgba(15,42,90,0.95)",border:"1px solid rgba(99,179,237,0.5)",color:"#63b3ed",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:"0 2px 16px rgba(0,0,0,0.6)"}}>
+        {isLandscape ? "↕️" : "↔️"}
+      </button>
+      <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }}
+        title="Actualizar"
+        style={{width:46,height:46,borderRadius:"50%",background:"rgba(15,42,90,0.95)",border:"1px solid rgba(99,179,237,0.5)",color:"#63b3ed",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:"0 2px 16px rgba(0,0,0,0.6)"}}>
+        🔄
+      </button>
+    </div>,
+    document.getElementById("floating-btns")
   );
-  React.useEffect(() => {
-    const mq = window.matchMedia("(orientation: landscape)");
-    const update = (e) => setIsLandscape(e.matches);
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
+
   const BtnActualizar = () => null;
 
   if (jornadaScreen) {
@@ -1654,10 +1750,9 @@ function BillarApp() {
 
   if (screen === "lobby") {
     const list = lobbyTab === "active" ? activeMatches : closedMatches;
-    const [navOpen, setNavOpen] = React.useState(false);
     return (
       <>
-      <div className="app-screen" onContextMenu={e=>e.preventDefault()} style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",WebkitTouchCallout:"none"}}>
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
         {saqueModal && (
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
             <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.3)",maxWidth:320,width:"100%",textAlign:"center"}}>
@@ -1698,36 +1793,32 @@ function BillarApp() {
         )}
         <div style={{padding:"14px 14px 0",position:"relative",zIndex:10}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:6}}>
-              <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v402</div>
-            </div>
+            <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
               background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
               color:isAdmin?"#f9e04b":isOperario?"#4ade80":"#888"}}>
               {isAdmin?"👑 ADMIN":isOperario?"⚙️ OPERARIO":"🎱 JUGADOR"}
             </div>
-            {/* Botón ☰ siempre en el header */}
-            <div style={{position:"relative",marginLeft:"auto"}}>
-              <button onClick={()=>setNavOpen(o=>!o)}
-                style={{padding:"6px 12px",borderRadius:10,background:navOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:`1px solid ${navOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"}`,color:navOpen?"#63b3ed":"#bbb",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
-                ☰
-              </button>
-              {navOpen && (
-                <>
-                  <div onClick={()=>setNavOpen(false)} style={{position:"fixed",inset:0,zIndex:998}} />
-                  <div style={{position:"absolute",top:"110%",right:0,zIndex:999,background:"#0f2a5a",border:"1px solid rgba(99,179,237,0.3)",borderRadius:12,padding:8,display:"flex",flexDirection:"column",gap:6,minWidth:180,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
-                    <button style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"none",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setScreenP("stats");setNavOpen(false);}}>📊 Estadísticas</button>
-                    <button style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"none",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setScreenP("players");setNavOpen(false);}}>👥 Jugadores</button>
-                    <button style={{padding:"10px 14px",borderRadius:8,background:jornadaScreen?"rgba(249,224,75,0.12)":"rgba(255,255,255,0.07)",border:"none",color:jornadaScreen?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setJornadaScreenP("list");setNavOpen(false);}}>🗓 Jornadas</button>
-                    {isJugador && <button style={{padding:"10px 14px",borderRadius:8,background:"linear-gradient(135deg,rgba(30,58,138,0.5),rgba(74,222,128,0.2))",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");setNavOpen(false);}}>+ Nueva Partida</button>}
-                  </div>
-                </>
-              )}
-            </div>
           </div>
-
+          <div style={{display:"flex",gap:6,alignItems:"stretch"}}>
+            <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>setScreenP("stats")}>
+              <div style={{fontSize:15,lineHeight:1}}>📊</div>
+              <div style={{fontSize:9,marginTop:3,color:"#888",fontWeight:600}}>Estadísticas</div>
+            </button>
+            <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>setScreenP("players")}>
+              <div style={{fontSize:15,lineHeight:1}}>👥</div>
+              <div style={{fontSize:9,marginTop:3,color:"#888",fontWeight:600}}>Jugadores</div>
+            </button>
+            <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:jornadaScreen?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:jornadaScreen?"1px solid rgba(249,224,75,0.3)":"1px solid rgba(255,255,255,0.13)",color:jornadaScreen?"#f9e04b":"#bbb",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>setJornadaScreenP("list")}>
+              <div style={{fontSize:15,lineHeight:1}}>🗓</div>
+              <div style={{fontSize:9,marginTop:3,color:jornadaScreen?"#f9e04b":"#888",fontWeight:600}}>Jornadas</div>
+            </button>
+            {isJugador && <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>
+              <div style={{fontSize:15,lineHeight:1,fontWeight:800}}>+</div>
+              <div style={{fontSize:9,marginTop:3,fontWeight:700}}>Nueva</div>
+            </button>}
+          </div>
         </div>
         <div style={{display:"flex",padding:"12px 16px 0",gap:8,alignItems:"flex-end"}}>
           {["active","closed"].map(tab => (
@@ -1736,7 +1827,6 @@ function BillarApp() {
               {tab==="active" && activeMatches.length > 0 && <span style={{background:"#4ade80",color:"#081530",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:800,marginLeft:6}}>{activeMatches.length}</span>}
             </button>
           ))}
-
           <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }}
             title="Actualizar"
             style={{padding:"6px 10px",borderRadius:"10px 10px 0 0",background:"rgba(99,179,237,0.08)",border:"1px solid rgba(99,179,237,0.25)",borderBottom:"none",color:"#63b3ed",fontSize:16,cursor:"pointer",lineHeight:1}}>
@@ -1747,9 +1837,7 @@ function BillarApp() {
           style={{padding:"0 14px"}}>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
           <div style={isLandscape?{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,paddingBottom:20}:{}}>
-          {list.map((m,idx) => (
-            <div key={m.id}>
-            <LobbyCard m={m} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+          {list.map(m => <LobbyCard key={m.id} m={m} compact={isLandscape} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
                 // Deshacer último juego
@@ -1781,7 +1869,7 @@ function BillarApp() {
             isLast={lobbyTab==="active"&&activeMatches.indexOf(activeMatches.find(x=>x.id===m.id))===activeMatches.length-1}
             onEditName={!m.matchClosed ? (key)=>setEditingNameKey(key) : null}
             editingNameKey={editingNameKey}
-             /></div>))}
+             />)}
           </div>
         </div>
 
@@ -2001,8 +2089,6 @@ function BillarApp() {
           </div>
         </div>
       )}
-      </div>
-      </div>
       </div>
     </>
     );
@@ -2868,11 +2954,7 @@ function BillarApp() {
               const opts = playersList.map(p=>plName(p)).filter(pn=>pn!==other);
               return (<React.Fragment key={pi}>
                 <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:pi===1?14:0}}>{label}</div>
-                <select value={val} onChange={e=>setVal(e.target.value)}
-                  style={{width:"100%",padding:"12px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${val?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:val?"#fff":"#888",fontFamily:"inherit",fontSize:15,outline:"none",boxSizing:"border-box",marginBottom:6,cursor:"pointer"}}>
-                  <option value="" style={{color:"#888",background:"#081530"}}>Selecciona un jugador...</option>
-                  {opts.map((pn,oi)=>(<option key={oi} value={pn} style={{color:"#fff",background:"#081530"}}>{pn}</option>))}
-                </select>
+                <SelectJugador val={val} setVal={setVal} opts={opts} style={{marginBottom:6}} />
               </React.Fragment>);
             })}
           </>) : (<>
@@ -2882,11 +2964,7 @@ function BillarApp() {
               const opts = playersList.map(pl=>plName(pl)).filter(pn=>!otherPlayers.includes(pn));
               return (
               <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
-                <select value={p} onChange={e=>{const n=[...wPlayers];n[i]=e.target.value;setWPlayers(n);setWOrder([]);}}
-                  style={{flex:1,padding:"11px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${p?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:p?"#fff":"#888",fontFamily:"inherit",fontSize:14,outline:"none",cursor:"pointer"}}>
-                  <option value="" style={{color:"#888",background:"#081530"}}>Selecciona un jugador...</option>
-                  {opts.map((pn,oi)=>(<option key={oi} value={pn} style={{color:"#fff",background:"#081530"}}>{pn}</option>))}
-                </select>
+                <SelectJugador val={p} setVal={pn=>{const n=[...wPlayers];n[i]=pn;setWPlayers(n);setWOrder([]);}} opts={opts} placeholder="Selecciona..." style={{flex:1}} />
                 {wPlayers.length > 2 && <button onClick={()=>{const n=wPlayers.filter((_,j)=>j!==i);setWPlayers(n);setWOrder([]);}} style={{background:"rgba(255,80,80,0.15)",border:"1px solid rgba(255,80,80,0.3)",color:"#f87171",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:14,fontFamily:"inherit"}}>✕</button>}
               </div>
               );
@@ -3524,8 +3602,6 @@ function CrTimer({ startTs, base=0, big=false }) {
 
 function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false, onAsignarJornada=null, compact=false}) {
   const cPad = compact ? "8px 10px" : "12px 14px";
-  // Long press via capture — no puede ser bloqueado por stopPropagation de hijos
-
   const cFontName = compact ? 13 : 15;
   const cFontSub = compact ? 10 : 11;
   const cFontScore = compact ? 22 : 28;
@@ -3729,8 +3805,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
     };
 
     return (
-      <div
-        style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(74,222,128,0.18)",borderRadius:16,padding:"12px 14px",marginBottom:12}}>
+      <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(74,222,128,0.18)",borderRadius:16,padding:"12px 14px",marginBottom:12}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:18}}>⏱</span>
