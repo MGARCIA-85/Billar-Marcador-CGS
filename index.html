@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v410</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v411</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v410</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v411</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -680,7 +680,7 @@ function BillarApp() {
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
               <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v410</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v411</div>
             </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -1926,54 +1926,18 @@ function BillarApp() {
       const nextServe = currentServe==="p1"?"p2":"p1";
       const willFinish = newWins[k] >= carrera;
       updateMatch(activeId, m => ({...m, wins:newWins, games:[...m.games,{winner:k,serve:currentServe,ballType:bt,device:deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
-      // Marcar turno anotado si la partida pertenece a una jornada activa
-      if (jornadaScreen && jornadaScreen!=="list") {
-        saveJornadas(jornadas.map(j => j.id===jornadaScreen && j.turnStarted ? {...j, turnScored:true} : j));
-        setBallMenu(null);
-  };
-
-  const handleCellLongPress = (k, ji) => {
-    const isNext = !seriesFinished && ji === games.length;
-    if (isNext && !isReadOnly) setBallMenu({k, ji});
+    } else if (hasWon && isLastGame) {
+      // Deshacer último juego
+      updateMatch(activeId, mm => {
+        const last = mm.games[mm.games.length-1];
+        return {...mm, games:mm.games.slice(0,-1), wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1}, currentServe:last.serve, seriesFinished:false, seriesWinner:null};
+      });
+    }
   };
 
   return (
     <>
-    <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
-
-      {/* Header */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px 8px",borderBottom:"1px solid rgba(255,255,255,0.07)",background:"rgba(0,0,0,0.4)"}}>
-        <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.11)",color:"#bbb",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Inicio</button>
-        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-          <BallIcon modalidad={modalidad} size={26} />
-          <div style={{fontSize:9,color:"#777",letterSpacing:1,textTransform:"uppercase"}}>{modalidad} - C{carrera} - S#{seriesCount}</div>
-        </div>
-        <button onClick={()=>setShowHistoryP(true)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.11)",color:"#bbb",borderRadius:8,padding:"6px 10px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Hist.</button>
-      </div>
-
-      {/* Series bar */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",background:"rgba(0,0,0,0.45)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-          <span style={{fontSize:11,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,maxWidth:85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p1Name}</span>
-          <span style={{fontSize:30,fontWeight:900,lineHeight:1,color:sw1>sw2?"#f9e04b":"#fff"}}>{sw1}</span>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-          <div style={{fontSize:8,letterSpacing:2,color:"#63b3ed",textTransform:"uppercase"}}>SERIES</div>
-          <div style={{fontSize:18,color:"#333",fontWeight:700}}>-</div>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:10,flex:1,flexDirection:"row-reverse"}}>
-          <span style={{fontSize:11,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,maxWidth:85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p2Name}</span>
-          <span style={{fontSize:30,fontWeight:900,lineHeight:1,color:sw2>sw1?"#f9e04b":"#fff"}}>{sw2}</span>
-        </div>
-      </div>
-
-      {/* Banner */}
-      {seriesFinished
-        ? <div style={{textAlign:"center",padding:"7px 0",background:"rgba(249,224,75,0.08)",borderBottom:"1px solid rgba(249,224,75,0.18)",color:"#ddd",fontSize:13,fontWeight:600}}>Serie #{seriesCount} - Ganó: <strong style={{color:"#f9e04b"}}>{seriesWinner==="p1"?p1Name:p2Name}</strong></div>
-        : <div style={{textAlign:"center",padding:"6px 0",background:"rgba(249,224,75,0.04)",borderBottom:"1px solid rgba(249,224,75,0.08)",color:"#bbb",fontSize:13}}>Saque: <strong style={{color:"#f9e04b"}}>{currentServe==="p1"?p1Name:p2Name}</strong></div>
-      }
-
-      {/* Cuadrícula */}
+    {/* Cuadrícula */}
       <div style={{flex:1,display:"flex",flexDirection:"column",padding:"6px 0",overflow:"hidden"}}>
         <div style={{display:"flex",overflow:"hidden"}}>
           <div style={{flexShrink:0,borderRight:BORDER}}>
@@ -2003,7 +1967,7 @@ function BillarApp() {
                     const isSaque=isNext&&currentServe===k;
                     const blockAdd = false;
                     // Permitir quitar victoria SOLO si scored=true Y es el último juego (mismo criterio que botón Deshacer)
-                    const scoredThisTurn = scored || (activeMatch.jornadaTurnScored === true);
+                    const scoredThisTurn = scored;
                     const blockUndo = false;
                     const jornadaBlockCell = isNext ? blockAdd : (hasWon ? blockUndo : false);
                     const clickable=!isReadOnly&&!jornadaBlockCell&&(isNext||(hasWon&&isLastGame));
@@ -2235,11 +2199,9 @@ function BillarApp() {
           }}
           onReactivar={isOperario?() => {
             updateMatch(activeId, m => {
-      // Restaurar seriesWins previo al cierre (antes de que closeMatch sumara la última serie)
-      const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
-      // No tocar seriesFinished — si era true, "Sig. serie" quedará activo para continuar
-      return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null};
-    });
+              const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
+              return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null};
+            });
             setShowHistoryP(false);
           }:null}
         />
@@ -2971,8 +2933,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
           {(()=>{ const cu3 = (m.games.length>0||m.seriesHistory.length>0); return (
           <button style={{flex:1,padding:"8px 0",borderRadius:10,background:cu3?"rgba(255,200,50,0.1)":"rgba(255,255,255,0.04)",border:cu3?"1px solid rgba(255,200,50,0.25)":"1px solid rgba(255,255,255,0.08)",color:cu3?"#f9e04b":"#444",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:cu3?"pointer":"default"}} onClick={e=>{
                   e.stopPropagation();
-                  const scored2 = jornadaTurnScored===true;
-                  const canUndo = jornadaTurnActive ? scored2 : (jornadaBlocked ? false : (m.games.length>0||m.seriesHistory.length>0));
+                  const canUndo = (m.games.length>0||m.seriesHistory.length>0);
                   if(canUndo) onUndo(m.id);
                 }}>↩ Deshacer</button>); })()}
           <button style={{flex:1,padding:"8px 0",borderRadius:10,
@@ -3092,7 +3053,6 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReplay(m);}}>↺ Re-crear</button>
               <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onOpenHistory(m.id);}}>📋 Historial</button>
               {onReactivar && <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReactivar(m.id);}}>↺ Reactivar</button>}
-              {isAdminMode && onAsignarJornada && <button style={{padding:"5px 10px",borderRadius:8,background:"rgba(249,224,75,0.1)",border:"1px solid rgba(249,224,75,0.3)",color:"#f9e04b",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onAsignarJornada(m.id);}}>🏆 Jornada</button>}
             </div>
           </div>
         );
