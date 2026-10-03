@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v408</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v409</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v408</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v409</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -335,7 +335,6 @@ function BillarApp() {
   const [wPlayers, setWPlayers] = useState(["", ""]);
   const [wOrder, setWOrder] = useState([]);
   const [wRondasCR, setWRondasCR] = useState(3);
-  const [wSeriesCR, setWSeriesCR] = useState(1);
   const [wPenaltyTime, setWPenaltyTime] = useState(10);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [editingNameKey, setEditingNameKey] = useState(null); // "matchId:field" e.g. "abc:p1" or "abc:cr:2"
@@ -343,7 +342,6 @@ function BillarApp() {
   const [sfJugadores, setSfJugadores] = useState([]);
   const [sfPeriod, setSfPeriod] = useState("Este mes");
   const [sortCol, setSortCol] = useState("partidasW");
-  const [rankingOpen, setRankingOpen] = useState(true);
   const [filtrosOpen, setFiltrosOpen] = useState(false);
   const [pinRequerido, setPinRequerido] = useState(()=>localStorage.getItem("bg_pinReq")!=="0");
   const [pinRegistroModal, setPinRegistroModal] = useState(null); // {jugKey, jugName, existingDevs, newDev}
@@ -358,7 +356,6 @@ function BillarApp() {
   const [jornadas, setJornadas] = useState(() => { try { return JSON.parse(localStorage.getItem("bg_jornadas")||"[]"); } catch{return[];} });
   const [jornadaScreen, setJornadaScreen] = useState(()=>localStorage.getItem("bg_jornadaScreen")||null);
   const [jornadaHistorialId, setJornadaHistorialId] = useState(null);
-  const [turnScoredLocal, setTurnScoredLocal] = useState(false); // estado local para turno actual
   const [showHistory, setShowHistory] = useState(()=>localStorage.getItem("bg_showHistory")==="1");
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState(()=>localStorage.getItem("bg_lobbyTab")||"active");
@@ -390,9 +387,8 @@ function BillarApp() {
   const setActiveIdP = (id) => { setActiveId(id); if(id) localStorage.setItem("bg_activeId", id); else localStorage.removeItem("bg_activeId"); };
   const setJornadaScreenP = (s) => { setJornadaScreen(s); if(s) localStorage.setItem("bg_jornadaScreen", s); else localStorage.removeItem("bg_jornadaScreen"); };
 
-  // Sin botón de orientación
 
-  // ── Historial de navegación para botón atrás Android ──
+  // Historial navegación
   const navHistoryRef = React.useRef([]);
   const goBack = React.useCallback(() => {
     const hist = navHistoryRef.current;
@@ -638,7 +634,7 @@ function BillarApp() {
       } else {
         setActiveId(mWithJ.id); setScreenP("lobby"); setLobbyTab("active");
       }
-      setWPlayers(["",""]); setWOrder([]); setWCarrera(5); setWModalidad("Bola 8"); setWRondasCR(3); setWSeriesCR(1); setWPenaltyTime(10);
+      setWPlayers(["",""]); setWOrder([]); setWCarrera(5); setWModalidad("Bola 8"); setWRondasCR(3); setWPenaltyTime(10);
     } else {
       if (!wP1.trim() || !wP2.trim() || !wServe) return;
       const pendingJId2 = sessionStorage.getItem("pendingJornadaId")||null;
@@ -724,8 +720,7 @@ function BillarApp() {
     boxShadow:sel?"0 3px 10px rgba(74,222,128,0.28)":"none"
   });
 
-  // ===== LOBBY =====
-  // ===== JORNADAS =====
+  // ===== JORNADAS / LOBBY =====
 
   // Botón flotante actualizar
   const [isLandscape, setIsLandscape] = React.useState(
@@ -741,7 +736,6 @@ function BillarApp() {
     return () => mq.removeEventListener("change", update);
   }, []);
 
-  const BtnActualizar = () => null;
 
   if (jornadaScreen) {
     const jornadaMatches = matches.filter(m => m.jornadaId === jornadaScreen && jornadaScreen !== "list");
@@ -1372,7 +1366,6 @@ function BillarApp() {
           </div>
         </div>
       )}
-      <BtnActualizar />
       </>
     );
   }
@@ -1722,7 +1715,7 @@ function BillarApp() {
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
               <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v408</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v409</div>
             </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -3007,7 +3000,6 @@ function BillarApp() {
           </div>
         </div>
       </div>
-      <BtnActualizar />
     </>
     );
   }
@@ -3380,7 +3372,6 @@ function BillarApp() {
         />
       )}
     </div>
-    <BtnActualizar />
     </>
   );
 }
