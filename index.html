@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v416</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v417</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v416</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v417</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -387,6 +387,21 @@ function BillarApp() {
     setMantenimiento(nuevo);
     db.collection("billar").doc("config").set({mantenimiento: nuevo}, {merge: true}).catch(e=>console.error(e));
   };
+  // Estado de sincronización: envíos pendientes de confirmación y reconexión en curso
+  const [reconectando, setReconectando] = useState(false);
+  const [pendingWrites, setPendingWrites] = useState(0);
+  const pendingRef = React.useRef(0);
+  // >>> trackWrite
+  const trackWrite = (p) => {
+    pendingRef.current += 1;
+    setTimeout(() => setPendingWrites(pendingRef.current), 0);
+    const done = () => {
+      pendingRef.current = Math.max(0, pendingRef.current - 1);
+      setPendingWrites(pendingRef.current);
+    };
+    return p.then(done, (e) => { console.error(e); done(); });
+  };
+  // <<< trackWrite
   const [showHistory, setShowHistory] = useState(()=>localStorage.getItem("bg_showHistory")==="1");
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState(()=>localStorage.getItem("bg_lobbyTab")||"active");
@@ -541,13 +556,32 @@ function BillarApp() {
     };
 
     // Reconectar al volver al primer plano + fetch inmediato
+    // >>> reconectar
+    // Reconexión forzada: reconstruye el canal de red de Firebase (el celular bloqueado lo deja congelado)
+    let reconectandoFlag = false;
+    let ultimaReconexion = 0;
+    const reconectarFirebase = () => {
+      if (reconectandoFlag) return;
+      if (Date.now() - ultimaReconexion < 3000) return;
+      reconectandoFlag = true;
+      ultimaReconexion = Date.now();
+      setReconectando(true);
+      db.disableNetwork()
+        .then(() => db.enableNetwork())
+        .catch((e) => console.error(e))
+        .then(() => {
+          conectar();   // reinicia listeners
+          fetchAll();   // trae datos frescos de inmediato
+          reconectandoFlag = false;
+          setReconectando(false);
+        });
+    };
+    // <<< reconectar
     const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        conectar();   // reinicia listeners
-        fetchAll();   // trae datos frescos de inmediato
-      }
+      if (document.visibilityState === 'visible') reconectarFirebase();
     };
     document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('online', reconectarFirebase);
 
     // Ping cada 20s para mantener listeners vivos y datos frescos
     const pingTimer = setInterval(() => { fetchAll(); }, 20000);
@@ -561,6 +595,7 @@ function BillarApp() {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       clearInterval(pingTimer);
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', reconectarFirebase);
     };
   }, []);
 
@@ -591,7 +626,7 @@ function BillarApp() {
         }
         return obj;
       }
-      db.collection("billar").doc("partidas").set({matches: stripUndef(nm)});
+      trackWrite(db.collection("billar").doc("partidas").set({matches: stripUndef(nm)}));
     }
     catch(e) { console.error("Error Firebase:", e); }
   };
@@ -599,7 +634,7 @@ function BillarApp() {
   const updateMatch = (id, fn) => {
     setMatches(prev => {
       const nm = prev.map(m => m.id === id ? fn(m) : m);
-      db.collection("billar").doc("partidas").set({matches: cleanUndef(nm)}).catch(e => console.error(e));
+      trackWrite(db.collection("billar").doc("partidas").set({matches: cleanUndef(nm)}));
       return nm;
     });
   };
@@ -737,6 +772,11 @@ function BillarApp() {
   const datosAlerta = datosKB !== null && datosKB >= 820;
   const datosColor = datosKB === null ? "#4ade80" : (datosAlerta ? "#f87171" : (datosKB >= 500 ? "#f9e04b" : "#4ade80"));
   const datosPct = datosKB === null ? 0 : Math.min(100, (datosKB / 1024) * 100);
+  // Indicador de sincronización: verde = confirmado, amarillo = enviando/reconectando, rojo = sin conexión
+  const syncOffline = !isOnline;
+  const syncEnviando = reconectando || pendingWrites > 0;
+  const syncColor = syncOffline ? "#ef4444" : (syncEnviando ? "#f9e04b" : "#4ade80");
+  const syncLabel = syncOffline ? "Sin conexión" : (reconectando ? "Reconectando…" : (pendingWrites > 0 ? "Enviando…" : "Sincronizado"));
   const [organizarOrder, setOrganizarOrder] = React.useState([]); // ids en nuevo orden
   React.useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
@@ -925,8 +965,9 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v416</div>
-            <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v417</div>
+            <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
+            <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
               background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
               color:isAdmin?"#f9e04b":isOperario?"#4ade80":"#888"}}>
