@@ -21,20 +21,18 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { background: #081530; font-family: Georgia, serif; overscroll-behavior-y: contain; }
-    .no-callout { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
     #root { min-height: 100vh; }
     .app-screen { 
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       display: flex; flex-direction: column; overflow: hidden;
     }
     .app-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-
   </style>
 </head>
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v400</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v417</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -63,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v400</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v417</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -224,6 +222,61 @@ function Acceso({ ok }) {
   );
 }
 
+function SelectJugador({val, setVal, opts, placeholder, style}) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{position:"relative",...(style||{})}}>
+      <div onClick={()=>setOpen(o=>!o)}
+        style={{width:"100%",padding:"12px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${val?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:val?"#fff":"#888",fontFamily:"inherit",fontSize:15,boxSizing:"border-box",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span>{val||(placeholder||"Selecciona un jugador...")}</span>
+        <span style={{fontSize:10,color:"#666"}}>{open?"▲":"▼"}</span>
+      </div>
+      {open && <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#0d1f0d",border:"1px solid rgba(74,222,128,0.3)",borderRadius:10,zIndex:500,maxHeight:200,overflowY:"auto",marginTop:4}}>
+        {opts.map((pn,oi)=>(
+          <div key={oi} onClick={()=>{setVal(pn);setOpen(false);}}
+            style={{padding:"11px 14px",color:"#fff",fontSize:14,cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,0.05)",background:val===pn?"rgba(74,222,128,0.12)":"transparent"}}>
+            {pn}
+          </div>
+        ))}
+      </div>}
+    </div>
+  );
+}
+
+// Estimación del tamaño que ocupa un dato en Firestore (reglas oficiales de tamaño)
+function estimateFsBytes(v) {
+  if (v === null || v === undefined) return 1;
+  const t = typeof v;
+  if (t === "boolean") return 1;
+  if (t === "number") return 8;
+  if (t === "string") {
+    let n = 1;
+    for (let i = 0; i < v.length; i++) {
+      const c = v.charCodeAt(i);
+      if (c < 0x80) n += 1;
+      else if (c < 0x800) n += 2;
+      else if (c >= 0xD800 && c <= 0xDBFF) { n += 4; i++; }
+      else n += 3;
+    }
+    return n;
+  }
+  if (Array.isArray(v)) {
+    let n = 0;
+    for (let i = 0; i < v.length; i++) n += estimateFsBytes(v[i]);
+    return n;
+  }
+  if (t === "object") {
+    let n = 0;
+    const keys = Object.keys(v);
+    for (let i = 0; i < keys.length; i++) {
+      if (v[keys[i]] === undefined) continue;
+      n += estimateFsBytes(keys[i]) + estimateFsBytes(v[keys[i]]);
+    }
+    return n;
+  }
+  return 0;
+}
+
 function BillarApp() {
   const [matches, setMatches] = useState([]);
   const [activeId, setActiveId] = useState(()=>localStorage.getItem("bg_activeId")||null);
@@ -249,12 +302,6 @@ function BillarApp() {
     const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
     return (p && typeof p!=="string" && p.color) ? p.color : null;
   };
-  const saveJornadas = (list) => {
-    setJornadas(list);
-    try { localStorage.setItem("bg_jornadas", JSON.stringify(list)); } catch{}
-    db.collection("billar").doc("jornadas").set({jornadas: cleanUndef(list)}).catch(e=>console.error(e));
-  };
-
   const savePlayersList = (list) => {
     setPlayersList(list);
     try { localStorage.setItem("bg_players", JSON.stringify(list)); } catch{}
@@ -316,7 +363,6 @@ function BillarApp() {
   const [wPlayers, setWPlayers] = useState(["", ""]);
   const [wOrder, setWOrder] = useState([]);
   const [wRondasCR, setWRondasCR] = useState(3);
-  const [wSeriesCR, setWSeriesCR] = useState(1);
   const [wPenaltyTime, setWPenaltyTime] = useState(10);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [editingNameKey, setEditingNameKey] = useState(null); // "matchId:field" e.g. "abc:p1" or "abc:cr:2"
@@ -324,7 +370,6 @@ function BillarApp() {
   const [sfJugadores, setSfJugadores] = useState([]);
   const [sfPeriod, setSfPeriod] = useState("Este mes");
   const [sortCol, setSortCol] = useState("partidasW");
-  const [rankingOpen, setRankingOpen] = useState(true);
   const [filtrosOpen, setFiltrosOpen] = useState(false);
   const [pinRequerido, setPinRequerido] = useState(()=>localStorage.getItem("bg_pinReq")!=="0");
   const [pinRegistroModal, setPinRegistroModal] = useState(null); // {jugKey, jugName, existingDevs, newDev}
@@ -336,10 +381,27 @@ function BillarApp() {
   const [sfFechaDesde, setSfFechaDesde] = useState("");
   const [sfFechaHasta, setSfFechaHasta] = useState("");
   const [matchOrder, setMatchOrder] = useState([]);
-  const [jornadas, setJornadas] = useState(() => { try { return JSON.parse(localStorage.getItem("bg_jornadas")||"[]"); } catch{return[];} });
-  const [jornadaScreen, setJornadaScreen] = useState(()=>localStorage.getItem("bg_jornadaScreen")||null);
-  const [jornadaHistorialId, setJornadaHistorialId] = useState(null);
-  const [turnScoredLocal, setTurnScoredLocal] = useState(false); // estado local para turno actual
+  const [mantenimiento, setMantenimiento] = useState(false);
+  const toggleMantenimiento = () => {
+    const nuevo = !mantenimiento;
+    setMantenimiento(nuevo);
+    db.collection("billar").doc("config").set({mantenimiento: nuevo}, {merge: true}).catch(e=>console.error(e));
+  };
+  // Estado de sincronización: envíos pendientes de confirmación y reconexión en curso
+  const [reconectando, setReconectando] = useState(false);
+  const [pendingWrites, setPendingWrites] = useState(0);
+  const pendingRef = React.useRef(0);
+  // >>> trackWrite
+  const trackWrite = (p) => {
+    pendingRef.current += 1;
+    setTimeout(() => setPendingWrites(pendingRef.current), 0);
+    const done = () => {
+      pendingRef.current = Math.max(0, pendingRef.current - 1);
+      setPendingWrites(pendingRef.current);
+    };
+    return p.then(done, (e) => { console.error(e); done(); });
+  };
+  // <<< trackWrite
   const [showHistory, setShowHistory] = useState(()=>localStorage.getItem("bg_showHistory")==="1");
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState(()=>localStorage.getItem("bg_lobbyTab")||"active");
@@ -369,23 +431,18 @@ function BillarApp() {
   const setScreenP = (s) => { setScreen(s); localStorage.setItem("bg_screen", s); };
   const setShowHistoryP = (v) => { setShowHistory(v); if(v) localStorage.setItem("bg_showHistory","1"); else localStorage.removeItem("bg_showHistory"); };
   const setActiveIdP = (id) => { setActiveId(id); if(id) localStorage.setItem("bg_activeId", id); else localStorage.removeItem("bg_activeId"); };
-  const setJornadaScreenP = (s) => { setJornadaScreen(s); if(s) localStorage.setItem("bg_jornadaScreen", s); else localStorage.removeItem("bg_jornadaScreen"); };
 
 
-  // ── Historial de navegación para botón atrás Android ──
+  // Historial navegación
   const navHistoryRef = React.useRef([]);
   const goBack = React.useCallback(() => {
     const hist = navHistoryRef.current;
     if (hist.length > 1) {
-      hist.pop(); // quitar actual
+      hist.pop();
       const prev = hist[hist.length - 1];
-      if (prev.jornadaScreen !== undefined) setJornadaScreen(prev.jornadaScreen);
       setScreen(prev.screen);
       if (prev.screen) localStorage.setItem("bg_screen", prev.screen);
-      if (prev.jornadaScreen) localStorage.setItem("bg_jornadaScreen", prev.jornadaScreen);
-      else localStorage.removeItem("bg_jornadaScreen");
     }
-    // Si no hay historial, no hacer nada (no cierra la app)
   }, []);
 
   // Interceptar botón atrás de Android
@@ -399,43 +456,20 @@ function BillarApp() {
 
   // Registrar cada cambio de pantalla en el historial
   React.useEffect(() => {
-    const entry = {screen, jornadaScreen};
     const hist = navHistoryRef.current;
     const last = hist[hist.length-1];
-    if (!last || last.screen !== screen || last.jornadaScreen !== jornadaScreen) {
-      hist.push(entry);
+    if (!last || last.screen !== screen) {
+      hist.push({screen});
       if (hist.length > 20) hist.shift();
       window.history.pushState({bg:true}, "");
     }
-  }, [screen, jornadaScreen]);
-
-  // Reparar matchOrder: si una partida tiene jornadaId pero no está en matchOrder, agregarla
-  useEffect(() => {
-    if (!fbLoaded || jornadas.length === 0 || matches.length === 0) return;
-    let necesitaGuardar = false;
-    const jornadasReparadas = jornadas.map(j => {
-      const enMatchOrder = new Set(j.matchOrder || []);
-      const faltantes = matches
-        .filter(m => m.jornadaId === j.id && !enMatchOrder.has(m.id))
-        .map(m => m.id);
-      if (faltantes.length > 0) {
-        necesitaGuardar = true;
-        return {...j, matchOrder: [...(j.matchOrder || []), ...faltantes]};
-      }
-      return j;
-    });
-    if (necesitaGuardar) saveJornadas(jornadasReparadas);
-  }, [fbLoaded, matches, jornadas]);
+  }, [screen]);
 
   const [fbLoaded, setFbLoaded] = useState(false);
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(()=>!localStorage.getItem("bg_device")&&!localStorage.getItem("bg_skipRegister"));
   const [registroBorrado, setRegistroBorrado] = useState(false);
   const [pinPrompt, setPinPrompt] = useState(null);
   const [saqueModal, setSaqueModal] = useState(null);
-  const [jornadaFinModal, setJornadaFinModal] = useState(null);
-  const [jornadaResumenId, setJornadaResumenId] = useState(null);
-  const [asignarJornadaModal, setAsignarJornadaModal] = useState(null);
-  const [restaurarModal, setRestaurarModal] = useState(null); // jornadaId // {jornadaId, matches} // {matchId, p1Name, p2Name} // {jugKey,jugName,pin,existingDevs,newDev,onSuccess}
   const [isOnline, setIsOnline] = useState(()=>navigator.onLine);
   useEffect(() => {
     const onOn = () => setIsOnline(true);
@@ -446,7 +480,7 @@ function BillarApp() {
   }, []);
 
   useEffect(() => {
-    let unsub1, unsub2, unsub3, unsub4ref;
+    let unsub1, unsub2, unsub3, unsub4ref, unsub5;
     let reconnectTimer = null;
 
     const conectar = () => {
@@ -454,18 +488,12 @@ function BillarApp() {
       if (unsub2) try { unsub2(); } catch(e) {}
       if (unsub3) try { unsub3(); } catch(e) {}
       if (unsub4ref) try { unsub4ref(); } catch(e) {}
+      if (unsub5) try { unsub5(); } catch(e) {}
 
       unsub1 = db.collection("billar").doc("partidas").onSnapshot(snap => {
         if (snap.exists) { const d = snap.data(); if (d && d.matches) setMatches(d.matches); }
         setFbLoaded(true);
       }, () => { if (!reconnectTimer) reconnectTimer = setTimeout(() => { reconnectTimer=null; conectar(); }, 3000); });
-
-      unsub2 = db.collection("billar").doc("jornadas").onSnapshot(snap => {
-        if (snap.exists) { const d = snap.data(); if (d && Array.isArray(d.jornadas)) {
-          setJornadas(d.jornadas);
-          try { localStorage.setItem("bg_jornadas", JSON.stringify(d.jornadas)); } catch{}
-        }}
-      }, () => {});
 
       unsub3 = db.collection("billar").doc("jugadores").onSnapshot(snap => {
         if (snap.exists) { const d = snap.data(); if (d && Array.isArray(d.list)) {
@@ -473,8 +501,12 @@ function BillarApp() {
           try { localStorage.setItem("bg_players", JSON.stringify(d.list)); } catch{}
         }}
       }, () => {});
-    db.collection("billar").doc("config").onSnapshot(snap => {
-      if (snap.exists) { const d = snap.data(); if (d && Array.isArray(d.matchOrder)) setMatchOrder(d.matchOrder); }
+    unsub5 = db.collection("billar").doc("config").onSnapshot(snap => {
+      if (snap.exists) {
+        const d = snap.data();
+        if (d && Array.isArray(d.matchOrder)) setMatchOrder(d.matchOrder);
+        if (d && typeof d.mantenimiento === "boolean") setMantenimiento(d.mantenimiento);
+      }
     });
 
     const unsub4 = db.collection("billar").doc("dispositivos").onSnapshot(snap => {
@@ -508,28 +540,48 @@ function BillarApp() {
       db.collection("billar").doc("partidas").get().then(snap => {
         if (snap.exists) { const d = snap.data(); if (d && d.matches) setMatches(d.matches); }
       }).catch(()=>{});
-      db.collection("billar").doc("jornadas").get().then(snap => {
-        if (snap.exists) { const d = snap.data(); if (d && Array.isArray(d.jornadas)) {
-          setJornadas(d.jornadas);
-          try { localStorage.setItem("bg_jornadas", JSON.stringify(d.jornadas)); } catch{}
-        }}
-      }).catch(()=>{});
       db.collection("billar").doc("jugadores").get().then(snap => {
         if (snap.exists) { const d = snap.data(); if (d && Array.isArray(d.list)) {
           setPlayersList(d.list);
           try { localStorage.setItem("bg_players", JSON.stringify(d.list)); } catch{}
         }}
       }).catch(()=>{});
+      db.collection("billar").doc("config").get().then(snap => {
+        if (snap.exists) {
+          const d = snap.data();
+          if (d && Array.isArray(d.matchOrder)) setMatchOrder(d.matchOrder);
+          if (d && typeof d.mantenimiento === "boolean") setMantenimiento(d.mantenimiento);
+        }
+      }).catch(()=>{});
     };
 
     // Reconectar al volver al primer plano + fetch inmediato
+    // >>> reconectar
+    // Reconexión forzada: reconstruye el canal de red de Firebase (el celular bloqueado lo deja congelado)
+    let reconectandoFlag = false;
+    let ultimaReconexion = 0;
+    const reconectarFirebase = () => {
+      if (reconectandoFlag) return;
+      if (Date.now() - ultimaReconexion < 3000) return;
+      reconectandoFlag = true;
+      ultimaReconexion = Date.now();
+      setReconectando(true);
+      db.disableNetwork()
+        .then(() => db.enableNetwork())
+        .catch((e) => console.error(e))
+        .then(() => {
+          conectar();   // reinicia listeners
+          fetchAll();   // trae datos frescos de inmediato
+          reconectandoFlag = false;
+          setReconectando(false);
+        });
+    };
+    // <<< reconectar
     const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        conectar();   // reinicia listeners
-        fetchAll();   // trae datos frescos de inmediato
-      }
+      if (document.visibilityState === 'visible') reconectarFirebase();
     };
     document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('online', reconectarFirebase);
 
     // Ping cada 20s para mantener listeners vivos y datos frescos
     const pingTimer = setInterval(() => { fetchAll(); }, 20000);
@@ -539,15 +591,17 @@ function BillarApp() {
       if (unsub2) try { unsub2(); } catch(e) {}
       if (unsub3) try { unsub3(); } catch(e) {}
       if (unsub4ref) try { unsub4ref(); } catch(e) {}
+      if (unsub5) try { unsub5(); } catch(e) {}
       if (reconnectTimer) clearTimeout(reconnectTimer);
       clearInterval(pingTimer);
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', reconectarFirebase);
     };
   }, []);
 
   const saveMatchOrder = (newIds) => {
     setMatchOrder(newIds);
-    db.collection("billar").doc("config").set({matchOrder: newIds}).catch(e=>console.error(e));
+    db.collection("billar").doc("config").set({matchOrder: newIds}, {merge: true}).catch(e=>console.error(e));
   };
 
   const moveMatch = (id, dir) => {
@@ -557,7 +611,7 @@ function BillarApp() {
     if(dir===1 && i===ids.length-1) return;
     const newIds = [...ids];
     [newIds[i], newIds[i+dir]] = [newIds[i+dir], newIds[i]];
-    saveMatchOrder(newIds);
+    setMatchOrder(newIds);
   };
 
   const saveMatches = async (nm) => {
@@ -572,7 +626,7 @@ function BillarApp() {
         }
         return obj;
       }
-      db.collection("billar").doc("partidas").set({matches: stripUndef(nm)});
+      trackWrite(db.collection("billar").doc("partidas").set({matches: stripUndef(nm)}));
     }
     catch(e) { console.error("Error Firebase:", e); }
   };
@@ -580,7 +634,7 @@ function BillarApp() {
   const updateMatch = (id, fn) => {
     setMatches(prev => {
       const nm = prev.map(m => m.id === id ? fn(m) : m);
-      db.collection("billar").doc("partidas").set({matches: cleanUndef(nm)}).catch(e => console.error(e));
+      trackWrite(db.collection("billar").doc("partidas").set({matches: cleanUndef(nm)}));
       return nm;
     });
   };
@@ -608,30 +662,14 @@ function BillarApp() {
         crRoundWins: {},
         crAccumTime: {},
       });
-      const pendingJId = sessionStorage.getItem("pendingJornadaId")||null;
-      sessionStorage.removeItem("pendingJornadaId");
-      const mWithJ = pendingJId ? {...m, jornadaId:pendingJId} : m;
-      saveMatches([...matches, mWithJ]);
-      if(pendingJId) {
-        saveJornadas(jornadas.map(j=>j.id===pendingJId?{...j,matchOrder:[...(j.matchOrder||[]),mWithJ.id]}:j));
-        setJornadaScreenP(pendingJId);
-      } else {
-        setActiveId(mWithJ.id); setScreenP("lobby"); setLobbyTab("active");
-      }
-      setWPlayers(["",""]); setWOrder([]); setWCarrera(5); setWModalidad("Bola 8"); setWRondasCR(3); setWSeriesCR(1); setWPenaltyTime(10);
+      saveMatches([...matches, m]);
+      setActiveId(m.id); setScreenP("lobby"); setLobbyTab("active");
+      setWPlayers(["",""]); setWOrder([]); setWCarrera(5); setWModalidad("Bola 8"); setWRondasCR(3); setWPenaltyTime(10);
     } else {
       if (!wP1.trim() || !wP2.trim() || !wServe) return;
-      const pendingJId2 = sessionStorage.getItem("pendingJornadaId")||null;
-      sessionStorage.removeItem("pendingJornadaId");
       const m = createMatch(wP1.trim(), wP2.trim(), wServe, wCarrera, wModalidad);
-      const mWithJ2 = pendingJId2 ? {...m, jornadaId:pendingJId2} : m;
-      saveMatches([...matches, mWithJ2]);
-      if(pendingJId2) {
-        saveJornadas(jornadas.map(j=>j.id===pendingJId2?{...j,matchOrder:[...(j.matchOrder||[]),mWithJ2.id]}:j));
-        setJornadaScreenP(pendingJId2);
-      } else {
-        setActiveId(mWithJ2.id); setScreenP("lobby"); setLobbyTab("active");
-      }
+      saveMatches([...matches, m]);
+      setActiveId(m.id); setScreenP("lobby"); setLobbyTab("active");
       setWP1(""); setWP2(""); setWServe(null); setWCarrera(5); setWModalidad("Bola 8");
     }
   };
@@ -684,7 +722,7 @@ function BillarApp() {
     setScreenP("newMatch");
   };
 
-  const activeMatchesRaw = matches.filter(m => !m.matchClosed && !m.jornadaId);
+  const activeMatchesRaw = matches.filter(m => !m.matchClosed);
   const activeMatches = matchOrder.length
     ? [...activeMatchesRaw].sort((a,b) => {
         const ai = matchOrder.indexOf(a.id);
@@ -695,7 +733,7 @@ function BillarApp() {
         return ai-bi;
       })
     : activeMatchesRaw.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  const closedMatches = matches.filter(m => m.matchClosed && !m.jornadaId).sort((a,b) => (b.closedAt||b.createdAt||0)-(a.closedAt||a.createdAt||0));
+  const closedMatches = matches.filter(m => m.matchClosed).sort((a,b) => (b.closedAt||b.createdAt||0)-(a.closedAt||a.createdAt||0));
 
   const chip = (sel) => ({
     padding:"8px 14px", borderRadius:20, fontFamily:"inherit", fontSize:13, fontWeight:600,
@@ -704,949 +742,57 @@ function BillarApp() {
     boxShadow:sel?"0 3px 10px rgba(74,222,128,0.28)":"none"
   });
 
-  // ===== LOBBY =====
-  // ===== JORNADAS =====
+  // ===== JORNADAS / LOBBY =====
 
   // Botón flotante actualizar
-
   const [isLandscape, setIsLandscape] = React.useState(
     () => window.matchMedia("(orientation: landscape)").matches
   );
+  const [navOpen, setNavOpen] = React.useState(false);
+  const [organizarMode, setOrganizarMode] = React.useState(false);
+  const [focusMode, setFocusMode] = React.useState(false);
+  const [focusIdx, setFocusIdx] = React.useState(0);
+  const swipeStartX = React.useRef(0);
+  const [focusZoom, setFocusZoom] = React.useState(()=>{
+    const saved = parseFloat(localStorage.getItem("bg_focusZoom"));
+    return (saved && saved>=0.6 && saved<=2.5) ? saved : 1;
+  });
+  const changeFocusZoom = (delta) => {
+    setFocusZoom(z => {
+      const nz = Math.max(0.6, Math.min(2.5, Math.round((z+delta)*10)/10));
+      localStorage.setItem("bg_focusZoom", nz);
+      return nz;
+    });
+  };
+  // Medidor de tamaño de datos (solo admin): estima el peso del documento "partidas" en Firebase
+  const datosKB = React.useMemo(() => {
+    if (!isAdmin) return null;
+    try { return Math.round(((estimateFsBytes({matches: matches}) + 100) / 1024) * 10) / 10; } catch(e) { return null; }
+  }, [matches, isAdmin]);
+  const datosAlerta = datosKB !== null && datosKB >= 820;
+  const datosColor = datosKB === null ? "#4ade80" : (datosAlerta ? "#f87171" : (datosKB >= 500 ? "#f9e04b" : "#4ade80"));
+  const datosPct = datosKB === null ? 0 : Math.min(100, (datosKB / 1024) * 100);
+  // Indicador de sincronización: verde = confirmado, amarillo = enviando/reconectando, rojo = sin conexión
+  const syncOffline = !isOnline;
+  const syncEnviando = reconectando || pendingWrites > 0;
+  const syncColor = syncOffline ? "#ef4444" : (syncEnviando ? "#f9e04b" : "#4ade80");
+  const syncLabel = syncOffline ? "Sin conexión" : (reconectando ? "Reconectando…" : (pendingWrites > 0 ? "Enviando…" : "Sincronizado"));
+  const [organizarOrder, setOrganizarOrder] = React.useState([]); // ids en nuevo orden
   React.useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
-    const update = (e) => setIsLandscape(e.matches);
+    const update = (e) => { setIsLandscape(e.matches); if (!e.matches) setFocusMode(false); };
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
-  const BtnActualizar = () => null;
 
-  if (jornadaScreen) {
-    const jornadaMatches = matches.filter(m => m.jornadaId === jornadaScreen && jornadaScreen !== "list");
-    const currentJ = jornadas.find(j => j.id === jornadaScreen);
-
-    // ── Lista de jornadas ──
-    if (jornadaScreen === "list") {
-      return (
-        <>
-        <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
-          <div className="app-scroll"
-          style={{padding:"20px 14px"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-              <div style={{fontSize:22,fontWeight:800,color:"#f9e04b"}}>🗓 Jornadas</div>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }} style={{background:"rgba(99,179,237,0.08)",border:"1px solid rgba(99,179,237,0.25)",color:"#63b3ed",borderRadius:10,padding:"7px 10px",fontSize:14,cursor:"pointer",lineHeight:1}}>🔄</button>
-                <button onClick={()=>setJornadaScreenP(null)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
-              </div>
-            </div>
-            {isJugador && <button onClick={()=>{
-              const newJNombre = prompt("Nombre para la jornada:", "Jornada "+(jornadas.length+1));
-              if(!newJNombre?.trim()) return;
-              const newJ = {id:"j_"+Date.now(), name:newJNombre.trim(), currentTurn:0, turnStarted:false, turnScored:false, matchOrder:[], finished:false, createdAt:Date.now()};
-              saveJornadas([...jornadas, newJ]);
-              setJornadaScreenP(newJ.id);
-            }} style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",fontFamily:"inherit",fontSize:15,fontWeight:800,marginBottom:16,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",color:"#fff",cursor:"pointer"}}>
-              + Nueva jornada
-            </button>}
-            {/* Lista de jornadas existentes */}
-            {jornadas.length===0
-              ? <div style={{color:"#444",textAlign:"center",padding:"40px 0",fontSize:13}}>No hay jornadas creadas</div>
-              : jornadas.slice().reverse().map(j => {
-                  const jms = matches.filter(m=>m.jornadaId===j.id);
-                  const done = jms.filter(m=>m.matchClosed).length;
-                  return (
-                    <div key={j.id} style={{padding:"12px 14px",borderRadius:12,background:j.finished?"rgba(239,68,68,0.04)":"rgba(249,224,75,0.04)",border:`1px solid ${j.finished?"rgba(239,68,68,0.25)":"rgba(249,224,75,0.3)"}`,marginBottom:8}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                        <div onClick={()=>setJornadaScreenP(j.id)} style={{flex:1,cursor:"pointer"}}>
-                          <span style={{fontSize:"clamp(13px,3.8vw,15px)",fontWeight:700,color:j.finished?"#f87171":"#f9e04b"}}>{j.name}</span>
-                          <span style={{fontSize:11,color:"#888",marginLeft:8}}>{done}/{jms.length} partidas</span>
-                        </div>
-                        <div style={{display:"flex",gap:6}}>
-                          <button onClick={()=>{
-                            const newName = prompt("Nuevo nombre:", j.name);
-                            if(newName?.trim()) saveJornadas(jornadas.map(x=>x.id===j.id?{...x,name:newName.trim()}:x));
-                          }} style={{fontSize:11,padding:"4px 8px",borderRadius:6,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",cursor:"pointer"}}>✏️</button>
-                          {isAdmin && <button onClick={()=>{
-                            if(window.confirm(`¿Eliminar "${j.name}"? También se eliminarán sus partidas.`)){
-                              saveMatches(matches.filter(m=>m.jornadaId!==j.id));
-                              saveJornadas(jornadas.filter(x=>x.id!==j.id));
-                            }
-                          }} style={{fontSize:11,padding:"4px 8px",borderRadius:6,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",color:"#f87171",fontFamily:"inherit",cursor:"pointer"}}>🗑</button>}
-                        </div>
-                      </div>
-                      <div onClick={()=>setJornadaScreenP(j.id)} style={{fontSize:11,color:"#666",cursor:"pointer"}}>{j.finished?<span style={{color:"#f87171",fontWeight:800,fontSize:13}}>🔴 FINALIZADA</span>:<span>🟡 En curso · Toca para abrir</span>}</div>
-                      {j.createdAt && <div style={{fontSize:10,color:"#444",marginTop:2}}>📅 {new Date(j.createdAt).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})}</div>}
-                      <button onClick={()=>setJornadaResumenId(j.id)}
-                        style={{marginTop:6,width:"100%",padding:"7px 0",borderRadius:9,background:"rgba(249,224,75,0.06)",border:"1px solid rgba(249,224,75,0.2)",color:"#f9e04b",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                        📊 Resumen
-                      </button>
-                      <button onClick={()=>{
-                        if(!window.confirm(`¿Re-crear "${j.name}" como nueva jornada? Se copiarán las partidas con los mismos jugadores.`)) return;
-                        const jornadaMtchs = matches.filter(m=>m.jornadaId===j.id&&m.modalidad!=="Contrarreloj");
-                        if(jornadaMtchs.length===0){alert("No hay partidas para re-crear.");return;}
-                        const newJName = prompt("Nombre para la nueva jornada:", j.name);
-                        if(!newJName?.trim()) return;
-                        const newJId = "j_"+Date.now();
-                        const newJ = {id:newJId, name:newJName.trim(), currentTurn:0, turnStarted:false, turnScored:false, matchOrder:[], finished:false, createdAt:Date.now()};
-                        const newMs = jornadaMtchs.map(m=>{
-                          const nm = createMatch(m.p1Name, m.p2Name, null, m.carrera, m.modalidad);
-                          return {...nm, jornadaId:newJId, needsServeSelection:true};
-                        });
-                        saveMatches([...matches, ...newMs]);
-                        saveJornadas([...jornadas, {...newJ, matchOrder:newMs.map(m=>m.id)}]);
-                        setJornadaScreenP(newJId);
-                      }} style={{marginTop:8,width:"100%",padding:"8px 0",borderRadius:9,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                        ↺ Re-crear jornada
-                      </button>
-                    </div>
-                  );
-                })
-            }
-          </div>
-        {jornadaResumenId && (()=>{
-          const jR = jornadas.find(j=>j.id===jornadaResumenId);
-          const jRMs = matches.filter(m=>m.jornadaId===jornadaResumenId&&m.modalidad!=="Contrarreloj");
-          if(!jR) return null;
-          return (
-            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:999,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px 12px",overflowY:"auto"}}>
-              <div style={{background:"#0f1f0f",borderRadius:18,padding:"20px 16px",border:"1px solid rgba(74,222,128,0.3)",maxWidth:420,width:"100%"}}>
-                <div style={{fontSize:28,textAlign:"center",marginBottom:6}}>📊</div>
-                <div style={{fontSize:17,fontWeight:800,color:"#f9e04b",textAlign:"center",marginBottom:4}}>{jR.name}</div>
-                <div style={{fontSize:12,color:"#888",textAlign:"center",marginBottom:16}}>{jR.finished?"✅ Finalizada":"🟡 En curso"} · {jRMs.length} partidas</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:18}}>
-                  {jRMs.map(m=>{
-                    const sw1=m.seriesWins?.p1||0, sw2=m.seriesWins?.p2||0;
-                    const winner=sw1>sw2?"p1":sw2>sw1?"p2":null;
-                    const ig=m.games||[];
-                    const p1w=ig.filter(g=>g.winner==="p1").length;
-                    const p2w=ig.filter(g=>g.winner==="p2").length;
-                    return (
-                      <div key={m.id} style={{background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"10px 8px",border:"1px solid rgba(255,255,255,0.08)"}}>
-                        <div style={{fontSize:9,color:"#555",marginBottom:6,textAlign:"center"}}>{m.modalidad} · C{m.carrera}</div>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:4,marginBottom:ig.length>0?6:0}}>
-                          <div style={{flex:1,textAlign:"center"}}>
-                            <div style={{fontSize:11,fontWeight:800,color:getPlayerColor(m.p1Name)||"#e0e0e0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{winner==="p1"?"👑 ":""}{m.p1Name}</div>
-                            <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",gap:1,marginTop:4}}>{Array.from({length:sw1},(_,i)=><span key={i} style={{fontSize:13}}>🏆</span>)}{sw1===0&&<span style={{fontSize:11,color:"#555"}}>—</span>}</div>
-                          </div>
-                          <div style={{fontSize:11,color:"#444",fontWeight:700}}>-</div>
-                          <div style={{flex:1,textAlign:"center"}}>
-                            <div style={{fontSize:11,fontWeight:800,color:getPlayerColor(m.p2Name)||"#e0e0e0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{winner==="p2"?"👑 ":""}{m.p2Name}</div>
-                            <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",gap:1,marginTop:4}}>{Array.from({length:sw2},(_,i)=><span key={i} style={{fontSize:13}}>🏆</span>)}{sw2===0&&<span style={{fontSize:11,color:"#555"}}>—</span>}</div>
-                          </div>
-                        </div>
-                        {ig.length>0&&(()=>{ return (
-                          <div style={{background:"rgba(255,255,255,0.03)",borderRadius:6,padding:"5px 6px"}}>
-                            <div style={{fontSize:9,color:"#f9e04b",fontWeight:700,marginBottom:4}}>Serie {m.seriesFinished?"concluida":"inconclusa"} #{m.seriesCount}</div>
-                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:4}}>
-                              <div style={{display:"flex",flexWrap:"wrap",gap:2,flex:1}}>
-                                {ig.filter(g=>g.winner==="p1").map((g,j)=><BallIcon key={j} modalidad={m.modalidad} size={16}/>)}
-                                {p1w===0&&<span style={{fontSize:9,color:"#333"}}>—</span>}
-                              </div>
-                              <div style={{fontSize:9,color:"#333",fontWeight:700}}>vs</div>
-                              <div style={{display:"flex",flexWrap:"wrap",gap:2,flex:1,justifyContent:"flex-end"}}>
-                                {ig.filter(g=>g.winner==="p2").map((g,j)=><BallIcon key={j} modalidad={m.modalidad} size={16}/>)}
-                                {p2w===0&&<span style={{fontSize:9,color:"#333"}}>—</span>}
-                              </div>
-                            </div>
-                          </div>
-                        ); })()}
-                      </div>
-                    );
-                  })}
-                </div>
-                <button onClick={()=>setJornadaResumenId(null)}
-                  style={{width:"100%",padding:"13px",borderRadius:12,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:"#aaa",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>
-                  ✕ Cerrar
-                </button>
-              </div>
-            </div>
-          );
-        })()}
-        </div>
-      </>
-      );
-    }
-
-    // ── Pantalla de jornada específica ──
-    if (!currentJ) { if (jornadas.length > 0 || fbLoaded) setJornadaScreenP("list"); return null; }
-
-    const jMatchIds = currentJ.matchOrder || [];
-    const currentTurnIdx = currentJ.currentTurn ?? 0;
-    const currentMatchId = jMatchIds[currentTurnIdx % Math.max(jMatchIds.length,1)];
-    const turnStarted = currentJ.turnStarted ?? false;
-    const canNext = currentJ.turnScored === true;
-    const currentMatch = matches.find(m=>m.id===currentMatchId);
-    const seriesPendiente = currentMatch && currentMatch.seriesFinished && !currentMatch.matchClosed;
-    const allJDone = jMatchIds.length>0 && jMatchIds.every(id=>matches.find(m=>m.id===id)?.matchClosed);
-
-    const goNextTurn = () => {
-      let next = (currentTurnIdx+1) % jMatchIds.length;
-      let tries = 0;
-      while(tries<jMatchIds.length){
-        const nm = matches.find(m=>m.id===jMatchIds[next]);
-        if(nm && !nm.matchClosed && !nm.jornadaPaused) break;
-        next=(next+1)%jMatchIds.length; tries++;
-      }
-      saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,currentTurn:next,turnStarted:true,turnScored:false}:j));
-        // Limpiar jornadaTurnScored de todas las partidas para permitir anotar en el nuevo turno
-        jMatchIds.forEach(mid => updateMatch(mid, mm => mm.jornadaTurnScored ? {...mm, jornadaTurnScored:false} : mm));
-    };
-
+  // Pantalla de mantenimiento — solo para jugadores (admin/operario siguen viendo la app)
+  if (mantenimiento && !isOperario) {
     return (
-      <>
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
-        {saqueModal && (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
-            <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.3)",maxWidth:320,width:"100%",textAlign:"center"}}>
-              <div style={{fontSize:26,marginBottom:8}}>🎱</div>
-              <div style={{fontSize:16,fontWeight:800,color:"#63b3ed",marginBottom:16}}>¿Quién saca primero?</div>
-              <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {[{key:"p1",name:saqueModal.p1Name},{key:"p2",name:saqueModal.p2Name}].map(pl=>(
-                  <button key={pl.key} onClick={()=>{
-                    updateMatch(saqueModal.matchId, m=>({...m, firstServe:pl.key, currentServe:pl.key, needsServeSelection:false}));
-                    setActiveId(saqueModal.matchId);
-                    setSaqueModal(null);
-                  }} style={{padding:"14px",borderRadius:12,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:15,fontWeight:800,cursor:"pointer"}}>
-                    🎱 {pl.name}
-                  </button>
-                ))}
-                <button onClick={()=>setSaqueModal(null)} style={{padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#555",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
-              </div>
-            </div>
-          </div>
-        )}
-        {jornadaFinModal && jornadaFinModal.jornadaId===jornadaScreen && (()=>{
-          const jFin = jornadas.find(j=>j.id===jornadaFinModal.jornadaId);
-          const jMs = matches.filter(m=>m.jornadaId===jornadaFinModal.jornadaId&&m.modalidad!=="Contrarreloj");
-          return (
-            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:999,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px 12px",overflowY:"auto"}}>
-              <div style={{background:"#0f1f0f",borderRadius:18,padding:"20px 16px",border:"1px solid rgba(74,222,128,0.3)",maxWidth:420,width:"100%"}}>
-                <div style={{fontSize:28,textAlign:"center",marginBottom:6}}>🏆</div>
-                <div style={{fontSize:17,fontWeight:800,color:"#f9e04b",textAlign:"center",marginBottom:4}}>¡Todas las partidas han terminado!</div>
-                <div style={{fontSize:12,color:"#888",textAlign:"center",marginBottom:16}}>¿Deseas finalizar la jornada?</div>
-                {/* Resumen en 2 columnas */}
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:18}}>
-                  {jMs.map(m=>{
-                    const sw1=m.seriesWins?.p1||0, sw2=m.seriesWins?.p2||0;
-                    const winner=sw1>sw2?"p1":sw2>sw1?"p2":null;
-                    return (
-                      <div key={m.id} style={{background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"10px 8px",border:"1px solid rgba(255,255,255,0.08)"}}>
-                        <div style={{fontSize:9,color:"#555",marginBottom:6,textAlign:"center"}}>{m.modalidad} · C{m.carrera}</div>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:4,marginBottom:6}}>
-                          <div style={{flex:1,textAlign:"center"}}>
-                            <div style={{fontSize:11,fontWeight:800,color:getPlayerColor(m.p1Name)||"#e0e0e0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{winner==="p1"?"👑 ":""}{m.p1Name}</div>
-                            <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",gap:1,marginTop:4}}>{Array.from({length:sw1},(_,i)=><span key={i} style={{fontSize:13}}>🏆</span>)}{sw1===0&&<span style={{fontSize:11,color:"#555"}}>—</span>}</div>
-                          </div>
-                          <div style={{fontSize:11,color:"#444",fontWeight:700}}>-</div>
-                          <div style={{flex:1,textAlign:"center"}}>
-                            <div style={{fontSize:11,fontWeight:800,color:getPlayerColor(m.p2Name)||"#e0e0e0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{winner==="p2"?"👑 ":""}{m.p2Name}</div>
-                            <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",gap:1,marginTop:4}}>{Array.from({length:sw2},(_,i)=><span key={i} style={{fontSize:13}}>🏆</span>)}{sw2===0&&<span style={{fontSize:11,color:"#555"}}>—</span>}</div>
-                          </div>
-                        </div>
-                        {(()=>{ const ig=m.games||[]; const p1w=ig.filter(g=>g.winner==="p1").length; const p2w=ig.filter(g=>g.winner==="p2").length; if(ig.length===0) return null; return (
-                          <div style={{background:"rgba(255,255,255,0.03)",borderRadius:6,padding:"5px 6px"}}>
-                            <div style={{fontSize:9,color:"#f9e04b",fontWeight:700,marginBottom:4}}>Serie {m.seriesFinished?"concluida":"inconclusa"} #{m.seriesCount}</div>
-                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:4}}>
-                              <div style={{display:"flex",flexWrap:"wrap",gap:2,flex:1}}>
-                                {ig.filter(g=>g.winner==="p1").map((g,j)=><BallIcon key={j} modalidad={m.modalidad} size={16}/>)}
-                                {p1w===0&&<span style={{fontSize:9,color:"#333"}}>—</span>}
-                              </div>
-                              <div style={{fontSize:9,color:"#333",fontWeight:700}}>vs</div>
-                              <div style={{display:"flex",flexWrap:"wrap",gap:2,flex:1,justifyContent:"flex-end"}}>
-                                {ig.filter(g=>g.winner==="p2").map((g,j)=><BallIcon key={j} modalidad={m.modalidad} size={16}/>)}
-                                {p2w===0&&<span style={{fontSize:9,color:"#333"}}>—</span>}
-                              </div>
-                            </div>
-                          </div>
-                        ); })()}
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  <button onClick={()=>{
-                    saveJornadas(jornadas.map(j=>j.id===jornadaFinModal.jornadaId?{...j,finished:true}:j));
-                    const finId = jornadaFinModal.jornadaId;
-                    setJornadaFinModal(null);
-                    setJornadaScreenP("list");
-                    setTimeout(()=>setJornadaResumenId(finId), 150);
-                  }} style={{padding:"13px",borderRadius:12,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
-                    🏁 Finalizar jornada
-                  </button>
-                  <button onClick={()=>setJornadaFinModal(null)}
-                    style={{padding:"13px",borderRadius:12,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:"#aaa",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>
-                    ← Regresar
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-        {confirmDeleteId && (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
-            <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(255,80,80,0.3)",maxWidth:320,width:"100%"}}>
-              <div style={{fontSize:18,fontWeight:800,color:"#f87171",marginBottom:8,textAlign:"center"}}>⚠️ Eliminar partida</div>
-              <div style={{fontSize:14,color:"#ccc",textAlign:"center",marginBottom:20,lineHeight:1.5}}>¿Seguro que deseas eliminar esta partida? Esta acción no se puede deshacer.</div>
-              <div style={{display:"flex",gap:10}}>
-                <button onClick={()=>setConfirmDeleteId(null)}
-                  style={{flex:1,padding:"12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#ccc",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>
-                  Cancelar
-                </button>
-                <button onClick={()=>confirmDeleteMatch(confirmDeleteId)}
-                  style={{flex:1,padding:"12px",borderRadius:10,background:"rgba(239,68,68,0.2)",border:"1px solid rgba(239,68,68,0.4)",color:"#f87171",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="app-scroll"
-          style={{padding:"14px 12px"}}>
-          {/* Header */}
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <button onClick={()=>{setJornadaScreenP(null);setScreenP("lobby");}} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 10px",fontSize:16,cursor:"pointer",fontFamily:"inherit"}}>🏠</button>
-              {!isOnline && <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.4)",borderRadius:8,padding:"4px 8px"}}>
-                <div style={{width:7,height:7,borderRadius:"50%",background:"#ef4444",boxShadow:"0 0 5px #ef4444"}}/>
-                <span style={{fontSize:10,color:"#f87171",fontWeight:700,letterSpacing:0.5}}>SIN CONEXIÓN</span>
-              </div>}
-            </div>
-            <div style={{flex:1}}>
-              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <div style={{fontSize:"clamp(13px,3.5vw,16px)",fontWeight:800,color:"#f9e04b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"38vw"}}>{currentJ.name}</div>
-                <button onClick={()=>{const n=prompt("Nuevo nombre:",currentJ.name);if(n?.trim())saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,name:n.trim()}:j));}}
-                  style={{fontSize:11,padding:"3px 6px",borderRadius:5,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",cursor:"pointer"}}>✏️</button>
-              </div>
-              <div style={{fontSize:11,color:"#888"}}>{jMatchIds.filter(id=>matches.find(m=>m.id===id)?.matchClosed).length}/{jMatchIds.length} terminadas</div>
-            </div>
-            {/* Botón Nueva partida */}
-            {isJugador && <button onClick={()=>{
-              setActiveIdP(null);
-              sessionStorage.setItem("pendingJornadaId", currentJ.id);
-              setJornadaScreenP(null);
-              setScreenP("newMatch");
-            }} style={{padding:"7px 12px",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:800,cursor:"pointer"}}>+ Partida</button>}
-            {allJDone && (
-              <button onClick={()=>{
-                if(window.confirm("¿Finalizar jornada? Las partidas quedarán dentro de la jornada.")) {
-                  // Solo marcar la jornada como finalizada, las partidas conservan su jornadaId
-                  saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,finished:true}:j));
-                  setJornadaScreenP("list");
-                }
-              }} style={{padding:"7px 12px",borderRadius:10,background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>🏁 Fin</button>
-            )}
-            {isAdmin && jMatchIds.length>0 && (
-              <button onClick={()=>setRestaurarModal(currentJ.id)}
-                style={{padding:"7px 10px",borderRadius:10,background:"rgba(251,191,36,0.12)",border:"1px solid rgba(251,191,36,0.3)",color:"#fbbf24",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>🔄</button>
-            )}
-          </div>
-
-
-
-
-          {/* Tarjetas de partidas de la jornada */}
-          {jMatchIds.length===0
-            ? <div style={{color:"#444",textAlign:"center",padding:"40px 0",fontSize:13}}>Crea partidas con el botón "+ Partida"</div>
-            : jMatchIds.map((mid, idx) => {
-                const mm = matches.find(m=>m.id===mid);
-                if(!mm) return null;
-                const isPausedM = mm.jornadaPaused===true;
-                const isTurn = mid===currentMatchId && turnStarted && !mm.matchClosed && !isPausedM;
-                const borderColor = mm.matchClosed?"rgba(255,255,255,0.06)":isTurn?"#4ade80":"rgba(255,255,255,0.1)";
-                const bgColor = mm.matchClosed?"rgba(255,255,255,0.02)":isTurn?"rgba(74,222,128,0.13)":"rgba(255,255,255,0.03)";
-                const boxShadow = isTurn?"0 0 18px 4px rgba(74,222,128,0.35)":"none";
-                return (
-                  <div key={mid} style={{border:`2px solid ${borderColor}`,borderRadius:14,marginBottom:10,background:bgColor,boxShadow,transition:"box-shadow 0.3s"}}>
-                    {/* Controles de turno dentro de la tarjeta */}
-                    {/* Si la partida del turno actual se cerró, mostrar botón para avanzar */}
-                    {mm.matchClosed && mid===currentMatchId && !allJDone && (
-                      <div style={{padding:"8px 10px 0 10px"}}>
-                        <button onClick={()=>goNextTurn()}
-                          style={{width:"100%",padding:"10px",borderRadius:10,border:"none",fontFamily:"inherit",fontSize:13,fontWeight:800,cursor:"pointer",background:"linear-gradient(135deg,#1e3a8a,#3b82f6)",color:"#fff"}}>
-                          → Siguiente turno
-                        </button>
-                      </div>
-                    )}
-                    {!mm.matchClosed && mid===currentMatchId && (
-                      <div style={{padding:"8px 10px 0 10px"}}>
-                        {!turnStarted ? (
-                          <div style={{display:"flex",gap:8}}>
-                            <button onClick={()=>saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnStarted:true,turnScored:false}:j))}
-                              style={{flex:1,padding:"10px",borderRadius:10,border:"none",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer",background:"linear-gradient(135deg,#1e3a8a,#4ade80)",color:"#fff",letterSpacing:1}}>
-                              🎱 Iniciar turno
-                            </button>
-                            {jMatchIds.filter(id=>{ const m2=matches.find(x=>x.id===id); return m2&&!m2.matchClosed&&!m2.jornadaPaused; }).length>1 && (
-                              <button onClick={()=>goNextTurn()}
-                                style={{padding:"10px 14px",borderRadius:10,border:"1px solid rgba(255,255,255,0.15)",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.07)",color:"#aaa"}}>
-                                ⏭ Saltar
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <div style={{display:"flex",gap:8}}>
-                            <button onClick={()=>{
-                                if(seriesPendiente){alert("Debes confirmar la serie actual antes de pasar al siguiente turno.");return;}
-                                if(canNext)goNextTurn();
-                              }}
-                              style={{flex:1,padding:"10px",borderRadius:10,border:"none",fontFamily:"inherit",fontSize:14,fontWeight:800,
-                                cursor:(canNext&&!seriesPendiente)?"pointer":"not-allowed",
-                                background:seriesPendiente?"rgba(239,68,68,0.15)":canNext?"linear-gradient(135deg,#1e3a8a,#3b82f6)":"rgba(255,255,255,0.06)",
-                                color:seriesPendiente?"#f87171":canNext?"#fff":"#555"}}>
-                              {seriesPendiente?"⚠️ Confirmar serie":canNext?"→ Siguiente turno":"Anota primero"}
-                            </button>
-                            {jMatchIds.filter(id=>{ const m2=matches.find(x=>x.id===id); return m2&&!m2.matchClosed&&!m2.jornadaPaused; }).length>1 && (
-                              <button onClick={()=>goNextTurn()}
-                                style={{padding:"10px 14px",borderRadius:10,border:"1px solid rgba(255,255,255,0.15)",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",background:"rgba(255,255,255,0.07)",color:"#aaa"}}>
-                                ⏭ Saltar
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {mm.needsServeSelection && mm.games.length===0 && !mm.matchClosed && !saqueModal && (
-                      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:998,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}
-                        onClick={()=>setSaqueModal({matchId:mm.id,p1Name:mm.p1Name,p2Name:mm.p2Name})}>
-                      </div>
-                    )}
-                    {mm.needsServeSelection && mm.games.length===0 && !mm.matchClosed && setSaqueModal && !saqueModal && (() => {
-                      setTimeout(()=>setSaqueModal({matchId:mm.id,p1Name:mm.p1Name,p2Name:mm.p2Name}),50);
-                      return null;
-                    })()}
-                    <LobbyCard
-                      m={mm}
-                      deviceName={deviceName}
-                      playersList={playersList}
-                      isAdminMode={isAdmin}
-                      onOpen={id=>{
-                        const om=matches.find(x=>x.id===id);
-                        if(om&&om.needsServeSelection&&om.games.length===0&&!om.matchClosed){
-                          setSaqueModal({matchId:id,p1Name:om.p1Name,p2Name:om.p2Name});
-                        } else {
-                          setActiveId(id);
-                        }
-                      }}
-                      onDelete={isAdmin?id=>deleteMatch(id):null}
-                      onReplay={()=>{}}
-                      onUpdateMatch={(id,fn)=>updateMatch(id,fn)}
-                      onLobbyBallMenu={(obj)=>{setLobbyBallMenu(obj);}}
-                      onOpenHistory={id=>{setJornadaHistorialId(id);}}
-                      onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{seriesNum:mm.seriesCount,winner:sw,games:mm.games,partial:false}], seriesWins:{p1:mm.seriesWins.p1+(sw==="p1"?1:0),p2:mm.seriesWins.p2+(sw==="p2"?1:0)}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, currentServe:sw==="p1"?"p2":"p1", seriesFinished:false, seriesWinner:null}; }); }}
-                      onUndo={id=>{ 
-                        const mmPrev = matches.find(x=>x.id===id);
-                        const undoingNextSeries = mmPrev && mmPrev.games.length === 0 && mmPrev.seriesHistory.length > 0;
-                        updateMatch(id, mm => { 
-                        if(mm.games.length>0){const last=mm.games[mm.games.length-1];return{...mm,games:mm.games.slice(0,-1),wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1},currentServe:last.serve,seriesFinished:false,seriesWinner:null,jornadaTurnScored:false};}
-                        if(mm.seriesHistory.length>0){const ls=mm.seriesHistory[mm.seriesHistory.length-1];const nh=mm.seriesHistory.slice(0,-1);const nsw={p1:0,p2:0};nh.forEach(s=>{if(s.winner&&!s.partial)nsw[s.winner]++;});const rg=ls.games||[];const rw={p1:rg.filter(g=>g.winner==="p1").length,p2:rg.filter(g=>g.winner==="p2").length};const llg=rg[rg.length-1];const ns=llg?(llg.serve==="p1"?"p2":"p1"):mm.firstServe;return{...mm,seriesHistory:nh,seriesWins:nsw,seriesCount:ls.seriesNum,games:rg,wins:rw,currentServe:ns,seriesFinished:true,seriesWinner:ls.winner,jornadaTurnScored:true};}
-                        return mm;});
-                        if(jornadaScreen && jornadaScreen!=="list") {
-                          if(undoingNextSeries) {
-                            saveJornadas(jornadas.map(j=>j.id===jornadaScreen?{...j,turnScored:true}:j));
-                          } else {
-                            saveJornadas(jornadas.map(j=>j.id===jornadaScreen?{...j,turnScored:false}:j));
-                          }
-                        }
-                      }}
-                      onReactivar={isOperario?id=>{ updateMatch(id, m => { const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins; return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null}; }); }:null}
-                      onTerminar={id=>{ updateMatch(id, m=>{ const shouldSum=(!m.matchClosed&&m.seriesFinished&&m.seriesWinner); const fsw=shouldSum?{...m.seriesWins,[m.seriesWinner]:m.seriesWins[m.seriesWinner]+1}:m.seriesWins; return {...m,matchClosed:true,closedAt:Date.now(),seriesWins:fsw,closedSeriesWins:shouldSum?m.seriesWins:null}; });
-                        if(isTurn) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:true}:j));
-                        // Verificar si todas las partidas de la jornada quedaron cerradas
-                        const otrasAbiertas = jMatchIds.filter(mid=>mid!==id).some(mid=>{ const mx=matches.find(x=>x.id===mid); return mx&&!mx.matchClosed; });
-                        if(!otrasAbiertas) {
-                          setTimeout(()=>setJornadaFinModal({jornadaId:currentJ.id}), 300);
-                        }
-                      }}
-                      onMoveUp={null} onMoveDown={null} isFirst={true} isLast={true}
-                      onEditName={key=>setEditingNameKey(key)}
-                      editingNameKey={editingNameKey}
-                      jornadaTurnActive={isTurn}
-                      jornadaBlocked={!mm.matchClosed && (!turnStarted || (turnStarted && (!isTurn || currentJ.turnScored)))}
-                      jornadaTurnScored={isTurn ? (currentJ.turnScored===true) : false}
-                      jornadaPaused={mm.jornadaPaused===true}
-                      onPauseToggle={(id)=>{ updateMatch(id, m=>({...m, jornadaPaused:!m.jornadaPaused})); }}
-                      onJornadaScore={(action)=>{ if(currentJ) saveJornadas(jornadas.map(j=>j.id===currentJ.id?{...j,turnScored:action==='undo'?false:true}:j)); }}
-                    />
-                  </div>
-                );
-              })
-          }
-        </div>
-        {/* Menú bola especial (reutilizado del lobby) */}
-        {lobbyBallMenu && (() => {
-          const lm = matches.find(mm=>mm.id===lobbyBallMenu.matchId);
-          if (!lm) return null;
-          const applyBall = (bt) => {
-            const {k, ji} = lobbyBallMenu;
-            if (lm.seriesFinished || lm.wins[k] >= lm.carrera) { setLobbyBallMenu(null); return; }
-            const newWins = {...lm.wins, [k]: lm.wins[k]+1};
-            const nextServe = lm.currentServe==="p1"?"p2":"p1";
-            const willFinish = newWins[k] >= lm.carrera;
-            updateMatch(lm.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:lm.currentServe,ballType:bt||"normal",device:deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null, jornadaTurnScored:true}));
-            if (jornadaScreen && jornadaScreen!=="list") {
-              saveJornadas(jornadas.map(j => j.id===jornadaScreen && j.turnStarted ? {...j, turnScored:true} : j));
-            }
-            setLobbyBallMenu(null);
-          };
-          return (
-            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setLobbyBallMenu(null)}>
-              <div style={{background:"#0d1a3a",borderRadius:16,padding:"20px",border:"1px solid rgba(99,179,237,0.3)"}} onClick={e=>e.stopPropagation()}>
-                <div style={{fontSize:13,color:"#888",marginBottom:14,textAlign:"center"}}>Tipo de victoria</div>
-                <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-                  <div onClick={()=>applyBall("normal")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                    <BallIcon modalidad={lm.modalidad} size={44}/>
-                    <div style={{fontSize:11,color:"#aaa"}}>Normal</div>
-                  </div>
-                  <div onClick={()=>applyBall("gold")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                    <img src="golden_break.png" style={{width:44,height:66,objectFit:"contain"}}/>
-                    <div style={{fontSize:11,color:"#f5c400"}}>Golden Break</div>
-                  </div>
-                  <div onClick={()=>applyBall("diamond")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                    <img src="run_out.png" style={{width:44,height:66,objectFit:"contain"}}/>
-                    <div style={{fontSize:11,color:"#a8d8ff"}}>Run Out</div>
-                  </div>
-                  <div onClick={()=>applyBall("breakrun")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                    <img src="break_run.png" style={{width:44,height:66,objectFit:"contain"}}/>
-                    <div style={{fontSize:11,color:"#ffa500"}}>Break & Run</div>
-                  </div>
-                  <div onClick={()=>applyBall("grandefensa")} style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                    <img src="gran_defensa.png" style={{width:44,height:66,objectFit:"contain"}}/>
-                    <div style={{fontSize:11,color:"#34d399"}}>Gran Defensa</div>
-                  </div>
-                </div>
-                <button onClick={()=>setLobbyBallMenu(null)} style={{marginTop:16,padding:"8px 24px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#aaa",fontFamily:"inherit",fontSize:13,cursor:"pointer",width:"100%"}}>Cancelar</button>
-              </div>
-            </div>
-          );
-        })()}
-      </div>
-    {/* Modales historial en jornada */}
-    {jornadaHistorialId && matches.find(m=>m.id===jornadaHistorialId)?.modalidad === "Contrarreloj" && (()=>{
-        const hm = matches.find(m=>m.id===jornadaHistorialId) || activeMatch;
-        const players = hm.crPlayers||[];
-        const order = hm.crOrder||[];
-        const roundHistory = hm.crRoundHistory||[];
-        const accumTime = hm.crAccumTime||{};
-        const validRoundsH = hm.crValidRounds||{};
-        const serieWinsH = hm.crSerieWins||{};
-        const serieHistoryH = hm.crSerieHistory||[];
-        const totalSeriesH = hm.crTotalSeries||1;
-        const allRWH2 = {};
-        serieHistoryH.forEach(s => { Object.entries(s.roundWins||{}).forEach(([k,v])=>{ allRWH2[Number(k)]=(allRWH2[Number(k)]||0)+v; }); });
-        if ((hm.crCurrentSerie||1) > serieHistoryH.length) { Object.entries(hm.crRoundWins||{}).forEach(([k,v])=>{ allRWH2[Number(k)]=(allRWH2[Number(k)]||0)+v; }); }
-        const roundWins = allRWH2;
-        const avgTime = (pidx) => validRoundsH[pidx]>0 ? (accumTime[pidx]||0)/validRoundsH[pidx] : Infinity;
-        const standings = [...order].sort((a,b)=>{
-          const sw=(serieWinsH[b]||0)-(serieWinsH[a]||0); if(sw!==0) return sw;
-          const rw=(roundWins[b]||0)-(roundWins[a]||0); if(rw!==0) return rw;
-          return avgTime(a)-avgTime(b);
-        });
-        return (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:20,overflowY:"auto"}}>
-            <div style={{width:"92%",maxWidth:480,background:"#0f1f0f",borderRadius:16,padding:"18px 14px",border:"1px solid rgba(255,255,255,0.1)"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-                <div style={{fontSize:15,fontWeight:700,color:"#e0e0e0"}}>⏱ Historial · Contrarreloj</div>
-                <button onClick={()=>setShowHistoryP(false)} style={{background:"rgba(255,255,255,0.07)",border:"none",color:"#ccc",borderRadius:8,padding:"6px 10px",fontFamily:"inherit",cursor:"pointer"}}>✕</button>
-              </div>
-              <div style={{fontSize:10,color:"#63b3ed",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Clasificación final</div>
-              {standings.map((pidx,pos)=>(
-                <div key={pidx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",borderRadius:9,background:pos===0?"rgba(249,224,75,0.08)":"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",marginBottom:5}}>
-                  <span style={{fontWeight:700,color:pos===0?"#f9e04b":pos===1?"#ccc":"#888"}}>{pos===0?"🏆":pos===1?"🥈":"🥉"} {pos+1}. {players[pidx]}</span>
-                  <div style={{textAlign:"right"}}><div style={{fontSize:12,color:"#f9e04b",fontWeight:700}}>{serieWinsH[pidx]||0}/{totalSeriesH} series</div><div style={{fontSize:11,color:"#888"}}>{roundWins[pidx]||0} rondas · {validRoundsH[pidx]>0?fmtTime(avgTime(pidx))+" prom":"—"}</div></div>
-                </div>
-              ))}
-              {serieHistoryH.length>0 && (()=>{
-                return (<>
-                  <div style={{fontSize:11,color:"#63b3ed",letterSpacing:1,textTransform:"uppercase",margin:"14px 0 8px"}}>Resultados por serie</div>
-                  {serieHistoryH.map((s,gi)=>{
-                    const roundsPerSH = hm.crTotalRounds||1;
-                    const sRounds = s.rounds && s.rounds.length>0 ? s.rounds : roundHistory.slice(gi*roundsPerSH,(gi+1)*roundsPerSH);
-                    const serieAvg2 = (pidx) => {
-                      const validR = sRounds.filter(r=>!(r.forfeits||[]).includes(pidx)).length;
-                      const totalT = sRounds.reduce((sum,r)=>{ const t=r.times?.[pidx]; return t!==undefined?sum+t:sum; },0);
-                      return validR>0?totalT/validR:null;
-                    };
-                    return (
-                      <div key={gi} style={{marginBottom:10,background:"rgba(255,255,255,0.02)",borderRadius:10,overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",padding:"6px 10px",background:"rgba(74,222,128,0.06)",borderBottom:"1px solid rgba(74,222,128,0.12)"}}>
-                          <span style={{fontSize:12,fontWeight:700,color:"#63b3ed"}}>Serie {gi+1}</span>
-                          <span style={{fontSize:11,color:"#f9e04b",fontWeight:700}}>{s.winner!==null?`🏆 ${players[s.winner]}`:"Sin ganador"}</span>
-                        </div>
-                        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-                          <thead><tr style={{borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
-                            <td style={{padding:"4px 8px",color:"#555"}}></td>
-                            {sRounds.map((r,ri)=><td key={ri} style={{padding:"4px 6px",textAlign:"center",color:"#888",fontWeight:700}}>R{ri+1}</td>)}
-                            <td style={{padding:"4px 6px",textAlign:"center",color:"#888",fontWeight:700}}>Prom</td>
-                          </tr></thead>
-                          <tbody>{standings.map(pidx=>(
-                            <tr key={pidx} style={{borderTop:"1px solid rgba(255,255,255,0.04)"}}>
-                              <td style={{padding:"5px 8px",fontWeight:700,color:"#e0e0e0"}}>{players[pidx]}</td>
-                              {sRounds.map((r,ri)=>{
-                                const isW=r.winner===pidx; const t=r.times?.[pidx]; const isF=(r.forfeits||[]).includes(pidx);
-                                return <td key={ri} style={{padding:"5px 4px",textAlign:"center",background:isW?"rgba(249,224,75,0.1)":isF?"rgba(239,68,68,0.1)":"transparent",color:isW?"#f9e04b":isF?"#f87171":"#aaa",fontWeight:isW||isF?700:400,fontVariantNumeric:"tabular-nums",fontSize:10}}>{t!==undefined?fmtTime(t):"—"}{isW?" 🏆":""}{isF?" ⚠":""}</td>;
-                              })}
-                              <td style={{padding:"5px 4px",textAlign:"center",color:"#888",fontSize:10}}>{serieAvg2(pidx)!==null?fmtTime(serieAvg2(pidx)):"—"}</td>
-                            </tr>
-                          ))}</tbody>
-                        </table>
-                      </div>
-                    );
-                  })}
-                </>);
-              })()}
-              <button onClick={()=>setJornadaHistorialId(null)} style={{width:"100%",padding:"12px 0",marginTop:12,borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"#ccc",fontFamily:"inherit",fontSize:14,cursor:"pointer"}}>Cerrar</button>
-            </div>
-          </div>
-        );
-      })()}
-      {jornadaHistorialId && matches.find(m=>m.id===jornadaHistorialId)?.modalidad !== "Contrarreloj" && (
-        <HistorialEditable
-          p1Name={matches.find(m=>m.id===jornadaHistorialId)?.p1Name} p2Name={matches.find(m=>m.id===jornadaHistorialId)?.p2Name}
-          modalidad={matches.find(m=>m.id===jornadaHistorialId)?.modalidad} carrera={matches.find(m=>m.id===jornadaHistorialId)?.carrera}
-          seriesHistory={matches.find(m=>m.id===jornadaHistorialId)?.seriesHistory||[]} seriesWins={matches.find(m=>m.id===jornadaHistorialId)?.seriesWins||{p1:0,p2:0}}
-          games={matches.find(m=>m.id===jornadaHistorialId)?.games||[]} wins={matches.find(m=>m.id===jornadaHistorialId)?.wins||{p1:0,p2:0}}
-          currentServe={matches.find(m=>m.id===jornadaHistorialId)?.currentServe} seriesFinished={matches.find(m=>m.id===jornadaHistorialId)?.seriesFinished}
-          onClose={()=>setJornadaHistorialId(null)}
-          onReactivar={isOperario?()=>{ updateMatch(jornadaHistorialId, m=>{
-      // Al reactivar: deshacer la suma de la última serie si fue sumada al cerrar
-      const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
-      return {...m,matchClosed:false,closedAt:null,seriesWins:correctedSW};
-    }); setJornadaHistorialId(null); }:null}
-          playersList={playersList}
-        />
-      )}
-      {restaurarModal && restaurarModal===currentJ.id && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
-          onClick={()=>setRestaurarModal(null)}>
-          <div style={{background:"#1a2030",border:"1px solid rgba(251,191,36,0.3)",borderRadius:16,padding:20,width:"100%",maxWidth:380}}
-            onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:15,fontWeight:800,color:"#fbbf24",marginBottom:6}}>🔄 Restaurar partida al lobby</div>
-            <div style={{fontSize:12,color:"#888",marginBottom:14}}>Elige la partida a quitar de esta jornada:</div>
-            <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:260,overflowY:"auto",marginBottom:12}}>
-              {jMatchIds.map(mid=>{
-                const mm=matches.find(m=>m.id===mid);
-                if(!mm) return null;
-                const nombre = mm.modalidad==="Contrarreloj"
-                  ? (mm.crPlayers||[]).join(", ")
-                  : (mm.p1Name||"?")+" vs "+(mm.p2Name||"?");
-                return (
-                  <button key={mid} onClick={()=>{
-                    if(!window.confirm("¿Restaurar esta partida al lobby?")) return;
-                    saveMatches(matches.map(m=>m.id===mid?{...m,jornadaId:null}:m));
-                    saveJornadas(jornadas.map(j=>j.id===currentJ.id
-                      ?{...j,matchOrder:(j.matchOrder||[]).filter(id=>id!==mid),currentTurn:0,turnStarted:false,turnScored:false}
-                      :j));
-                    setRestaurarModal(null);
-                  }} style={{padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span>🎱 {nombre}</span>
-                    <span style={{fontSize:11,color:"#fbbf24",fontWeight:700}}>Restaurar →</span>
-                  </button>
-                );
-              })}
-            </div>
-            <button onClick={()=>setRestaurarModal(null)}
-              style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
-      <BtnActualizar />
-      </>
-    );
-  }
-
-    // Modal de registro al entrar por primera vez
-  if (showRegisterPrompt && fbLoaded) {
-    const plNorm2 = playersList.map(p=>typeof p==="string"?{name:p,id:"",role:"jugador"}:p);
-    const thisDeviceId = localStorage.getItem("bg_device");
-    return (
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
-        {asignarJornadaModal && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>setAsignarJornadaModal(null)}>
-          <div style={{background:"#0f2a5a",border:"1px solid rgba(74,222,128,0.3)",borderRadius:16,padding:20,width:"100%",maxWidth:380}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:15,fontWeight:800,color:"#f9e04b",marginBottom:16}}>🏆 Asignar a Jornada</div>
-            <div style={{fontSize:12,color:"#aaa",marginBottom:12}}>Selecciona una jornada o crea una nueva:</div>
-            {jornadas.filter(j=>!j.finished).length>0 && <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12,maxHeight:200,overflowY:"auto"}}>
-              {jornadas.filter(j=>!j.finished).map(j=>(
-                <button key={j.id} onClick={()=>{
-                  const updated=matches.map(m=>m.id===asignarJornadaModal?{...m,jornadaId:j.id}:m);
-                  saveMatches(updated);
-                  saveJornadas(jornadas.map(jj=>jj.id===j.id?{...jj,matchOrder:[...(jj.matchOrder||[]),asignarJornadaModal]}:jj));
-                  setAsignarJornadaModal(null);
-                  setJornadaScreenP("list");
-                }} style={{padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}}>
-                  📋 {j.name}
-                </button>
-              ))}
-            </div>}
-            <button onClick={()=>{
-              const nombre=prompt("Nombre de la nueva jornada:");
-              if(!nombre?.trim()) return;
-              const newJ={id:"j_"+Date.now(),name:nombre.trim(),currentTurn:0,turnStarted:false,turnScored:false,matchOrder:[asignarJornadaModal],finished:false,createdAt:Date.now()};
-              saveJornadas([...jornadas,newJ]);
-              const updated=matches.map(m=>m.id===asignarJornadaModal?{...m,jornadaId:newJ.id}:m);
-              saveMatches(updated);
-              setAsignarJornadaModal(null);
-              setJornadaScreenP("list");
-            }} style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(74,222,128,0.15)",border:"1px solid rgba(74,222,128,0.3)",color:"#4ade80",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:8}}>+ Nueva jornada</button>
-            <button onClick={()=>setAsignarJornadaModal(null)} style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
-          </div>
-        </div>
-      )}
-      {pinRegistroModal && (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-            <div style={{background:"#1a2744",borderRadius:16,padding:24,width:"100%",maxWidth:340,border:"1px solid rgba(255,255,255,0.1)"}}>
-              <div style={{fontSize:15,fontWeight:800,color:"#63b3ed",marginBottom:6,textAlign:"center"}}>🔐 Ingresa tu PIN</div>
-              <div style={{fontSize:12,color:"#888",textAlign:"center",marginBottom:16}}>Para registrar como <strong style={{color:"#fff"}}>{pinRegistroModal.jugName}</strong></div>
-              <input autoFocus type="password" inputMode="numeric" maxLength={8} value={pinRegistroInput} onChange={e=>setPinRegistroInput(e.target.value)}
-                style={{width:"100%",padding:"12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",fontSize:20,textAlign:"center",fontFamily:"inherit",outline:"none",letterSpacing:6,marginBottom:8}}
-                placeholder="••••"/>
-              {pinRegistroError && <div style={{color:"#f87171",fontSize:11,textAlign:"center",marginBottom:8}}>{pinRegistroError}</div>}
-              <div style={{display:"flex",gap:8,marginTop:8}}>
-                <button onClick={()=>{setPinRegistroModal(null);}} style={{flex:1,padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",color:"#aaa",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
-                <button onClick={()=>{
-                  const pl = playersList.find(pl=>typeof pl==="object"&&pl.name===pinRegistroModal.jugName);
-                  const pinCorrecto = pl?.pin||"";
-                  if(!pinCorrecto){setPinRegistroError("Este jugador no tiene PIN configurado");return;}
-                  if(pinRegistroInput!==pinCorrecto){setPinRegistroError("PIN incorrecto");setPinRegistroInput('');return;}
-                  const dn=pinRegistroModal.newDev;
-                  if(pinRegistroModal.hasOtherDevs){
-                    setDevDialog({jugKey:pinRegistroModal.jugKey,jugName:pinRegistroModal.jugName,existingDevs:pinRegistroModal.existingDevs,newDev:dn});
-                  } else {
-                    localStorage.setItem("bg_device",dn);
-                    setDeviceName(dn);
-                    saveDispositivosMap({...dispositivosMap,[pinRegistroModal.jugKey]:[dn]});
-                    if(pinRegistroModal.onSuccess) pinRegistroModal.onSuccess();
-                  }
-                  setPinRegistroModal(null);
-                }} style={{flex:1,padding:"10px",borderRadius:10,background:"rgba(59,130,246,0.2)",border:"1px solid rgba(59,130,246,0.4)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>Confirmar</button>
-              </div>
-            </div>
-          </div>
-        )}
-        {devDialog && (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
-            <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:320,width:"100%"}}>
-              <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:8,textAlign:"center"}}>📱 Registrar dispositivo</div>
-              <div style={{fontSize:13,color:"#ccc",textAlign:"center",marginBottom:20,lineHeight:1.6}}>
-                <b style={{color:"#63b3ed"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {(()=>{
-                  const pDev = plNorm2.find(p=>(p.id||p.name)===devDialog.jugKey);
-                  const pinDev = pDev?.pin||"";
-                  const rolDev = pDev?.role||"jugador";
-                  const needPin = (rolDev==="admin"||rolDev==="operario") && pinDev;
-                  const doChange = (modo) => {
-                    if (modo==="cambiar") {
-                      localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);
-                      saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[devDialog.newDev]});
-                    } else {
-                      localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);
-                      saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[...devDialog.existingDevs,devDialog.newDev]});
-                    }
-                    setDevDialog(null);setShowRegisterPrompt(false);
-                  };
-                  const tryAction = (modo) => {
-                    if (needPin) {
-                      setPinPrompt({jugKey:devDialog.jugKey,jugName:devDialog.jugName,pin:pinDev,existingDevs:devDialog.existingDevs,newDev:devDialog.newDev,onSuccess:()=>doChange(modo)});
-                    } else { doChange(modo); }
-                  };
-                  return (<>
-                    <button onClick={()=>tryAction("cambiar")}
-                      style={{padding:"13px",borderRadius:10,background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
-                      🔄 Cambiar dispositivo
-                      <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Borra el dispositivo anterior</div>
-                    </button>
-                    <button onClick={()=>tryAction("agregar")}
-                      style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
-                      ➕ Agregar dispositivo
-                      <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Mantiene el anterior también</div>
-                    </button>
-                  </>);
-                })()}
-                <button onClick={()=>{setDevDialog(null);}}
-                  style={{padding:"13px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#666",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
-                  ✕ No hacer nada
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        <div style={{background:"#1a2e1a",borderRadius:18,padding:"28px 22px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:340,width:"100%"}}>
-          <div style={{fontSize:28,textAlign:"center",marginBottom:4}}>🎱</div>
-          <div style={{fontSize:20,fontWeight:800,color:"#63b3ed",textAlign:"center",marginBottom:6}}>Billares García</div>
-          <div style={{fontSize:13,color:"#888",textAlign:"center",marginBottom:24,lineHeight:1.5}}>¿Eres uno de los jugadores registrados?</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-            {plNorm2.map((p,i)=>{
-              const jugKey = p.id||p.name;
-              const existingDevs = dispositivosMap[jugKey]||[];
-              const yaRegistrado = existingDevs.length > 0;
-              const rolElevado = (p.role||"jugador")==="admin" || (p.role||"jugador")==="operario";
-              const bloqueado = false; // Ya no se bloquea — el PIN es la restricción
-              return (
-                <button key={i} onClick={()=>{
-                  const dn = jugKey;
-                  const rolElevado2 = (p.role||"jugador")==="admin"||(p.role||"jugador")==="operario";
-                  const necesitaPin = p.pinReq && p.pin;
-                  const doRegistro = () => {
-                    if (yaRegistrado) {
-                      setDevDialog({jugKey, jugName:p.name, existingDevs, newDev:dn});
-                    } else {
-                      setDeviceName(dn);
-                      localStorage.setItem("bg_device", dn);
-                      saveDispositivosMap({...dispositivosMap,[dn]:[dn]});
-                      setShowRegisterPrompt(false);
-                    }
-                  };
-                  if (necesitaPin) {
-                    setPinPrompt({jugKey, jugName:p.name, pin:p.pin, existingDevs, newDev:dn, onSuccess:doRegistro});
-                  } else {
-                    doRegistro();
-                  }
-                }} style={{padding:"12px 16px",borderRadius:10,
-                  background:bloqueado?"rgba(255,255,255,0.02)":yaRegistrado?"rgba(249,224,75,0.06)":"rgba(74,222,128,0.06)",
-                  border:`1px solid ${bloqueado?"rgba(255,255,255,0.07)":yaRegistrado?"rgba(249,224,75,0.25)":"rgba(74,222,128,0.15)"}`,
-                  color:bloqueado?"#333":p.color||"#e0e0e0",fontFamily:"inherit",fontSize:15,fontWeight:700,
-                  cursor:bloqueado?"not-allowed":"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10,opacity:bloqueado?0.5:1}}>
-                  <span>{bloqueado?"🔒":yaRegistrado?"📱":"🎱"}</span>
-                  <span style={{flex:1}}>{p.name}</span>
-                  {p.id&&<span style={{fontSize:11,color:bloqueado?"#444":"#f9e04b",background:"rgba(249,224,75,0.1)",border:"1px solid rgba(249,224,75,0.2)",borderRadius:5,padding:"2px 6px"}}>{p.id}</span>}
-                  {bloqueado&&<span style={{fontSize:10,color:"#555",fontWeight:600}}>Solo por admin</span>}
-                  {!bloqueado&&yaRegistrado&&<span style={{fontSize:10,color:"#f9e04b",fontWeight:600}}>Ya registrado</span>}
-                </button>
-              );
-            })}
-          </div>
-        {pinPrompt && (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
-            <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(249,224,75,0.3)",maxWidth:300,width:"100%",textAlign:"center"}}>
-              <div style={{fontSize:28,marginBottom:8}}>🔑</div>
-              <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:6}}>PIN requerido</div>
-              <div style={{fontSize:13,color:"#aaa",marginBottom:16}}>Ingresa el PIN para <b style={{color:"#63b3ed"}}>{pinPrompt.jugName}</b></div>
-              <input id="pin-input-reg" type="password" inputMode="numeric" maxLength={6} autoFocus
-                style={{width:"100%",padding:"12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(249,224,75,0.3)",color:"#f9e04b",fontFamily:"inherit",fontSize:22,fontWeight:800,outline:"none",letterSpacing:8,textAlign:"center",boxSizing:"border-box",marginBottom:12}}
-                onInput={e=>e.target.value=e.target.value.replace(/[^0-9]/g,"")}
-                onKeyDown={e=>{if(e.key==="Enter"){const v=document.getElementById("pin-input-reg")?.value;if(v===pinPrompt.pin){pinPrompt.onSuccess();setPinPrompt(null);}else{document.getElementById("pin-error-reg").style.display="block";}}}}
-              />
-              <div id="pin-error-reg" style={{display:"none",color:"#f87171",fontSize:12,marginBottom:10}}>PIN incorrecto, intenta de nuevo.</div>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>{const v=document.getElementById("pin-input-reg")?.value;if(v===pinPrompt.pin){pinPrompt.onSuccess();setPinPrompt(null);}else{document.getElementById("pin-error-reg").style.display="block";}}}
-                  style={{flex:1,padding:"11px",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
-                  Entrar
-                </button>
-                <button onClick={()=>setPinPrompt(null)}
-                  style={{padding:"11px 16px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:"#aaa",fontFamily:"inherit",fontSize:14,cursor:"pointer"}}>
-                  ✕
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        </div>
-      </div>
-    );
-  }
-
-  if (registroBorrado) {
-    const plNorm3 = playersList.map(p=>typeof p==="string"?{name:p,id:"",role:"jugador"}:p);
-    return (
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
-        <div style={{background:"#1a2e1a",borderRadius:18,padding:"28px 22px",border:"1px solid rgba(239,68,68,0.3)",maxWidth:340,width:"100%",textAlign:"center"}}>
-          <div style={{fontSize:36,marginBottom:12}}>📵</div>
-          <div style={{fontSize:18,fontWeight:800,color:"#f87171",marginBottom:8}}>Registro eliminado</div>
-          <div style={{fontSize:13,color:"#aaa",marginBottom:24,lineHeight:1.6}}>Tu registro en este dispositivo fue eliminado por un administrador. ¿Deseas registrarte como otro jugador?</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-            {plNorm3.map((p,i)=>{
-              const jugKey = p.id||p.name;
-              const existingDevs = dispositivosMap[jugKey]||[];
-              const yaRegistrado = existingDevs.length > 0;
-              return (
-                <button key={i} onClick={()=>{
-                  const dn = jugKey;
-                  const rolElevado2 = (p.role||"jugador")==="admin"||(p.role||"jugador")==="operario";
-                  const bloqueado2 = rolElevado2 && !yaRegistrado;
-                  if (bloqueado2) return;
-                  if (yaRegistrado) {
-                    setDevDialog({jugKey, jugName:p.name, existingDevs, newDev:dn});
-                  } else {
-                    localStorage.setItem("bg_device", dn);
-                    setDeviceName(dn);
-                    saveDispositivosMap({...dispositivosMap,[dn]:[dn]});
-                    setRegistroBorrado(false);
-                  }
-                }} style={{padding:"11px 16px",borderRadius:10,
-                  background:(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"rgba(255,255,255,0.02)":yaRegistrado?"rgba(249,224,75,0.06)":"rgba(74,222,128,0.06)"})(),
-                  border:`1px solid ${(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"rgba(255,255,255,0.07)":yaRegistrado?"rgba(249,224,75,0.2)":"rgba(74,222,128,0.15)"})()}`,
-                  color:(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"#333":p.color||"#e0e0e0"})(),
-                  fontFamily:"inherit",fontSize:14,fontWeight:700,
-                  cursor:(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"not-allowed":"pointer"})(),
-                  textAlign:"left",display:"flex",alignItems:"center",gap:10,
-                  opacity:(()=>{const bl=(p.role||"jugador")==="admin"&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?0.4:1})()}}>
-                  <span>{(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"🔒":yaRegistrado?"📱":"🎱"})()}</span>
-                  <span style={{flex:1}}>{p.name}</span>
-                  {p.id&&<span style={{fontSize:11,color:"#f9e04b",background:"rgba(249,224,75,0.1)",borderRadius:5,padding:"2px 6px"}}>{p.id}</span>}
-                  {(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!yaRegistrado;return bl?<span style={{fontSize:10,color:"#555"}}>Solo por admin</span>:yaRegistrado?<span style={{fontSize:10,color:"#f9e04b"}}>Ya registrado</span>:null})()}
-                </button>
-              );
-            })}
-          </div>
-          {pinRegistroModal && (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-            <div style={{background:"#1a2744",borderRadius:16,padding:24,width:"100%",maxWidth:340,border:"1px solid rgba(255,255,255,0.1)"}}>
-              <div style={{fontSize:15,fontWeight:800,color:"#63b3ed",marginBottom:6,textAlign:"center"}}>🔐 Ingresa tu PIN</div>
-              <div style={{fontSize:12,color:"#888",textAlign:"center",marginBottom:16}}>Para registrar como <strong style={{color:"#fff"}}>{pinRegistroModal.jugName}</strong></div>
-              <input autoFocus type="password" inputMode="numeric" maxLength={8} value={pinRegistroInput} onChange={e=>setPinRegistroInput(e.target.value)}
-                style={{width:"100%",padding:"12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",fontSize:20,textAlign:"center",fontFamily:"inherit",outline:"none",letterSpacing:6,marginBottom:8}}
-                placeholder="••••"/>
-              {pinRegistroError && <div style={{color:"#f87171",fontSize:11,textAlign:"center",marginBottom:8}}>{pinRegistroError}</div>}
-              <div style={{display:"flex",gap:8,marginTop:8}}>
-                <button onClick={()=>{setPinRegistroModal(null);}} style={{flex:1,padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",color:"#aaa",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
-                <button onClick={()=>{
-                  const pl = playersList.find(pl=>typeof pl==="object"&&pl.name===pinRegistroModal.jugName);
-                  const pinCorrecto = pl?.pin||"";
-                  if(!pinCorrecto){setPinRegistroError("Este jugador no tiene PIN configurado");return;}
-                  if(pinRegistroInput!==pinCorrecto){setPinRegistroError("PIN incorrecto");setPinRegistroInput('');return;}
-                  const dn=pinRegistroModal.newDev;
-                  if(pinRegistroModal.hasOtherDevs){
-                    setDevDialog({jugKey:pinRegistroModal.jugKey,jugName:pinRegistroModal.jugName,existingDevs:pinRegistroModal.existingDevs,newDev:dn});
-                  } else {
-                    localStorage.setItem("bg_device",dn);
-                    setDeviceName(dn);
-                    saveDispositivosMap({...dispositivosMap,[pinRegistroModal.jugKey]:[dn]});
-                    if(pinRegistroModal.onSuccess) pinRegistroModal.onSuccess();
-                  }
-                  setPinRegistroModal(null);
-                }} style={{flex:1,padding:"10px",borderRadius:10,background:"rgba(59,130,246,0.2)",border:"1px solid rgba(59,130,246,0.4)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>Confirmar</button>
-              </div>
-            </div>
-          </div>
-        )}
-        {devDialog && (
-            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
-              <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:320,width:"100%"}}>
-                <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:8,textAlign:"center"}}>📱 Registrar dispositivo</div>
-                <div style={{fontSize:13,color:"#ccc",textAlign:"center",marginBottom:20,lineHeight:1.6}}>
-                  <b style={{color:"#63b3ed"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                  <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[devDialog.newDev]});setDevDialog(null);setRegistroBorrado(false);}}
-                    style={{padding:"13px",borderRadius:10,background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
-                    🔄 Cambiar dispositivo
-                    <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Borra el dispositivo anterior</div>
-                  </button>
-                  <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[...devDialog.existingDevs,devDialog.newDev]});setDevDialog(null);setRegistroBorrado(false);}}
-                    style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
-                    ➕ Agregar dispositivo
-                    <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Mantiene el anterior también</div>
-                  </button>
-                  <button onClick={()=>setDevDialog(null)}
-                    style={{padding:"13px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#666",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
-                    ✕ No hacer nada
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+      <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,textAlign:"center"}}>
+        <div style={{fontSize:56,marginBottom:20}}>🔧</div>
+        <div style={{fontSize:22,fontWeight:800,color:"#f9e04b",marginBottom:10}}>En mantenimiento</div>
+        <div style={{fontSize:14,color:"#aaa",lineHeight:1.6,maxWidth:320}}>
+          Estamos actualizando la app. Vuelve a intentarlo en unos minutos.
         </div>
       </div>
     );
@@ -1654,10 +800,81 @@ function BillarApp() {
 
   if (screen === "lobby") {
     const list = lobbyTab === "active" ? activeMatches : closedMatches;
-    // ── Sin modo TV ──
+
+    // ── Modo Enfoque: una sola partida a pantalla completa, deslizable ──
+    if (isLandscape && focusMode && lobbyTab === "active" && activeMatches.length > 0) {
+      const fIdx = ((focusIdx % activeMatches.length) + activeMatches.length) % activeMatches.length;
+      const fm = activeMatches[fIdx];
+      return (
+        <div
+          onContextMenu={e=>e.preventDefault()}
+          onTouchStart={e=>{ swipeStartX.current = e.touches[0].clientX; }}
+          onTouchEnd={e=>{
+            const dx = e.changedTouches[0].clientX - swipeStartX.current;
+            if (Math.abs(dx) > 60) {
+              if (dx < 0) setFocusIdx(i => (i+1) % activeMatches.length);
+              else setFocusIdx(i => (i-1+activeMatches.length) % activeMatches.length);
+            }
+          }}
+          style={{position:"fixed",inset:0,background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",display:"flex",flexDirection:"column",padding:8,WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
+          <button onClick={()=>setFocusMode(false)}
+            style={{position:"absolute",top:10,right:10,zIndex:999,padding:"6px 12px",borderRadius:20,background:"rgba(0,0,0,0.55)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            ✕ Salir
+          </button>
+          <div style={{position:"absolute",top:10,left:10,zIndex:999,display:"flex",gap:6,alignItems:"center",background:"rgba(0,0,0,0.55)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:20,padding:"4px 6px"}}>
+            <button onClick={()=>changeFocusZoom(-0.1)}
+              style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,255,255,0.1)",border:"none",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+            <div style={{color:"#ccc",fontSize:11,fontWeight:700,minWidth:34,textAlign:"center"}}>{Math.round(focusZoom*100)}%</div>
+            <button onClick={()=>changeFocusZoom(0.1)}
+              style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,255,255,0.1)",border:"none",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+          </div>
+          <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"auto",zoom:focusZoom}}>
+            <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100%"}}>
+              <LobbyCard key={fm.id} m={fm} compact={false}
+                onOpen={()=>{}}
+                onDelete={isAdmin?()=>deleteMatch(fm.id):null}
+                isAdminMode={isAdmin}
+                onReplay={replayMatch}
+                onUpdateMatch={updateMatch}
+                onLobbyBallMenu={setLobbyBallMenu}
+                onOpenHistory={(id)=>{setActiveIdP(id||fm.id);setShowHistoryP(true);}}
+                deviceName={deviceName}
+                playersList={playersList}
+                onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+                onUndo={(id)=>{ updateMatch(id, mm => {
+                  if (mm.games.length > 0) {
+                    const last = mm.games[mm.games.length-1];
+                    return {...mm, games:mm.games.slice(0,-1), wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1}, currentServe:last.serve, seriesFinished:false, seriesWinner:null};
+                  } else if (mm.seriesHistory.length > 0) {
+                    const ls = mm.seriesHistory[mm.seriesHistory.length-1];
+                    const rg = ls.games || [];
+                    const rw = {p1:rg.filter(g=>g.winner==="p1").length, p2:rg.filter(g=>g.winner==="p2").length};
+                    const llg = rg[rg.length-1];
+                    const ns = llg ? (llg.serve==="p1"?"p2":"p1") : mm.firstServe;
+                    const nh = mm.seriesHistory.slice(0,-1);
+                    const nsw = {p1:0,p2:0}; nh.forEach(s=>{ if(s.winner&&!s.partial) nsw[s.winner]++; });
+                    return {...mm, seriesHistory:nh, seriesWins:nsw, seriesCount:ls.seriesNum, games:rg, wins:rw, currentServe:ns, seriesFinished:true, seriesWinner:ls.winner};
+                  }
+                  return mm;
+                }); }}
+                onReactivar={isOperario?(id)=>{ updateMatch(id, m => {
+                  const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
+                  return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null};
+                }); }:null}
+                onTerminar={(id)=>{ updateMatch(id, m=>{ const shouldSum=(!m.matchClosed&&m.seriesFinished&&m.seriesWinner); const fsw=shouldSum?{...m.seriesWins,[m.seriesWinner]:m.seriesWins[m.seriesWinner]+1}:m.seriesWins; return {...m,matchClosed:true,closedAt:Date.now(),seriesWins:fsw,closedSeriesWins:shouldSum?m.seriesWins:null}; }); }}
+                onEditName={!fm.matchClosed ? (key)=>setEditingNameKey(key) : null}
+                editingNameKey={editingNameKey}
+              />
+            </div>
+          </div>
+          <div style={{textAlign:"center",color:"#555",fontSize:11,marginTop:4,flexShrink:0}}>{fIdx+1}/{activeMatches.length} · desliza para cambiar</div>
+        </div>
+      );
+    }
+
     return (
       <>
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
+      <div className="app-screen" onContextMenu={e=>e.preventDefault()} style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",WebkitTouchCallout:"none"}}>
         {saqueModal && (
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
             <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.3)",maxWidth:320,width:"100%",textAlign:"center"}}>
@@ -1697,36 +914,67 @@ function BillarApp() {
           </div>
         )}
         <div style={{padding:"14px 14px 0",position:"relative",zIndex:10}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:6}}>
-              <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v400</div>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+            <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginLeft:"auto",justifyContent:"flex-end"}}>
+              <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }}
+                title="Actualizar"
+                style={{padding:"6px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#63b3ed",fontFamily:"inherit",fontSize:15,cursor:"pointer"}}>
+                🔄
+              </button>
+              {lobbyTab==="active" && activeMatches.length>1 && (
+                <button onClick={()=>{ setOrganizarMode(true); setOrganizarOrder([]); }}
+                  title="Organizar partidas"
+                  style={{padding:"6px 10px",borderRadius:10,background:organizarMode?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:`1px solid ${organizarMode?"rgba(249,224,75,0.4)":"rgba(255,255,255,0.13)"}`,color:organizarMode?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
+                  ⬛ Ordenar
+                </button>
+              )}
+              {isLandscape && lobbyTab==="active" && activeMatches.length>0 && (
+                <button onClick={()=>{ setFocusIdx(0); setFocusMode(true); }}
+                  title="Modo enfoque"
+                  style={{padding:"6px 10px",borderRadius:10,background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.3)",color:"#4ade80",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
+                  🔍 Enfocar
+                </button>
+              )}
+              <div style={{position:"relative"}}>
+              <button onClick={()=>setNavOpen(o=>!o)}
+                style={{padding:"6px 12px",borderRadius:10,background:navOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:`1px solid ${navOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"}`,color:navOpen?"#63b3ed":"#bbb",fontFamily:"inherit",fontSize:16,fontWeight:700,cursor:"pointer"}}>
+                ☰
+              </button>
+              {navOpen && (
+                <>
+                  <div onClick={()=>setNavOpen(false)} style={{position:"fixed",inset:0,zIndex:998}} />
+                  <div style={{position:"absolute",top:"110%",right:0,zIndex:999,background:"#0f2a5a",border:"1px solid rgba(99,179,237,0.3)",borderRadius:12,padding:8,display:"flex",flexDirection:"column",gap:6,minWidth:180,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+                    <button style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"none",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setScreenP("stats");setNavOpen(false);}}>📊 Estadísticas</button>
+                    <button style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"none",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setScreenP("players");setNavOpen(false);}}>👥 Jugadores</button>
+                    {isJugador && <button style={{padding:"10px 14px",borderRadius:8,background:"linear-gradient(135deg,rgba(30,58,138,0.5),rgba(74,222,128,0.2))",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");setNavOpen(false);}}>+ Nueva Partida</button>}
+                    {isAdmin && <button style={{padding:"10px 14px",borderRadius:8,background:mantenimiento?"rgba(74,222,128,0.12)":"rgba(239,68,68,0.1)",border:"none",color:mantenimiento?"#4ade80":"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}} onClick={()=>{toggleMantenimiento();setNavOpen(false);}}>{mantenimiento?"✅ Quitar mantenimiento":"🔧 Modo mantenimiento"}</button>}
+                    {isAdmin && datosKB !== null && (
+                      <div style={{padding:"8px 14px 4px",borderTop:"1px solid rgba(255,255,255,0.08)",marginTop:2}}>
+                        <div style={{fontSize:11,color:"#aaa",marginBottom:4}}>📦 Datos de partidas ({matches.length}): <b style={{color:datosColor}}>{datosKB} KB</b> / 1024 KB</div>
+                        <div style={{height:5,borderRadius:3,background:"rgba(255,255,255,0.1)",overflow:"hidden"}}>
+                          <div style={{height:"100%",width:datosPct+"%",background:datosColor}} />
+                        </div>
+                        {datosAlerta && <div style={{fontSize:10,color:"#f87171",marginTop:4}}>⚠ Cerca del límite de Firebase</div>}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
-            <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
+            </div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v417</div>
+            <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
+            <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
               background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
               color:isAdmin?"#f9e04b":isOperario?"#4ade80":"#888"}}>
               {isAdmin?"👑 ADMIN":isOperario?"⚙️ OPERARIO":"🎱 JUGADOR"}
             </div>
           </div>
-          <div style={{display:"flex",gap:6,alignItems:"stretch"}}>
-            <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>setScreenP("stats")}>
-              <div style={{fontSize:15,lineHeight:1}}>📊</div>
-              <div style={{fontSize:9,marginTop:3,color:"#888",fontWeight:600}}>Estadísticas</div>
-            </button>
-            <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>setScreenP("players")}>
-              <div style={{fontSize:15,lineHeight:1}}>👥</div>
-              <div style={{fontSize:9,marginTop:3,color:"#888",fontWeight:600}}>Jugadores</div>
-            </button>
-            <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:jornadaScreen?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:jornadaScreen?"1px solid rgba(249,224,75,0.3)":"1px solid rgba(255,255,255,0.13)",color:jornadaScreen?"#f9e04b":"#bbb",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>setJornadaScreenP("list")}>
-              <div style={{fontSize:15,lineHeight:1}}>🗓</div>
-              <div style={{fontSize:9,marginTop:3,color:jornadaScreen?"#f9e04b":"#888",fontWeight:600}}>Jornadas</div>
-            </button>
-            {isJugador && <button style={{flex:1,padding:"7px 4px",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",cursor:"pointer",textAlign:"center"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");}}>
-              <div style={{fontSize:15,lineHeight:1,fontWeight:800}}>+</div>
-              <div style={{fontSize:9,marginTop:3,fontWeight:700}}>Nueva</div>
-            </button>}
-          </div>
+
         </div>
         <div style={{display:"flex",padding:"12px 16px 0",gap:8,alignItems:"flex-end"}}>
           {["active","closed"].map(tab => (
@@ -1736,19 +984,47 @@ function BillarApp() {
             </button>
           ))}
 
-          <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }}
-            title="Actualizar"
-            style={{padding:"6px 10px",borderRadius:"10px 10px 0 0",background:"rgba(99,179,237,0.08)",border:"1px solid rgba(99,179,237,0.25)",borderBottom:"none",color:"#63b3ed",fontSize:16,cursor:"pointer",lineHeight:1}}>
-            🔄
-          </button>
         </div>
         <div className="app-scroll"
           style={{padding:"0 14px"}}>
           {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
+          {/* Banner modo organizar */}
+          {organizarMode && lobbyTab==="active" && (
+            <div style={{background:"rgba(249,224,75,0.1)",border:"1px solid rgba(249,224,75,0.3)",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:6}}>
+              <div style={{fontSize:12,color:"#f9e04b",fontWeight:700}}>
+                Toca en el orden deseado ({organizarOrder.length}/{activeMatches.length})
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>{
+                  const allIds = activeMatches.map(x=>x.id);
+                  const remaining = allIds.filter(id=>!organizarOrder.includes(id));
+                  const finalOrder = [...organizarOrder, ...remaining];
+                  saveMatchOrder(finalOrder);
+                  setOrganizarMode(false); setOrganizarOrder([]);
+                }} style={{padding:"5px 12px",borderRadius:8,background:"rgba(74,222,128,0.2)",border:"1px solid rgba(74,222,128,0.4)",color:"#4ade80",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>✓ Listo</button>
+                <button onClick={()=>{setOrganizarMode(false);setOrganizarOrder([]);}} style={{padding:"5px 12px",borderRadius:8,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:12,cursor:"pointer"}}>Cancelar</button>
+              </div>
+            </div>
+          )}
           <div style={isLandscape?{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,paddingBottom:20}:{}}>
-          {list.map((m,idx) => (
-            <div key={m.id}>
-            <LobbyCard m={m} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onAsignarJornada={isAdmin?(id=>setAsignarJornadaModal(id)):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+          {list.map((m,_idx) => {
+            const ordenIdx = organizarMode && lobbyTab==="active" ? organizarOrder.indexOf(m.id) : -1;
+            const yaSeleccionada = ordenIdx !== -1;
+            return (
+            <div key={m.id} style={{position:"relative"}}
+              onClick={organizarMode&&lobbyTab==="active"?(e)=>{
+                if(yaSeleccionada){ setOrganizarOrder(organizarOrder.filter(id=>id!==m.id)); }
+                else { setOrganizarOrder([...organizarOrder, m.id]); }
+              }:undefined}>
+              {organizarMode && lobbyTab==="active" && (
+                <div style={{position:"absolute",top:8,right:8,zIndex:100,width:30,height:30,borderRadius:"50%",background:yaSeleccionada?"rgba(74,222,128,0.9)":"rgba(0,0,0,0.5)",border:yaSeleccionada?"2px solid #4ade80":"2px solid rgba(255,255,255,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:yaSeleccionada?"#081530":"#666",pointerEvents:"none"}}>
+                  {yaSeleccionada ? ordenIdx+1 : ""}
+                </div>
+              )}
+              {organizarMode && lobbyTab==="active" && (
+                <div style={{position:"absolute",inset:0,zIndex:50,borderRadius:16,border:yaSeleccionada?"2px solid rgba(74,222,128,0.5)":"2px solid transparent",pointerEvents:"none"}} />
+              )}
+              <LobbyCard key={m.id} m={m} compact={isLandscape} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
                 // Deshacer último juego
@@ -1780,7 +1056,10 @@ function BillarApp() {
             isLast={lobbyTab==="active"&&activeMatches.indexOf(activeMatches.find(x=>x.id===m.id))===activeMatches.length-1}
             onEditName={!m.matchClosed ? (key)=>setEditingNameKey(key) : null}
             editingNameKey={editingNameKey}
-             /></div>))}
+             />
+            </div>
+            );
+          })}
           </div>
         </div>
 
@@ -1968,38 +1247,6 @@ function BillarApp() {
           </div>
         );
       })()}
-      {asignarJornadaModal && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>setAsignarJornadaModal(null)}>
-          <div style={{background:"#0f2a5a",border:"1px solid rgba(74,222,128,0.3)",borderRadius:16,padding:20,width:"100%",maxWidth:380}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:15,fontWeight:800,color:"#f9e04b",marginBottom:16}}>🏆 Asignar a Jornada</div>
-            <div style={{fontSize:12,color:"#aaa",marginBottom:12}}>Selecciona una jornada o crea una nueva:</div>
-            {jornadas.filter(j=>!j.finished).length>0 && <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12,maxHeight:200,overflowY:"auto"}}>
-              {jornadas.filter(j=>!j.finished).map(j=>(
-                <button key={j.id} onClick={()=>{
-                  const updated=matches.map(m=>m.id===asignarJornadaModal?{...m,jornadaId:j.id}:m);
-                  saveMatches(updated);
-                  saveJornadas(jornadas.map(jj=>jj.id===j.id?{...jj,matchOrder:[...(jj.matchOrder||[]),asignarJornadaModal]}:jj));
-                  setAsignarJornadaModal(null);
-                  setJornadaScreenP("list");
-                }} style={{padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}}>
-                  📋 {j.name}
-                </button>
-              ))}
-            </div>}
-            <button onClick={()=>{
-              const nombre=prompt("Nombre de la nueva jornada:");
-              if(!nombre?.trim()) return;
-              const newJ={id:"j_"+Date.now(),name:nombre.trim(),currentTurn:0,turnStarted:false,turnScored:false,matchOrder:[asignarJornadaModal],finished:false,createdAt:Date.now()};
-              saveJornadas([...jornadas,newJ]);
-              const updated=matches.map(m=>m.id===asignarJornadaModal?{...m,jornadaId:newJ.id}:m);
-              saveMatches(updated);
-              setAsignarJornadaModal(null);
-              setJornadaScreenP("list");
-            }} style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(74,222,128,0.15)",border:"1px solid rgba(74,222,128,0.3)",color:"#4ade80",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:8}}>+ Nueva jornada</button>
-            <button onClick={()=>setAsignarJornadaModal(null)} style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
-          </div>
-        </div>
-      )}
       </div>
     </>
     );
@@ -2214,17 +1461,20 @@ function BillarApp() {
       });
     });
 
-    // Rey del día basado en jornadas
-    // La jornada aplica al período si su fecha de creación cae dentro del filtro activo
-    const allClosed = matches.filter(m => m.matchClosed);
-
-    // Calcular hist.rey: si ganó Rey del Día al menos una vez en todo el historial
-    jornadas.forEach(j => {
-      const jMs = allClosed.filter(m => m.jornadaId === j.id && m.modalidad !== "Contrarreloj");
-      if (jMs.length === 0) return;
+    // Rey del Día — por día calendario. Se otorga si un jugador venció a
+    // MÁS DE 1 oponente diferente el mismo día (1 solo oponente no cuenta).
+    const allClosedForRey = matches.filter(m => m.matchClosed && m.modalidad !== "Contrarreloj");
+    const byDay = {};
+    allClosedForRey.forEach(m => {
+      if (!m.closedAt) return;
+      const day = new Date(m.closedAt).toISOString().slice(0,10);
+      if (!byDay[day]) byDay[day] = [];
+      byDay[day].push(m);
+    });
+    const computeRey = (dayMatches) => {
       const participantes = new Set();
       const victorias = {};
-      jMs.forEach(m => {
+      dayMatches.forEach(m => {
         const s1=(m.seriesWins&&m.seriesWins.p1)||0, s2=(m.seriesWins&&m.seriesWins.p2)||0;
         const gw=s1>s2?m.p1Name:s2>s1?m.p2Name:null;
         const gl=s1>s2?m.p2Name:s2>s1?m.p1Name:null;
@@ -2234,55 +1484,46 @@ function BillarApp() {
         if(!victorias[gw]) victorias[gw]=[];
         if(victorias[gw].indexOf(gl)===-1) victorias[gw].push(gl);
       });
-      if(participantes.size<2) return;
+      const reyes = [];
       participantes.forEach(jugador=>{
-        const needed=[...participantes].filter(p=>p!==jugador);
+        const oponentes=[...participantes].filter(p=>p!==jugador);
         const vic=victorias[jugador]||[];
-        if(needed.length>0&&needed.every(p=>vic.indexOf(p)!==-1)){
-          ensureHist(jugador);
-          histIns[jugador].rey=(histIns[jugador].rey||0)+1;
+        if(oponentes.length>1 && oponentes.every(p=>vic.indexOf(p)!==-1)){
+          reyes.push(jugador);
         }
       });
+      return reyes;
+    };
+
+    // Histórico (silueta): todos los días, sin filtro de período
+    Object.values(byDay).forEach(dayMatches => {
+      computeRey(dayMatches).forEach(jugador => {
+        ensureHist(jugador);
+        histIns[jugador].rey=(histIns[jugador].rey||0)+1;
+      });
     });
-    const jornadaEnPeriodo = (j) => {
-      const ts = j.createdAt || 0;
-      const d = new Date(ts);
+
+    // Período filtrado: solo días dentro del rango activo
+    const diaEnPeriodo = (dayStr) => {
+      const [yy,mm2,dd] = dayStr.split("-").map(Number);
+      const d = new Date(yy,mm2-1,dd);
       if (sfPeriod === "Rango") {
-        if (sfFechaDesde) { const [yy,mm2,dd]=sfFechaDesde.split("-").map(Number); if(d<new Date(yy,mm2-1,dd,0,0,0,0)) return false; }
-        if (sfFechaHasta) { const [yy,mm2,dd]=sfFechaHasta.split("-").map(Number); if(d>new Date(yy,mm2-1,dd,23,59,59,999)) return false; }
+        if (sfFechaDesde) { const [y,m,dd2]=sfFechaDesde.split("-").map(Number); if(d<new Date(y,m-1,dd2,0,0,0,0)) return false; }
+        if (sfFechaHasta) { const [y,m,dd2]=sfFechaHasta.split("-").map(Number); if(d>new Date(y,m-1,dd2,23,59,59,999)) return false; }
         return true;
       } else if (sfPeriod === "Hoy") {
         const hoy=new Date(); hoy.setHours(0,0,0,0); return d>=hoy;
       } else if (sfPeriod === "Esta semana") {
-        return Date.now()-ts<=604800000;
+        return Date.now()-d.getTime()<=604800000;
       } else if (sfPeriod === "Este mes") {
         const now3=new Date(); const ini=new Date(now3.getFullYear(),now3.getMonth(),1,0,0,0,0); return d>=ini;
       }
       return true; // "Todo"
     };
-    jornadas.forEach(j => {
-      if (!jornadaEnPeriodo(j)) return; // Jornada fuera del período, no aplica
-      const jMs = allClosed.filter(m => m.jornadaId === j.id && m.modalidad !== "Contrarreloj");
-      if (jMs.length === 0) return;
-      const participantes = new Set();
-      const victorias = {};
-      jMs.forEach(m => {
-        const s1=(m.seriesWins&&m.seriesWins.p1)||0, s2=(m.seriesWins&&m.seriesWins.p2)||0;
-        const gw=s1>s2?m.p1Name:s2>s1?m.p2Name:null;
-        const gl=s1>s2?m.p2Name:s2>s1?m.p1Name:null;
-        if(m.p1Name) participantes.add(m.p1Name);
-        if(m.p2Name) participantes.add(m.p2Name);
-        if(!gw||!gl) return;
-        if(!victorias[gw]) victorias[gw]=[];
-        if(victorias[gw].indexOf(gl)===-1) victorias[gw].push(gl);
-      });
-      if(participantes.size<2) return;
-      participantes.forEach(jugador=>{
-        const needed=[...participantes].filter(p=>p!==jugador);
-        const vic=victorias[jugador]||[];
-        if(needed.length>0&&needed.every(p=>vic.indexOf(p)!==-1)){
-          if(statsMap[jugador]) statsMap[jugador].reyDelDia=(statsMap[jugador].reyDelDia||0)+1;
-        }
+    Object.entries(byDay).forEach(([day, dayMatches]) => {
+      if (!diaEnPeriodo(day)) return;
+      computeRey(dayMatches).forEach(jugador => {
+        if(statsMap[jugador]) statsMap[jugador].reyDelDia=(statsMap[jugador].reyDelDia||0)+1;
       });
     });
     let rows = Object.values(statsMap);
@@ -2865,11 +2106,7 @@ function BillarApp() {
               const opts = playersList.map(p=>plName(p)).filter(pn=>pn!==other);
               return (<React.Fragment key={pi}>
                 <div style={{color:"#666",fontSize:11,letterSpacing:1,textTransform:"uppercase",marginBottom:6,marginTop:pi===1?14:0}}>{label}</div>
-                <select value={val} onChange={e=>setVal(e.target.value)}
-                  style={{width:"100%",padding:"12px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${val?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:val?"#fff":"#888",fontFamily:"inherit",fontSize:15,outline:"none",boxSizing:"border-box",marginBottom:6,cursor:"pointer"}}>
-                  <option value="" style={{color:"#888",background:"#081530"}}>Selecciona un jugador...</option>
-                  {opts.map((pn,oi)=>(<option key={oi} value={pn} style={{color:"#fff",background:"#081530"}}>{pn}</option>))}
-                </select>
+                <SelectJugador val={val} setVal={setVal} opts={opts} style={{marginBottom:6}} />
               </React.Fragment>);
             })}
           </>) : (<>
@@ -2879,11 +2116,7 @@ function BillarApp() {
               const opts = playersList.map(pl=>plName(pl)).filter(pn=>!otherPlayers.includes(pn));
               return (
               <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
-                <select value={p} onChange={e=>{const n=[...wPlayers];n[i]=e.target.value;setWPlayers(n);setWOrder([]);}}
-                  style={{flex:1,padding:"11px 14px",borderRadius:10,background:"#0d2b0d",border:`1px solid ${p?"rgba(74,222,128,0.5)":"rgba(255,255,255,0.12)"}`,color:p?"#fff":"#888",fontFamily:"inherit",fontSize:14,outline:"none",cursor:"pointer"}}>
-                  <option value="" style={{color:"#888",background:"#081530"}}>Selecciona un jugador...</option>
-                  {opts.map((pn,oi)=>(<option key={oi} value={pn} style={{color:"#fff",background:"#081530"}}>{pn}</option>))}
-                </select>
+                <SelectJugador val={p} setVal={pn=>{const n=[...wPlayers];n[i]=pn;setWPlayers(n);setWOrder([]);}} opts={opts} placeholder="Selecciona..." style={{flex:1}} />
                 {wPlayers.length > 2 && <button onClick={()=>{const n=wPlayers.filter((_,j)=>j!==i);setWPlayers(n);setWOrder([]);}} style={{background:"rgba(255,80,80,0.15)",border:"1px solid rgba(255,80,80,0.3)",color:"#f87171",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:14,fontFamily:"inherit"}}>✕</button>}
               </div>
               );
@@ -2943,14 +2176,10 @@ function BillarApp() {
 
           <div style={{display:"flex",gap:12,marginTop:20}}>
             <button style={{flex:1,padding:"14px 0",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:700,cursor:"pointer",opacity:ready?1:0.4}} onClick={startNewMatch} disabled={!ready}>Iniciar</button>
-            <button style={{padding:"14px 16px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.11)",color:"#aaa",fontFamily:"inherit",fontSize:14,cursor:"pointer"}} onClick={()=>{
-              const pj = sessionStorage.getItem("pendingJornadaId");
-              if(pj){setJornadaScreenP(pj);}else{setScreenP("lobby");}
-            }}>Cancelar</button>
+            <button style={{padding:"14px 16px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.11)",color:"#aaa",fontFamily:"inherit",fontSize:14,cursor:"pointer"}} onClick={()=>setScreenP("lobby")}>Cancelar</button>
           </div>
         </div>
       </div>
-      <BtnActualizar />
     </>
     );
   }
@@ -2983,22 +2212,12 @@ function BillarApp() {
       const nextServe = currentServe==="p1"?"p2":"p1";
       const willFinish = newWins[k] >= carrera;
       updateMatch(activeId, m => ({...m, wins:newWins, games:[...m.games,{winner:k,serve:currentServe,ballType:bt,device:deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
-      // Marcar turno anotado si la partida pertenece a una jornada activa
-      if (jornadaScreen && jornadaScreen!=="list") {
-        saveJornadas(jornadas.map(j => j.id===jornadaScreen && j.turnStarted ? {...j, turnScored:true} : j));
-        // Marcar en la partida que ya se anotó en este turno
-        updateMatch(activeId, mm => ({...mm, jornadaTurnScored:true}));
-      }
     } else if (hasWon && isLastGame) {
       updateMatch(activeId, m => {
         if (m.games.length===0) return m;
         const last = m.games[m.games.length-1];
-        return {...m, games:m.games.slice(0,-1), wins:{...m.wins,[last.winner]:m.wins[last.winner]-1}, currentServe:last.serve, seriesFinished:false, seriesWinner:null, jornadaTurnScored:false};
+        return {...m, games:m.games.slice(0,-1), wins:{...m.wins,[last.winner]:m.wins[last.winner]-1}, currentServe:last.serve, seriesFinished:false, seriesWinner:null};
       });
-      // Resetear turnScored en jornada activa
-      if (jornadaScreen && jornadaScreen!=="list") {
-        saveJornadas(jornadas.map(j => j.id===jornadaScreen ? {...j, turnScored:false} : j));
-      }
     }
     setBallMenu(null);
   };
@@ -3072,21 +2291,9 @@ function BillarApp() {
                     const isLastGame=ji===games.length-1;
                     const isNext=!seriesFinished&&ji===games.length;
                     const isSaque=isNext&&currentServe===k;
-                    // En jornada: bloqueado si no es el turno activo; o si ya se anotó victoria en este turno (turnScored) solo permitir modificar el juego actual
-                    // Bloquear nuevas victorias (jornadaBlocked), permitir deshacer si es turno activo
-                    // En jornada activa: bloquear agregar si ya se anotó; quitar solo con botón Deshacer
-                    // En partida bloqueada (inactiva): bloquear todo
-                    // En lobby: libre
-                    const scored = jornadaTurnScored === true; // prop local, no Firebase
-                    const blockAdd = jornadaBlocked ? true : (jornadaTurnActive ? scored : false);
-                    // Permitir quitar victoria SOLO si scored=true Y es el último juego (mismo criterio que botón Deshacer)
-                    const scoredThisTurn = scored || (activeMatch.jornadaTurnScored === true);
-                    const canUndoByClick = jornadaTurnActive ? (scoredThisTurn && isLastGame) : true;
-                    const blockUndo = jornadaBlocked ? true : (jornadaTurnActive ? !canUndoByClick : false);
-                    const jornadaBlockCell = isNext ? blockAdd : (hasWon ? blockUndo : false);
-                    const clickable=!isReadOnly&&!jornadaBlockCell&&(isNext||(hasWon&&isLastGame));
+                    const clickable=!isReadOnly&&(isNext||(hasWon&&isLastGame));
                     let pressTimer = null; let longPressed = false;
-                    const onPressStart = () => { longPressed=false; if(isNext&&!isReadOnly&&!jornadaBlockCell) pressTimer = setTimeout(()=>{ longPressed=true; handleCellLongPress(k,ji); }, 600); };
+                    const onPressStart = () => { longPressed=false; if(isNext&&!isReadOnly) pressTimer = setTimeout(()=>{ longPressed=true; handleCellLongPress(k,ji); }, 600); };
                     const onPressEnd = () => { clearTimeout(pressTimer); };
                     return <div key={ji}
                        onClick={()=>{ if(!longPressed) { clickable&&handleCellClick(k,ji); } longPressed=false; }}
@@ -3323,7 +2530,6 @@ function BillarApp() {
         />
       )}
     </div>
-    <BtnActualizar />
     </>
   );
 }
@@ -3519,10 +2725,8 @@ function CrTimer({ startTs, base=0, big=false }) {
   return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
 }
 
-function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, jornadaTurnActive=false, onJornadaScore, jornadaBlocked=false, jornadaPaused=false, onPauseToggle, jornadaTurnScored=false, deviceName=null, playersList=[], isAdminMode=false, onAsignarJornada=null, compact=false}) {
+function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onMoveUp, onMoveDown, isFirst, isLast, onEditName, editingNameKey, deviceName=null, playersList=[], isAdminMode=false, compact=false}) {
   const cPad = compact ? "8px 10px" : "12px 14px";
-  // Long press via capture — no puede ser bloqueado por stopPropagation de hijos
-
   const cFontName = compact ? 13 : 15;
   const cFontSub = compact ? 10 : 11;
   const cFontScore = compact ? 22 : 28;
@@ -3726,8 +2930,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
     };
 
     return (
-      <div
-        style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(74,222,128,0.18)",borderRadius:16,padding:"12px 14px",marginBottom:12}}>
+      <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(74,222,128,0.18)",borderRadius:16,padding:"12px 14px",marginBottom:12}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:18}}>⏱</span>
@@ -3950,16 +3153,13 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
       const newWins = {...m.wins, [k]: m.wins[k]+1};
       const nextServe = m.currentServe==="p1"?"p2":"p1";
       const willFinish = newWins[k] >= m.carrera;
-      onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe,ballType:"normal",device:deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null, jornadaTurnScored: jornadaTurnActive ? true : mm.jornadaTurnScored}));
-      if (onJornadaScore) onJornadaScore();
+      onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe,ballType:"normal",device:deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
     } else if (hasWon && isLastGame) {
       // Deshacer último juego — funciona aunque la serie esté terminada
       onUpdateMatch(m.id, mm => {
         const last = mm.games[mm.games.length-1];
-        return {...mm, games:mm.games.slice(0,-1), wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1}, currentServe:last.serve, seriesFinished:false, seriesWinner:null, jornadaTurnScored:false};
+        return {...mm, games:mm.games.slice(0,-1), wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1}, currentServe:last.serve, seriesFinished:false, seriesWinner:null};
       });
-      // Limpiar turnScored en la jornada para que pueda anotar de nuevo
-      if (onJornadaScore) onJornadaScore('undo');
     }
   };
 
@@ -4016,16 +3216,9 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                     const isLastGame=ji===m.games.length-1;
                     const isNext=ji===m.games.length;
                     const isSaque=isNext&&m.currentServe===k;
-                    // Bloqueo de jornada en cuadrícula
-                    const jBlockAdd = jornadaBlocked ? true : (jornadaTurnActive ? jornadaTurnScored : false);
-                    // Permitir quitar la victoria recién anotada en este turno aunque jornadaBlocked=true
-                    // (jornadaBlocked se activa justamente cuando se anota, pero eso no debe impedir corregir)
-                    const jCanUndoByClick = jornadaTurnScored && isLastGame;
-                    const jBlockUndo = jCanUndoByClick ? false : (jornadaBlocked ? true : (jornadaTurnActive ? true : false));
-                    const jBlockCell = isNext ? jBlockAdd : (hasWon ? jBlockUndo : false);
-                    const clickable=!jBlockCell&&(isNext||(hasWon&&isLastGame));
+                    const clickable=isNext||(hasWon&&isLastGame);
                     let lpt=null, lpp=false;
-                    const lps=()=>{ lpp=false; if(isNext&&!jBlockAdd&&!m.seriesFinished) lpt=setTimeout(()=>{ lpp=true; onLobbyBallMenu({matchId:m.id,k,ji}); },600); };
+                    const lps=()=>{ lpp=false; if(isNext&&!m.seriesFinished) lpt=setTimeout(()=>{ lpp=true; onLobbyBallMenu({matchId:m.id,k,ji}); },600); };
                     const lpe=()=>clearTimeout(lpt);
                     return <div key={ji}
                       onClick={()=>{ if(!lpp) clickable&&handleClick(k,ji); lpp=false; }}
@@ -4056,20 +3249,11 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
 
         <div style={{display:"flex",gap:5,marginTop:6}}>
           <button style={{flex:2,padding:"8px 0",borderRadius:10,background:m.seriesFinished?"linear-gradient(135deg,#1e3a8a,#4ade80)":"rgba(255,255,255,0.06)",border:m.seriesFinished?"none":"1px solid rgba(255,255,255,0.1)",color:m.seriesFinished?"#fff":"#555",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:m.seriesFinished?"pointer":"default"}} onClick={e=>{e.stopPropagation();if(m.seriesFinished)onNextSeries(m.id);}}>Confirmar ✓</button>
-          {(()=>{ const scored3 = jornadaTurnScored===true; const cu3 = jornadaTurnActive ? scored3 : (jornadaBlocked ? false : (m.games.length>0||m.seriesHistory.length>0)); return (
+          {(()=>{ const cu3 = (m.games.length>0||m.seriesHistory.length>0); return (
           <button style={{flex:1,padding:"8px 0",borderRadius:10,background:cu3?"rgba(255,200,50,0.1)":"rgba(255,255,255,0.04)",border:cu3?"1px solid rgba(255,200,50,0.25)":"1px solid rgba(255,255,255,0.08)",color:cu3?"#f9e04b":"#444",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:cu3?"pointer":"default"}} onClick={e=>{
                   e.stopPropagation();
-                  const scored2 = jornadaTurnScored===true;
-                  const canUndo = jornadaTurnActive ? scored2 : (jornadaBlocked ? false : (m.games.length>0||m.seriesHistory.length>0));
-                  if(canUndo) onUndo(m.id);
+                  if(cu3) onUndo(m.id);
                 }}>↩ Deshacer</button>); })()}
-
-          {onPauseToggle && (
-            <button onClick={e=>{e.stopPropagation();onPauseToggle(m.id);}}
-              style={{flex:1,padding:"8px 0",borderRadius:10,background:jornadaPaused?"rgba(74,222,128,0.1)":"rgba(255,200,50,0.1)",border:jornadaPaused?"1px solid rgba(74,222,128,0.25)":"1px solid rgba(255,200,50,0.25)",color:jornadaPaused?"#4ade80":"#f9e04b",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-              {jornadaPaused?"▶ Reanudar":"⏸ Pausa"}
-            </button>
-          )}
           <button style={{flex:1,padding:"8px 0",borderRadius:10,
             background:m.seriesFinished?"rgba(239,68,68,0.06)":"rgba(239,68,68,0.1)",
             border:"1px solid rgba(239,68,68,0.25)",
@@ -4187,7 +3371,6 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReplay(m);}}>↺ Re-crear</button>
               <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onOpenHistory(m.id);}}>📋 Historial</button>
               {onReactivar && <button style={{flex:1,padding:"7px 0",borderRadius:9,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.2)",color:"#63b3ed",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onReactivar(m.id);}}>↺ Reactivar</button>}
-              {isAdminMode && onAsignarJornada && <button style={{padding:"5px 10px",borderRadius:8,background:"rgba(249,224,75,0.1)",border:"1px solid rgba(249,224,75,0.3)",color:"#f9e04b",fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onAsignarJornada(m.id);}}>🏆 Jornada</button>}
             </div>
           </div>
         );
