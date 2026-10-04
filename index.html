@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v415</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v416</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v415</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v416</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -241,6 +241,40 @@ function SelectJugador({val, setVal, opts, placeholder, style}) {
       </div>}
     </div>
   );
+}
+
+// Estimación del tamaño que ocupa un dato en Firestore (reglas oficiales de tamaño)
+function estimateFsBytes(v) {
+  if (v === null || v === undefined) return 1;
+  const t = typeof v;
+  if (t === "boolean") return 1;
+  if (t === "number") return 8;
+  if (t === "string") {
+    let n = 1;
+    for (let i = 0; i < v.length; i++) {
+      const c = v.charCodeAt(i);
+      if (c < 0x80) n += 1;
+      else if (c < 0x800) n += 2;
+      else if (c >= 0xD800 && c <= 0xDBFF) { n += 4; i++; }
+      else n += 3;
+    }
+    return n;
+  }
+  if (Array.isArray(v)) {
+    let n = 0;
+    for (let i = 0; i < v.length; i++) n += estimateFsBytes(v[i]);
+    return n;
+  }
+  if (t === "object") {
+    let n = 0;
+    const keys = Object.keys(v);
+    for (let i = 0; i < keys.length; i++) {
+      if (v[keys[i]] === undefined) continue;
+      n += estimateFsBytes(keys[i]) + estimateFsBytes(v[keys[i]]);
+    }
+    return n;
+  }
+  return 0;
 }
 
 function BillarApp() {
@@ -431,7 +465,7 @@ function BillarApp() {
   }, []);
 
   useEffect(() => {
-    let unsub1, unsub2, unsub3, unsub4ref;
+    let unsub1, unsub2, unsub3, unsub4ref, unsub5;
     let reconnectTimer = null;
 
     const conectar = () => {
@@ -439,6 +473,7 @@ function BillarApp() {
       if (unsub2) try { unsub2(); } catch(e) {}
       if (unsub3) try { unsub3(); } catch(e) {}
       if (unsub4ref) try { unsub4ref(); } catch(e) {}
+      if (unsub5) try { unsub5(); } catch(e) {}
 
       unsub1 = db.collection("billar").doc("partidas").onSnapshot(snap => {
         if (snap.exists) { const d = snap.data(); if (d && d.matches) setMatches(d.matches); }
@@ -451,7 +486,7 @@ function BillarApp() {
           try { localStorage.setItem("bg_players", JSON.stringify(d.list)); } catch{}
         }}
       }, () => {});
-    db.collection("billar").doc("config").onSnapshot(snap => {
+    unsub5 = db.collection("billar").doc("config").onSnapshot(snap => {
       if (snap.exists) {
         const d = snap.data();
         if (d && Array.isArray(d.matchOrder)) setMatchOrder(d.matchOrder);
@@ -522,6 +557,7 @@ function BillarApp() {
       if (unsub2) try { unsub2(); } catch(e) {}
       if (unsub3) try { unsub3(); } catch(e) {}
       if (unsub4ref) try { unsub4ref(); } catch(e) {}
+      if (unsub5) try { unsub5(); } catch(e) {}
       if (reconnectTimer) clearTimeout(reconnectTimer);
       clearInterval(pingTimer);
       document.removeEventListener('visibilitychange', onVisible);
@@ -693,6 +729,14 @@ function BillarApp() {
       return nz;
     });
   };
+  // Medidor de tamaño de datos (solo admin): estima el peso del documento "partidas" en Firebase
+  const datosKB = React.useMemo(() => {
+    if (!isAdmin) return null;
+    try { return Math.round(((estimateFsBytes({matches: matches}) + 100) / 1024) * 10) / 10; } catch(e) { return null; }
+  }, [matches, isAdmin]);
+  const datosAlerta = datosKB !== null && datosKB >= 820;
+  const datosColor = datosKB === null ? "#4ade80" : (datosAlerta ? "#f87171" : (datosKB >= 500 ? "#f9e04b" : "#4ade80"));
+  const datosPct = datosKB === null ? 0 : Math.min(100, (datosKB / 1024) * 100);
   const [organizarOrder, setOrganizarOrder] = React.useState([]); // ids en nuevo orden
   React.useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
@@ -865,6 +909,15 @@ function BillarApp() {
                     <button style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"none",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setScreenP("players");setNavOpen(false);}}>👥 Jugadores</button>
                     {isJugador && <button style={{padding:"10px 14px",borderRadius:8,background:"linear-gradient(135deg,rgba(30,58,138,0.5),rgba(74,222,128,0.2))",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");setNavOpen(false);}}>+ Nueva Partida</button>}
                     {isAdmin && <button style={{padding:"10px 14px",borderRadius:8,background:mantenimiento?"rgba(74,222,128,0.12)":"rgba(239,68,68,0.1)",border:"none",color:mantenimiento?"#4ade80":"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}} onClick={()=>{toggleMantenimiento();setNavOpen(false);}}>{mantenimiento?"✅ Quitar mantenimiento":"🔧 Modo mantenimiento"}</button>}
+                    {isAdmin && datosKB !== null && (
+                      <div style={{padding:"8px 14px 4px",borderTop:"1px solid rgba(255,255,255,0.08)",marginTop:2}}>
+                        <div style={{fontSize:11,color:"#aaa",marginBottom:4}}>📦 Datos de partidas ({matches.length}): <b style={{color:datosColor}}>{datosKB} KB</b> / 1024 KB</div>
+                        <div style={{height:5,borderRadius:3,background:"rgba(255,255,255,0.1)",overflow:"hidden"}}>
+                          <div style={{height:"100%",width:datosPct+"%",background:datosColor}} />
+                        </div>
+                        {datosAlerta && <div style={{fontSize:10,color:"#f87171",marginTop:4}}>⚠ Cerca del límite de Firebase</div>}
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -872,7 +925,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v415</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v416</div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
               background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
