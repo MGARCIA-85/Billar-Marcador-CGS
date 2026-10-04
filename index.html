@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v418</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v419</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v418</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v419</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -767,6 +767,16 @@ function BillarApp() {
   const syncEnviando = reconectando || pendingWrites > 0;
   const syncColor = syncOffline ? "#ef4444" : (syncEnviando ? "#f9e04b" : "#4ade80");
   const syncLabel = syncOffline ? "Sin conexión" : (reconectando ? "Reconectando…" : (pendingWrites > 0 ? "Enviando…" : "Sincronizado"));
+  // Nombre del jugador con el que está registrado este dispositivo (para mostrarlo en el encabezado)
+  const miNombre = (() => {
+    if (!deviceName) return "";
+    const p = playersList.find(pl => {
+      const pn = typeof pl === "string" ? pl : pl.name;
+      const pid = typeof pl === "string" ? "" : (pl.id || "");
+      return pn === deviceName || pid === deviceName;
+    });
+    return p ? (typeof p === "string" ? p : p.name) : deviceName;
+  })();
   const [organizarOrder, setOrganizarOrder] = React.useState([]); // ids en nuevo orden
   React.useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
@@ -774,6 +784,272 @@ function BillarApp() {
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
+
+    // Modal de registro al entrar por primera vez
+  if (showRegisterPrompt && fbLoaded) {
+    const plNorm2 = playersList.map(p=>typeof p==="string"?{name:p,id:"",role:"jugador"}:p);
+    const thisDeviceId = localStorage.getItem("bg_device");
+    return (
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+      {pinRegistroModal && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+            <div style={{background:"#1a2744",borderRadius:16,padding:24,width:"100%",maxWidth:340,border:"1px solid rgba(255,255,255,0.1)"}}>
+              <div style={{fontSize:15,fontWeight:800,color:"#63b3ed",marginBottom:6,textAlign:"center"}}>🔐 Ingresa tu PIN</div>
+              <div style={{fontSize:12,color:"#888",textAlign:"center",marginBottom:16}}>Para registrar como <strong style={{color:"#fff"}}>{pinRegistroModal.jugName}</strong></div>
+              <input autoFocus type="password" inputMode="numeric" maxLength={8} value={pinRegistroInput} onChange={e=>setPinRegistroInput(e.target.value)}
+                style={{width:"100%",padding:"12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",fontSize:20,textAlign:"center",fontFamily:"inherit",outline:"none",letterSpacing:6,marginBottom:8}}
+                placeholder="••••"/>
+              {pinRegistroError && <div style={{color:"#f87171",fontSize:11,textAlign:"center",marginBottom:8}}>{pinRegistroError}</div>}
+              <div style={{display:"flex",gap:8,marginTop:8}}>
+                <button onClick={()=>{setPinRegistroModal(null);}} style={{flex:1,padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",color:"#aaa",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+                <button onClick={()=>{
+                  const pl = playersList.find(pl=>typeof pl==="object"&&pl.name===pinRegistroModal.jugName);
+                  const pinCorrecto = pl?.pin||"";
+                  if(!pinCorrecto){setPinRegistroError("Este jugador no tiene PIN configurado");return;}
+                  if(pinRegistroInput!==pinCorrecto){setPinRegistroError("PIN incorrecto");setPinRegistroInput('');return;}
+                  const dn=pinRegistroModal.newDev;
+                  if(pinRegistroModal.hasOtherDevs){
+                    setDevDialog({jugKey:pinRegistroModal.jugKey,jugName:pinRegistroModal.jugName,existingDevs:pinRegistroModal.existingDevs,newDev:dn});
+                  } else {
+                    localStorage.setItem("bg_device",dn);
+                    setDeviceName(dn);
+                    saveDispositivosMap({...dispositivosMap,[pinRegistroModal.jugKey]:[dn]});
+                    if(pinRegistroModal.onSuccess) pinRegistroModal.onSuccess();
+                  }
+                  setPinRegistroModal(null);
+                }} style={{flex:1,padding:"10px",borderRadius:10,background:"rgba(59,130,246,0.2)",border:"1px solid rgba(59,130,246,0.4)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>Confirmar</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {devDialog && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
+            <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:320,width:"100%"}}>
+              <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:8,textAlign:"center"}}>📱 Registrar dispositivo</div>
+              <div style={{fontSize:13,color:"#ccc",textAlign:"center",marginBottom:20,lineHeight:1.6}}>
+                <b style={{color:"#63b3ed"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {(()=>{
+                  const pDev = plNorm2.find(p=>(p.id||p.name)===devDialog.jugKey);
+                  const pinDev = pDev?.pin||"";
+                  const rolDev = pDev?.role||"jugador";
+                  const needPin = (rolDev==="admin"||rolDev==="operario") && pinDev;
+                  const doChange = (modo) => {
+                    if (modo==="cambiar") {
+                      localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);
+                      saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[devDialog.newDev]});
+                    } else {
+                      localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);
+                      saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[...devDialog.existingDevs,devDialog.newDev]});
+                    }
+                    setDevDialog(null);setShowRegisterPrompt(false);
+                  };
+                  const tryAction = (modo) => {
+                    if (needPin) {
+                      setPinPrompt({jugKey:devDialog.jugKey,jugName:devDialog.jugName,pin:pinDev,existingDevs:devDialog.existingDevs,newDev:devDialog.newDev,onSuccess:()=>doChange(modo)});
+                    } else { doChange(modo); }
+                  };
+                  return (<>
+                    <button onClick={()=>tryAction("cambiar")}
+                      style={{padding:"13px",borderRadius:10,background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
+                      🔄 Cambiar dispositivo
+                      <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Borra el dispositivo anterior</div>
+                    </button>
+                    <button onClick={()=>tryAction("agregar")}
+                      style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
+                      ➕ Agregar dispositivo
+                      <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Mantiene el anterior también</div>
+                    </button>
+                  </>);
+                })()}
+                <button onClick={()=>{setDevDialog(null);}}
+                  style={{padding:"13px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#666",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                  ✕ No hacer nada
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        <div style={{background:"#1a2e1a",borderRadius:18,padding:"28px 22px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:340,width:"100%"}}>
+          <div style={{fontSize:28,textAlign:"center",marginBottom:4}}>🎱</div>
+          <div style={{fontSize:20,fontWeight:800,color:"#63b3ed",textAlign:"center",marginBottom:6}}>Billares García</div>
+          <div style={{fontSize:13,color:"#888",textAlign:"center",marginBottom:24,lineHeight:1.5}}>¿Eres uno de los jugadores registrados?</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {plNorm2.map((p,i)=>{
+              const jugKey = p.id||p.name;
+              const existingDevs = dispositivosMap[jugKey]||[];
+              const yaRegistrado = existingDevs.length > 0;
+              const rolElevado = (p.role||"jugador")==="admin" || (p.role||"jugador")==="operario";
+              const bloqueado = false; // Ya no se bloquea — el PIN es la restricción
+              return (
+                <button key={i} onClick={()=>{
+                  const dn = jugKey;
+                  const rolElevado2 = (p.role||"jugador")==="admin"||(p.role||"jugador")==="operario";
+                  const necesitaPin = p.pinReq && p.pin;
+                  const doRegistro = () => {
+                    if (yaRegistrado) {
+                      setDevDialog({jugKey, jugName:p.name, existingDevs, newDev:dn});
+                    } else {
+                      setDeviceName(dn);
+                      localStorage.setItem("bg_device", dn);
+                      saveDispositivosMap({...dispositivosMap,[dn]:[dn]});
+                      setShowRegisterPrompt(false);
+                    }
+                  };
+                  if (necesitaPin) {
+                    setPinPrompt({jugKey, jugName:p.name, pin:p.pin, existingDevs, newDev:dn, onSuccess:doRegistro});
+                  } else {
+                    doRegistro();
+                  }
+                }} style={{padding:"12px 16px",borderRadius:10,
+                  background:bloqueado?"rgba(255,255,255,0.02)":yaRegistrado?"rgba(249,224,75,0.06)":"rgba(74,222,128,0.06)",
+                  border:`1px solid ${bloqueado?"rgba(255,255,255,0.07)":yaRegistrado?"rgba(249,224,75,0.25)":"rgba(74,222,128,0.15)"}`,
+                  color:bloqueado?"#333":p.color||"#e0e0e0",fontFamily:"inherit",fontSize:15,fontWeight:700,
+                  cursor:bloqueado?"not-allowed":"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10,opacity:bloqueado?0.5:1}}>
+                  <span>{bloqueado?"🔒":yaRegistrado?"📱":"🎱"}</span>
+                  <span style={{flex:1}}>{p.name}</span>
+                  {p.id&&<span style={{fontSize:11,color:bloqueado?"#444":"#f9e04b",background:"rgba(249,224,75,0.1)",border:"1px solid rgba(249,224,75,0.2)",borderRadius:5,padding:"2px 6px"}}>{p.id}</span>}
+                  {bloqueado&&<span style={{fontSize:10,color:"#555",fontWeight:600}}>Solo por admin</span>}
+                  {!bloqueado&&yaRegistrado&&<span style={{fontSize:10,color:"#f9e04b",fontWeight:600}}>Ya registrado</span>}
+                </button>
+              );
+            })}
+          </div>
+        {pinPrompt && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
+            <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(249,224,75,0.3)",maxWidth:300,width:"100%",textAlign:"center"}}>
+              <div style={{fontSize:28,marginBottom:8}}>🔑</div>
+              <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:6}}>PIN requerido</div>
+              <div style={{fontSize:13,color:"#aaa",marginBottom:16}}>Ingresa el PIN para <b style={{color:"#63b3ed"}}>{pinPrompt.jugName}</b></div>
+              <input id="pin-input-reg" type="password" inputMode="numeric" maxLength={6} autoFocus
+                style={{width:"100%",padding:"12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(249,224,75,0.3)",color:"#f9e04b",fontFamily:"inherit",fontSize:22,fontWeight:800,outline:"none",letterSpacing:8,textAlign:"center",boxSizing:"border-box",marginBottom:12}}
+                onInput={e=>e.target.value=e.target.value.replace(/[^0-9]/g,"")}
+                onKeyDown={e=>{if(e.key==="Enter"){const v=document.getElementById("pin-input-reg")?.value;if(v===pinPrompt.pin){pinPrompt.onSuccess();setPinPrompt(null);}else{document.getElementById("pin-error-reg").style.display="block";}}}}
+              />
+              <div id="pin-error-reg" style={{display:"none",color:"#f87171",fontSize:12,marginBottom:10}}>PIN incorrecto, intenta de nuevo.</div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{const v=document.getElementById("pin-input-reg")?.value;if(v===pinPrompt.pin){pinPrompt.onSuccess();setPinPrompt(null);}else{document.getElementById("pin-error-reg").style.display="block";}}}
+                  style={{flex:1,padding:"11px",borderRadius:10,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
+                  Entrar
+                </button>
+                <button onClick={()=>setPinPrompt(null)}
+                  style={{padding:"11px 16px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:"#aaa",fontFamily:"inherit",fontSize:14,cursor:"pointer"}}>
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        </div>
+      </div>
+    );
+  }
+
+  if (registroBorrado) {
+    const plNorm3 = playersList.map(p=>typeof p==="string"?{name:p,id:"",role:"jugador"}:p);
+    return (
+      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+        <div style={{background:"#1a2e1a",borderRadius:18,padding:"28px 22px",border:"1px solid rgba(239,68,68,0.3)",maxWidth:340,width:"100%",textAlign:"center"}}>
+          <div style={{fontSize:36,marginBottom:12}}>📵</div>
+          <div style={{fontSize:18,fontWeight:800,color:"#f87171",marginBottom:8}}>Registro eliminado</div>
+          <div style={{fontSize:13,color:"#aaa",marginBottom:24,lineHeight:1.6}}>Tu registro en este dispositivo fue eliminado por un administrador. ¿Deseas registrarte como otro jugador?</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {plNorm3.map((p,i)=>{
+              const jugKey = p.id||p.name;
+              const existingDevs = dispositivosMap[jugKey]||[];
+              const yaRegistrado = existingDevs.length > 0;
+              return (
+                <button key={i} onClick={()=>{
+                  const dn = jugKey;
+                  const rolElevado2 = (p.role||"jugador")==="admin"||(p.role||"jugador")==="operario";
+                  const bloqueado2 = rolElevado2 && !yaRegistrado;
+                  if (bloqueado2) return;
+                  if (yaRegistrado) {
+                    setDevDialog({jugKey, jugName:p.name, existingDevs, newDev:dn});
+                  } else {
+                    localStorage.setItem("bg_device", dn);
+                    setDeviceName(dn);
+                    saveDispositivosMap({...dispositivosMap,[dn]:[dn]});
+                    setRegistroBorrado(false);
+                  }
+                }} style={{padding:"11px 16px",borderRadius:10,
+                  background:(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"rgba(255,255,255,0.02)":yaRegistrado?"rgba(249,224,75,0.06)":"rgba(74,222,128,0.06)"})(),
+                  border:`1px solid ${(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"rgba(255,255,255,0.07)":yaRegistrado?"rgba(249,224,75,0.2)":"rgba(74,222,128,0.15)"})()}`,
+                  color:(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"#333":p.color||"#e0e0e0"})(),
+                  fontFamily:"inherit",fontSize:14,fontWeight:700,
+                  cursor:(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"not-allowed":"pointer"})(),
+                  textAlign:"left",display:"flex",alignItems:"center",gap:10,
+                  opacity:(()=>{const bl=(p.role||"jugador")==="admin"&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?0.4:1})()}}>
+                  <span>{(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"🔒":yaRegistrado?"📱":"🎱"})()}</span>
+                  <span style={{flex:1}}>{p.name}</span>
+                  {p.id&&<span style={{fontSize:11,color:"#f9e04b",background:"rgba(249,224,75,0.1)",borderRadius:5,padding:"2px 6px"}}>{p.id}</span>}
+                  {(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!yaRegistrado;return bl?<span style={{fontSize:10,color:"#555"}}>Solo por admin</span>:yaRegistrado?<span style={{fontSize:10,color:"#f9e04b"}}>Ya registrado</span>:null})()}
+                </button>
+              );
+            })}
+          </div>
+          {pinRegistroModal && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+            <div style={{background:"#1a2744",borderRadius:16,padding:24,width:"100%",maxWidth:340,border:"1px solid rgba(255,255,255,0.1)"}}>
+              <div style={{fontSize:15,fontWeight:800,color:"#63b3ed",marginBottom:6,textAlign:"center"}}>🔐 Ingresa tu PIN</div>
+              <div style={{fontSize:12,color:"#888",textAlign:"center",marginBottom:16}}>Para registrar como <strong style={{color:"#fff"}}>{pinRegistroModal.jugName}</strong></div>
+              <input autoFocus type="password" inputMode="numeric" maxLength={8} value={pinRegistroInput} onChange={e=>setPinRegistroInput(e.target.value)}
+                style={{width:"100%",padding:"12px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#fff",fontSize:20,textAlign:"center",fontFamily:"inherit",outline:"none",letterSpacing:6,marginBottom:8}}
+                placeholder="••••"/>
+              {pinRegistroError && <div style={{color:"#f87171",fontSize:11,textAlign:"center",marginBottom:8}}>{pinRegistroError}</div>}
+              <div style={{display:"flex",gap:8,marginTop:8}}>
+                <button onClick={()=>{setPinRegistroModal(null);}} style={{flex:1,padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",color:"#aaa",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+                <button onClick={()=>{
+                  const pl = playersList.find(pl=>typeof pl==="object"&&pl.name===pinRegistroModal.jugName);
+                  const pinCorrecto = pl?.pin||"";
+                  if(!pinCorrecto){setPinRegistroError("Este jugador no tiene PIN configurado");return;}
+                  if(pinRegistroInput!==pinCorrecto){setPinRegistroError("PIN incorrecto");setPinRegistroInput('');return;}
+                  const dn=pinRegistroModal.newDev;
+                  if(pinRegistroModal.hasOtherDevs){
+                    setDevDialog({jugKey:pinRegistroModal.jugKey,jugName:pinRegistroModal.jugName,existingDevs:pinRegistroModal.existingDevs,newDev:dn});
+                  } else {
+                    localStorage.setItem("bg_device",dn);
+                    setDeviceName(dn);
+                    saveDispositivosMap({...dispositivosMap,[pinRegistroModal.jugKey]:[dn]});
+                    if(pinRegistroModal.onSuccess) pinRegistroModal.onSuccess();
+                  }
+                  setPinRegistroModal(null);
+                }} style={{flex:1,padding:"10px",borderRadius:10,background:"rgba(59,130,246,0.2)",border:"1px solid rgba(59,130,246,0.4)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>Confirmar</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {devDialog && (
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
+              <div style={{background:"#1a2e1a",borderRadius:16,padding:"24px",border:"1px solid rgba(74,222,128,0.2)",maxWidth:320,width:"100%"}}>
+                <div style={{fontSize:16,fontWeight:800,color:"#f9e04b",marginBottom:8,textAlign:"center"}}>📱 Registrar dispositivo</div>
+                <div style={{fontSize:13,color:"#ccc",textAlign:"center",marginBottom:20,lineHeight:1.6}}>
+                  <b style={{color:"#63b3ed"}}>{devDialog.jugName}</b> ya tiene {devDialog.existingDevs.length} dispositivo(s) registrado(s).
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[devDialog.newDev]});setDevDialog(null);setRegistroBorrado(false);}}
+                    style={{padding:"13px",borderRadius:10,background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
+                    🔄 Cambiar dispositivo
+                    <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Borra el dispositivo anterior</div>
+                  </button>
+                  <button onClick={()=>{localStorage.setItem("bg_device",devDialog.newDev);setDeviceName(devDialog.newDev);saveDispositivosMap({...dispositivosMap,[devDialog.jugKey]:[...devDialog.existingDevs,devDialog.newDev]});setDevDialog(null);setRegistroBorrado(false);}}
+                    style={{padding:"13px",borderRadius:10,background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#63b3ed",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}}>
+                    ➕ Agregar dispositivo
+                    <div style={{fontSize:11,color:"#888",fontWeight:400,marginTop:2}}>Mantiene el anterior también</div>
+                  </button>
+                  <button onClick={()=>setDevDialog(null)}
+                    style={{padding:"13px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#666",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                    ✕ No hacer nada
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Pantalla de mantenimiento — solo para jugadores (admin/operario siguen viendo la app)
   if (mantenimiento && !isOperario) {
@@ -958,13 +1234,13 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v418</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v419</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
               background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
               color:isAdmin?"#f9e04b":isOperario?"#4ade80":"#888"}}>
-              {isAdmin?"👑 ADMIN":isOperario?"⚙️ OPERARIO":"🎱 JUGADOR"}
+              {(isAdmin?"👑 ADMIN":isOperario?"⚙️ OPERARIO":"🎱 JUGADOR") + (miNombre ? " · " + miNombre.toUpperCase() : "")}
             </div>
           </div>
 
