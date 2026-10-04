@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v414</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v413</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v414</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v413</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -682,17 +682,6 @@ function BillarApp() {
   const [focusMode, setFocusMode] = React.useState(false);
   const [focusIdx, setFocusIdx] = React.useState(0);
   const swipeStartX = React.useRef(0);
-  const [focusZoom, setFocusZoom] = React.useState(()=>{
-    const saved = parseFloat(localStorage.getItem("bg_focusZoom"));
-    return (saved && saved>=0.6 && saved<=2.5) ? saved : 1;
-  });
-  const changeFocusZoom = (delta) => {
-    setFocusZoom(z => {
-      const nz = Math.max(0.6, Math.min(2.5, Math.round((z+delta)*10)/10));
-      localStorage.setItem("bg_focusZoom", nz);
-      return nz;
-    });
-  };
   const [organizarOrder, setOrganizarOrder] = React.useState([]); // ids en nuevo orden
   React.useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
@@ -737,15 +726,8 @@ function BillarApp() {
             style={{position:"absolute",top:10,right:10,zIndex:999,padding:"6px 12px",borderRadius:20,background:"rgba(0,0,0,0.55)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
             ✕ Salir
           </button>
-          <div style={{position:"absolute",top:10,left:10,zIndex:999,display:"flex",gap:6,alignItems:"center",background:"rgba(0,0,0,0.55)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:20,padding:"4px 6px"}}>
-            <button onClick={()=>changeFocusZoom(-0.1)}
-              style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,255,255,0.1)",border:"none",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
-            <div style={{color:"#ccc",fontSize:11,fontWeight:700,minWidth:34,textAlign:"center"}}>{Math.round(focusZoom*100)}%</div>
-            <button onClick={()=>changeFocusZoom(0.1)}
-              style={{width:26,height:26,borderRadius:"50%",background:"rgba(255,255,255,0.1)",border:"none",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
-          </div>
-          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"auto"}}>
-            <div style={{width:"100%",maxHeight:"100%",overflowY:"auto",transform:`scale(${focusZoom})`,transformOrigin:"center center",transition:"transform 0.15s"}}>
+          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+            <div style={{width:"100%",maxHeight:"100%",overflowY:"auto"}}>
               <LobbyCard key={fm.id} m={fm} compact={false}
                 onOpen={()=>{}}
                 onDelete={isAdmin?()=>deleteMatch(fm.id):null}
@@ -830,10 +812,10 @@ function BillarApp() {
           </div>
         )}
         <div style={{padding:"14px 14px 0",position:"relative",zIndex:10}}>
-          <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:8,marginBottom:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
               <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v414</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v413</div>
             </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -841,7 +823,7 @@ function BillarApp() {
               color:isAdmin?"#f9e04b":isOperario?"#4ade80":"#888"}}>
               {isAdmin?"👑 ADMIN":isOperario?"⚙️ OPERARIO":"🎱 JUGADOR"}
             </div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginLeft:"auto",justifyContent:"flex-end"}}>
+            <div style={{position:"relative",marginLeft:"auto"}}>
               <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }}
                 title="Actualizar"
                 style={{padding:"6px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#63b3ed",fontFamily:"inherit",fontSize:15,cursor:"pointer"}}>
@@ -850,18 +832,17 @@ function BillarApp() {
               {lobbyTab==="active" && activeMatches.length>1 && (
                 <button onClick={()=>{ setOrganizarMode(true); setOrganizarOrder([]); }}
                   title="Organizar partidas"
-                  style={{padding:"6px 10px",borderRadius:10,background:organizarMode?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:`1px solid ${organizarMode?"rgba(249,224,75,0.4)":"rgba(255,255,255,0.13)"}`,color:organizarMode?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
+                  style={{padding:"6px 10px",borderRadius:10,background:organizarMode?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:`1px solid ${organizarMode?"rgba(249,224,75,0.4)":"rgba(255,255,255,0.13)"}`,color:organizarMode?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                   ⬛ Ordenar
                 </button>
               )}
               {isLandscape && lobbyTab==="active" && activeMatches.length>0 && (
                 <button onClick={()=>{ setFocusIdx(0); setFocusMode(true); }}
                   title="Modo enfoque"
-                  style={{padding:"6px 10px",borderRadius:10,background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.3)",color:"#4ade80",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>
+                  style={{padding:"6px 10px",borderRadius:10,background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.3)",color:"#4ade80",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                   🔍 Enfocar
                 </button>
               )}
-              <div style={{position:"relative"}}>
               <button onClick={()=>setNavOpen(o=>!o)}
                 style={{padding:"6px 12px",borderRadius:10,background:navOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:`1px solid ${navOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"}`,color:navOpen?"#63b3ed":"#bbb",fontFamily:"inherit",fontSize:16,fontWeight:700,cursor:"pointer"}}>
                 ☰
@@ -877,7 +858,6 @@ function BillarApp() {
                   </div>
                 </>
               )}
-            </div>
             </div>
           </div>
 
