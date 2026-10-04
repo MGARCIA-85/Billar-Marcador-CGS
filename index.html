@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v413</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v412</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v413</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v412</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -679,13 +679,10 @@ function BillarApp() {
   );
   const [navOpen, setNavOpen] = React.useState(false);
   const [organizarMode, setOrganizarMode] = React.useState(false);
-  const [focusMode, setFocusMode] = React.useState(false);
-  const [focusIdx, setFocusIdx] = React.useState(0);
-  const swipeStartX = React.useRef(0);
   const [organizarOrder, setOrganizarOrder] = React.useState([]); // ids en nuevo orden
   React.useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
-    const update = (e) => { setIsLandscape(e.matches); if (!e.matches) setFocusMode(false); };
+    const update = (e) => setIsLandscape(e.matches);
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, []);
@@ -705,71 +702,6 @@ function BillarApp() {
 
   if (screen === "lobby") {
     const list = lobbyTab === "active" ? activeMatches : closedMatches;
-
-    // ── Modo Enfoque: una sola partida a pantalla completa, deslizable ──
-    if (isLandscape && focusMode && lobbyTab === "active" && activeMatches.length > 0) {
-      const fIdx = ((focusIdx % activeMatches.length) + activeMatches.length) % activeMatches.length;
-      const fm = activeMatches[fIdx];
-      return (
-        <div
-          onContextMenu={e=>e.preventDefault()}
-          onTouchStart={e=>{ swipeStartX.current = e.touches[0].clientX; }}
-          onTouchEnd={e=>{
-            const dx = e.changedTouches[0].clientX - swipeStartX.current;
-            if (Math.abs(dx) > 60) {
-              if (dx < 0) setFocusIdx(i => (i+1) % activeMatches.length);
-              else setFocusIdx(i => (i-1+activeMatches.length) % activeMatches.length);
-            }
-          }}
-          style={{position:"fixed",inset:0,background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",display:"flex",flexDirection:"column",padding:8,WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
-          <button onClick={()=>setFocusMode(false)}
-            style={{position:"absolute",top:10,right:10,zIndex:999,padding:"6px 12px",borderRadius:20,background:"rgba(0,0,0,0.55)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-            ✕ Salir
-          </button>
-          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-            <div style={{width:"100%",maxHeight:"100%",overflowY:"auto"}}>
-              <LobbyCard key={fm.id} m={fm} compact={false}
-                onOpen={()=>{}}
-                onDelete={isAdmin?()=>deleteMatch(fm.id):null}
-                isAdminMode={isAdmin}
-                onReplay={replayMatch}
-                onUpdateMatch={updateMatch}
-                onLobbyBallMenu={setLobbyBallMenu}
-                onOpenHistory={(id)=>{setActiveIdP(id||fm.id);setShowHistoryP(true);}}
-                deviceName={deviceName}
-                playersList={playersList}
-                onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
-                onUndo={(id)=>{ updateMatch(id, mm => {
-                  if (mm.games.length > 0) {
-                    const last = mm.games[mm.games.length-1];
-                    return {...mm, games:mm.games.slice(0,-1), wins:{...mm.wins,[last.winner]:mm.wins[last.winner]-1}, currentServe:last.serve, seriesFinished:false, seriesWinner:null};
-                  } else if (mm.seriesHistory.length > 0) {
-                    const ls = mm.seriesHistory[mm.seriesHistory.length-1];
-                    const rg = ls.games || [];
-                    const rw = {p1:rg.filter(g=>g.winner==="p1").length, p2:rg.filter(g=>g.winner==="p2").length};
-                    const llg = rg[rg.length-1];
-                    const ns = llg ? (llg.serve==="p1"?"p2":"p1") : mm.firstServe;
-                    const nh = mm.seriesHistory.slice(0,-1);
-                    const nsw = {p1:0,p2:0}; nh.forEach(s=>{ if(s.winner&&!s.partial) nsw[s.winner]++; });
-                    return {...mm, seriesHistory:nh, seriesWins:nsw, seriesCount:ls.seriesNum, games:rg, wins:rw, currentServe:ns, seriesFinished:true, seriesWinner:ls.winner};
-                  }
-                  return mm;
-                }); }}
-                onReactivar={isOperario?(id)=>{ updateMatch(id, m => {
-                  const correctedSW = m.closedSeriesWins ? m.closedSeriesWins : m.seriesWins;
-                  return {...m, matchClosed:false, closedAt:null, seriesWins:correctedSW, closedSeriesWins:null};
-                }); }:null}
-                onTerminar={(id)=>{ updateMatch(id, m=>{ const shouldSum=(!m.matchClosed&&m.seriesFinished&&m.seriesWinner); const fsw=shouldSum?{...m.seriesWins,[m.seriesWinner]:m.seriesWins[m.seriesWinner]+1}:m.seriesWins; return {...m,matchClosed:true,closedAt:Date.now(),seriesWins:fsw,closedSeriesWins:shouldSum?m.seriesWins:null}; }); }}
-                onEditName={!fm.matchClosed ? (key)=>setEditingNameKey(key) : null}
-                editingNameKey={editingNameKey}
-              />
-            </div>
-          </div>
-          <div style={{textAlign:"center",color:"#555",fontSize:11,marginTop:4,flexShrink:0}}>{fIdx+1}/{activeMatches.length} · desliza para cambiar</div>
-        </div>
-      );
-    }
-
     return (
       <>
       <div className="app-screen" onContextMenu={e=>e.preventDefault()} style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",WebkitTouchCallout:"none"}}>
@@ -815,7 +747,7 @@ function BillarApp() {
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
               <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v413</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v412</div>
             </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -834,13 +766,6 @@ function BillarApp() {
                   title="Organizar partidas"
                   style={{padding:"6px 10px",borderRadius:10,background:organizarMode?"rgba(249,224,75,0.15)":"rgba(255,255,255,0.07)",border:`1px solid ${organizarMode?"rgba(249,224,75,0.4)":"rgba(255,255,255,0.13)"}`,color:organizarMode?"#f9e04b":"#bbb",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                   ⬛ Ordenar
-                </button>
-              )}
-              {isLandscape && lobbyTab==="active" && activeMatches.length>0 && (
-                <button onClick={()=>{ setFocusIdx(0); setFocusMode(true); }}
-                  title="Modo enfoque"
-                  style={{padding:"6px 10px",borderRadius:10,background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.3)",color:"#4ade80",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                  🔍 Enfocar
                 </button>
               )}
               <button onClick={()=>setNavOpen(o=>!o)}
