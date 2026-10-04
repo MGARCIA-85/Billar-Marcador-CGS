@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v410</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v411</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v410</div>
+  <div style="position:absolute;bottom:30px;font-size:10px;color:#1a3a7a;letter-spacing:2px;font-family:Georgia,serif;">Desarrollado por CGS · v411</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -347,6 +347,12 @@ function BillarApp() {
   const [sfFechaDesde, setSfFechaDesde] = useState("");
   const [sfFechaHasta, setSfFechaHasta] = useState("");
   const [matchOrder, setMatchOrder] = useState([]);
+  const [mantenimiento, setMantenimiento] = useState(false);
+  const toggleMantenimiento = () => {
+    const nuevo = !mantenimiento;
+    setMantenimiento(nuevo);
+    db.collection("billar").doc("config").set({mantenimiento: nuevo}, {merge: true}).catch(e=>console.error(e));
+  };
   const [showHistory, setShowHistory] = useState(()=>localStorage.getItem("bg_showHistory")==="1");
   const [showCloseMatch, setShowCloseMatch] = useState(false);
   const [lobbyTab, setLobbyTab] = useState(()=>localStorage.getItem("bg_lobbyTab")||"active");
@@ -446,7 +452,11 @@ function BillarApp() {
         }}
       }, () => {});
     db.collection("billar").doc("config").onSnapshot(snap => {
-      if (snap.exists) { const d = snap.data(); if (d && Array.isArray(d.matchOrder)) setMatchOrder(d.matchOrder); }
+      if (snap.exists) {
+        const d = snap.data();
+        if (d && Array.isArray(d.matchOrder)) setMatchOrder(d.matchOrder);
+        if (d && typeof d.mantenimiento === "boolean") setMantenimiento(d.mantenimiento);
+      }
     });
 
     const unsub4 = db.collection("billar").doc("dispositivos").onSnapshot(snap => {
@@ -670,6 +680,18 @@ function BillarApp() {
     return () => mq.removeEventListener("change", update);
   }, []);
 
+  // Pantalla de mantenimiento — solo para jugadores (admin/operario siguen viendo la app)
+  if (mantenimiento && !isOperario) {
+    return (
+      <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,textAlign:"center"}}>
+        <div style={{fontSize:56,marginBottom:20}}>🔧</div>
+        <div style={{fontSize:22,fontWeight:800,color:"#f9e04b",marginBottom:10}}>En mantenimiento</div>
+        <div style={{fontSize:14,color:"#aaa",lineHeight:1.6,maxWidth:320}}>
+          Estamos actualizando la app. Vuelve a intentarlo en unos minutos.
+        </div>
+      </div>
+    );
+  }
 
   if (screen === "lobby") {
     const list = lobbyTab === "active" ? activeMatches : closedMatches;
@@ -718,7 +740,7 @@ function BillarApp() {
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
               <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
-              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v410</div>
+              <div style={{fontSize:9,color:"#2a4a8a",letterSpacing:1,fontFamily:"Georgia,serif"}}>v411</div>
             </div>
             <div style={{width:8,height:8,borderRadius:"50%",background:isOnline?"#4ade80":"#ef4444",boxShadow:isOnline?"0 0 6px #4ade80":"0 0 6px #ef4444",flexShrink:0}} title={isOnline?"Conectado":"Sin conexión"}/>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -750,6 +772,7 @@ function BillarApp() {
                     <button style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"none",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setScreenP("stats");setNavOpen(false);}}>📊 Estadísticas</button>
                     <button style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"none",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setScreenP("players");setNavOpen(false);}}>👥 Jugadores</button>
                     {isJugador && <button style={{padding:"10px 14px",borderRadius:8,background:"linear-gradient(135deg,rgba(30,58,138,0.5),rgba(74,222,128,0.2))",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");setNavOpen(false);}}>+ Nueva Partida</button>}
+                    {isAdmin && <button style={{padding:"10px 14px",borderRadius:8,background:mantenimiento?"rgba(74,222,128,0.12)":"rgba(239,68,68,0.1)",border:"none",color:mantenimiento?"#4ade80":"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}} onClick={()=>{toggleMantenimiento();setNavOpen(false);}}>{mantenimiento?"✅ Quitar mantenimiento":"🔧 Modo mantenimiento"}</button>}
                   </div>
                 </>
               )}
