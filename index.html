@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v421</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v422</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v421</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v422</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -496,6 +496,35 @@ function cerrarPerfil() { perfilStore.nombre = null; perfilAvisar(); }
 // Devuelve el manejador de toque de un nombre (no deja pasar el toque a lo que haya debajo)
 const tapPerfil = (nombre) => (e) => { if (e && e.stopPropagation) e.stopPropagation(); abrirPerfil(nombre); };
 
+// Récord de Contrarreloj: la ronda más rápida del jugador (sin contar rondas perdidas por 3 faltas)
+function calcRecordCR(closed, nombre) {
+  const crs = closed
+    .filter(m => m.modalidad === "Contrarreloj" && (m.crPlayers || []).includes(nombre))
+    .sort((a, b) => (a.closedAt || a.createdAt || 0) - (b.closedAt || b.createdAt || 0));
+  if (crs.length === 0) return null;
+  let mejor = null, fecha = null, rondas = 0;
+  crs.forEach(m => {
+    const idx = (m.crPlayers || []).indexOf(nombre);
+    const series = m.crSerieHistory || [];
+    let lista = [];
+    if (series.some(s => Array.isArray(s.rounds) && s.rounds.length > 0)) {
+      series.forEach(s => (s.rounds || []).forEach(r => lista.push(r)));
+      // la serie en curso (aún no pasada al historial de series) tiene sus rondas en crRoundHistory
+      if (!series.some(s => s.serie === (m.crCurrentSerie || 1))) (m.crRoundHistory || []).forEach(r => lista.push(r));
+    } else {
+      lista = m.crRoundHistory || [];   // partidas antiguas: historial global de rondas
+    }
+    lista.forEach(r => {
+      const t = r.times ? r.times[idx] : undefined;
+      if (!(t > 0)) return;
+      if ((r.forfeits || []).includes(idx)) return;
+      rondas++;
+      if (mejor === null || t < mejor) { mejor = t; fecha = m.closedAt || m.createdAt || null; }
+    });
+  });
+  return { mejor, fecha, rondas };
+}
+
 // Estadísticas de TODA la historia de un jugador (solo partidas terminadas), con la misma lógica del Ranking
 function calcPerfilJugador(matches, nombre) {
   const closed = matches.filter(m => m.matchClosed);
@@ -525,6 +554,7 @@ function calcPerfilJugador(matches, nombre) {
     juegos:   { g: s.juegosW,   t: s.juegos,   p: pct(s.juegosW, s.juegos) },
     rachas: { partidas: mP, series: mS, juegos: mJ },
     insignias: INSIGNIAS_DEF.map(d => ({ ...d, n: h[d.k] || 0 })).filter(d => d.n > 0),
+    cr: calcRecordCR(closed, nombre),
   };
 }
 
@@ -568,12 +598,12 @@ function PerfilJugadorModal() {
         {titulo("Insignias")}
         {p.insignias.length === 0
           ? <div style={{fontSize:12,color:"#666"}}>Aún no tiene insignias.</div>
-          : <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+          : <div style={{display:"grid",gridTemplateColumns:"repeat(5, 1fr)",gap:6}}>
               {p.insignias.map(ins => (
-                <div key={ins.k} data-pf={"ins-" + ins.k} style={{display:"flex",flexDirection:"column",alignItems:"center",width:"22%",minWidth:68}}>
-                  <img src={ins.src} alt={ins.label} style={{width:58,height:58,objectFit:"contain"}} />
+                <div key={ins.k} data-pf={"ins-" + ins.k} style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:0}}>
+                  <img src={ins.src} alt={ins.label} style={{width:"100%",maxWidth:62,height:"auto",objectFit:"contain"}} />
                   <span style={{fontSize:12,fontWeight:800,color:ins.color}}>{"x" + ins.n}</span>
-                  <span style={{fontSize:9,color:"#888",textAlign:"center",lineHeight:1.2}}>{ins.label}</span>
+                  <span style={{fontSize:9,color:"#888",textAlign:"center",lineHeight:1.15,wordBreak:"break-word"}}>{ins.label}</span>
                 </div>
               ))}
             </div>}
@@ -592,7 +622,14 @@ function PerfilJugadorModal() {
             </div>
           ))}
         </div>
-        <div style={{fontSize:10,color:"#666",marginTop:12,lineHeight:1.4}}>Las rachas cuentan victorias consecutivas del jugador, solo con sus propias partidas, series o juegos. Contrarreloj suma en series y juegos (rondas).</div>
+        {p.cr && (<>
+          {titulo("⏱ Récord Contrarreloj")}
+          <div data-pf="record-cr" style={{padding:"12px",borderRadius:12,background:"rgba(74,222,128,0.07)",border:"1px solid rgba(74,222,128,0.25)",textAlign:"center"}}>
+            <div style={{fontSize:30,fontWeight:900,color:p.cr.mejor === null ? "#666" : "#4ade80",fontVariantNumeric:"tabular-nums",lineHeight:1.1}}>{p.cr.mejor === null ? "—" : fmtTime(p.cr.mejor)}</div>
+            <div style={{fontSize:11,color:"#aaa",marginTop:4}}>{p.cr.mejor === null ? "Sin rondas válidas todavía" : "Ronda más rápida" + (p.cr.fecha ? " · " + formatDate(p.cr.fecha) : "") + " · de " + p.cr.rondas + (p.cr.rondas === 1 ? " ronda válida" : " rondas válidas")}</div>
+          </div>
+        </>)}
+        <div style={{fontSize:10,color:"#666",marginTop:12,lineHeight:1.4}}>Las rachas cuentan victorias consecutivas del jugador, solo con sus propias partidas, series o juegos. Contrarreloj suma en series y juegos (rondas). El récord es la ronda más rápida, sin contar rondas perdidas por faltas.</div>
       </div>
     </div>
   );
@@ -1561,7 +1598,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v421</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v422</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -2084,6 +2121,7 @@ function BillarApp() {
                           <div key={ii} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}>
                             <img src={ins2.src} style={{width:64,height:64,objectFit:"contain",opacity:ins2.per>0?1:0.2,filter:ins2.per>0?"none":"grayscale(100%)"}}/>
                             <span style={{fontSize:11,color:ins2.per>0?ins2.color:"#444",fontWeight:700}}>{ins2.per>0?"x"+ins2.per:""}</span>
+                            <span style={{fontSize:9,color:ins2.per>0?"#888":"#444",textAlign:"center",lineHeight:1.15,wordBreak:"break-word"}}>{(INSIGNIAS_DEF.find(d => d.src === ins2.src) || {}).label}</span>
                           </div>
                         ));
                       })()}
