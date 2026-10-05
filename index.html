@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v419</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v420</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v419</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v420</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -280,7 +280,7 @@ function estimateFsBytes(v) {
 function BillarApp() {
   const [matches, setMatches] = useState([]);
   const [activeId, setActiveId] = useState(()=>localStorage.getItem("bg_activeId")||null);
-  const [screen, setScreen] = useState(()=>{ const s=localStorage.getItem("bg_screen"); if(!s) localStorage.setItem("bg_screen","lobby"); return s||"lobby"; });
+  const [screen, setScreen] = useState(()=>{ let s=localStorage.getItem("bg_screen"); if(s==="stats"){ s="lobby"; localStorage.setItem("bg_lobbyTab","stats"); } if(!s||s==="lobby") localStorage.setItem("bg_screen","lobby"); return s||"lobby"; });
   const [playersList, setPlayersList] = useState(()=>{
     try { return JSON.parse(localStorage.getItem("bg_players")||"[]"); } catch{return [];}
   });
@@ -1065,7 +1065,7 @@ function BillarApp() {
   }
 
   if (screen === "lobby") {
-    const list = lobbyTab === "active" ? activeMatches : closedMatches;
+    const list = lobbyTab === "active" ? activeMatches : (lobbyTab === "closed" ? closedMatches : []);
 
     // ── Modo Enfoque: una sola partida a pantalla completa, deslizable ──
     if (isLandscape && focusMode && lobbyTab === "active" && activeMatches.length > 0) {
@@ -1205,7 +1205,8 @@ function BillarApp() {
                   🔍 Enfocar
                 </button>
               )}
-              <div style={{position:"relative"}}>
+              {isOperario && (
+            <div style={{position:"relative"}}>
               <button onClick={()=>setNavOpen(o=>!o)}
                 style={{padding:"6px 12px",borderRadius:10,background:navOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:`1px solid ${navOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"}`,color:navOpen?"#63b3ed":"#bbb",fontFamily:"inherit",fontSize:16,fontWeight:700,cursor:"pointer"}}>
                 ☰
@@ -1214,9 +1215,7 @@ function BillarApp() {
                 <>
                   <div onClick={()=>setNavOpen(false)} style={{position:"fixed",inset:0,zIndex:998}} />
                   <div style={{position:"absolute",top:"110%",right:0,zIndex:999,background:"#0f2a5a",border:"1px solid rgba(99,179,237,0.3)",borderRadius:12,padding:8,display:"flex",flexDirection:"column",gap:6,minWidth:180,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
-                    <button style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"none",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setScreenP("stats");setNavOpen(false);}}>📊 Estadísticas</button>
                     <button style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"none",color:"#bbb",fontFamily:"inherit",fontSize:13,cursor:"pointer",textAlign:"left"}} onClick={()=>{setScreenP("players");setNavOpen(false);}}>👥 Jugadores</button>
-                    {isJugador && <button style={{padding:"10px 14px",borderRadius:8,background:"linear-gradient(135deg,rgba(30,58,138,0.5),rgba(74,222,128,0.2))",border:"none",color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}} onClick={()=>{sessionStorage.removeItem("pendingJornadaId");setScreenP("newMatch");setNavOpen(false);}}>+ Nueva Partida</button>}
                     {isAdmin && <button style={{padding:"10px 14px",borderRadius:8,background:mantenimiento?"rgba(74,222,128,0.12)":"rgba(239,68,68,0.1)",border:"none",color:mantenimiento?"#4ade80":"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",textAlign:"left"}} onClick={()=>{toggleMantenimiento();setNavOpen(false);}}>{mantenimiento?"✅ Quitar mantenimiento":"🔧 Modo mantenimiento"}</button>}
                     {isAdmin && datosKB !== null && (
                       <div style={{padding:"8px 14px 4px",borderTop:"1px solid rgba(255,255,255,0.08)",marginTop:2}}>
@@ -1231,10 +1230,11 @@ function BillarApp() {
                 </>
               )}
             </div>
+            )}
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v419</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v420</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -1246,9 +1246,9 @@ function BillarApp() {
 
         </div>
         <div style={{display:"flex",padding:"12px 16px 0",gap:8,alignItems:"flex-end"}}>
-          {["active","closed"].map(tab => (
-            <button key={tab} onClick={()=>{ setLobbyTab(tab); localStorage.setItem("bg_lobbyTab",tab); }} style={{flex:1,padding:"9px 0",borderRadius:"10px 10px 0 0",border:lobbyTab===tab?"1px solid rgba(74,222,128,0.25)":"1px solid rgba(255,255,255,0.07)",borderBottom:"none",background:lobbyTab===tab?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.04)",color:lobbyTab===tab?"#4ade80":"#777",fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer"}}>
-              {tab==="active"?"En juego":"Terminadas"}
+          {["active","closed","stats"].map(tab => (
+            <button key={tab} onClick={()=>{ setLobbyTab(tab); localStorage.setItem("bg_lobbyTab",tab); }} style={{flex:1,padding:"9px 0",borderRadius:"10px 10px 0 0",border:lobbyTab===tab?"1px solid rgba(74,222,128,0.25)":"1px solid rgba(255,255,255,0.07)",borderBottom:"none",background:lobbyTab===tab?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.04)",color:lobbyTab===tab?"#4ade80":"#777",fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
+              {tab==="active"?"En juego":tab==="closed"?"Terminadas":"Estadísticas"}
               {tab==="active" && activeMatches.length > 0 && <span style={{background:"#4ade80",color:"#081530",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:800,marginLeft:6}}>{activeMatches.length}</span>}
             </button>
           ))}
@@ -1256,7 +1256,14 @@ function BillarApp() {
         </div>
         <div className="app-scroll"
           style={{padding:"0 14px"}}>
-          {list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
+          {lobbyTab === "active" && isJugador && !organizarMode && (
+            <button onClick={()=>setScreenP("newMatch")}
+              style={{width:"100%",padding:"12px 0",marginTop:10,marginBottom:10,borderRadius:12,background:"linear-gradient(135deg,#1e3a8a,#4ade80)",border:"none",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:800,cursor:"pointer"}}>
+              + Nueva partida
+            </button>
+          )}
+          {lobbyTab === "stats" && renderEstadisticas()}
+          {lobbyTab !== "stats" && list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
           {/* Banner modo organizar */}
           {organizarMode && lobbyTab==="active" && (
             <div style={{background:"rgba(249,224,75,0.1)",border:"1px solid rgba(249,224,75,0.3)",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:6}}>
@@ -1518,7 +1525,8 @@ function BillarApp() {
   }
 
   // ===== ESTADÍSTICAS =====
-  if (screen === "stats") {
+  // Contenido de la pestaña Estadísticas (se dibuja dentro del lobby)
+  function renderEstadisticas() {
     const closed = matches.filter(m => m.matchClosed);
     const allMods = [...new Set(closed.map(m=>m.modalidad))].sort();
     const allPlayers = [...new Set(closed.flatMap(m=>m.modalidad==="Contrarreloj"?(m.crPlayers||[]):[m.p1Name,m.p2Name]).filter(Boolean))].sort();
@@ -1812,17 +1820,9 @@ function BillarApp() {
     });
 
     return (
-      <>
-      <div className="app-screen" style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)"}}>
-        <div className="app-scroll"
-          style={{padding:"20px 14px"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-            <div style={{fontSize:22,fontWeight:800,color:"#63b3ed"}}>📊 Estadísticas</div>
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+      <div style={{paddingTop:8,paddingBottom:24}}>
+          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}>
               <button onClick={()=>setFiltrosOpen(o=>!o)} style={{background:filtrosOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:"1px solid "+(filtrosOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"),color:filtrosOpen?"#63b3ed":"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>🔍 {filtrosOpen?"▲":"▼"}</button>
-              <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); localStorage.removeItem("bg_jornadaScreen"); window.location.reload(); }} style={{background:"rgba(99,179,237,0.08)",border:"1px solid rgba(99,179,237,0.25)",color:"#63b3ed",borderRadius:10,padding:"7px 10px",fontSize:14,cursor:"pointer",lineHeight:1}}>🔄</button>
-              <button onClick={()=>setScreenP("lobby")} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Volver</button>
-            </div>
           </div>
 
           {/* Filtros */}
@@ -2012,9 +2012,7 @@ function BillarApp() {
               </div>
             </>)
           }
-        </div>
       </div>
-    </>
     );
   }
 
