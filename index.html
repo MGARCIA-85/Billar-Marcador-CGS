@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v422</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v423</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v422</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v423</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -485,7 +485,7 @@ const INSIGNIAS_DEF = [
   { k: "tal", src: "insignia_3s_al_hilo.png",   label: "3 Series al hilo", color: "#f97316" },
   { k: "rey", src: "insignia_rey_día.png",      label: "Rey del Día",      color: "#fbbf24" },
 ];
-const perfilStore = { nombre: null, matches: [], playersList: [], subs: new Set() };
+const perfilStore = { nombre: null, yo: "", matches: [], playersList: [], subs: new Set() };
 const perfilAvisar = () => { perfilStore.subs.forEach(f => f()); };
 function abrirPerfil(nombre) {
   if (!nombre || !String(nombre).trim()) return;
@@ -558,6 +558,26 @@ function calcPerfilJugador(matches, nombre) {
   };
 }
 
+// Duelos directos entre dos jugadores: solo partidas terminadas entre ambos (Contrarreloj no es un duelo 1 contra 1)
+function calcDuelo(matches, a, b) {
+  const duelos = matches
+    .filter(m => m.matchClosed && m.modalidad !== "Contrarreloj" &&
+      ((m.p1Name === a && m.p2Name === b) || (m.p1Name === b && m.p2Name === a)))
+    .sort((x, y) => (x.closedAt || x.createdAt || 0) - (y.closedAt || y.createdAt || 0));
+  if (duelos.length === 0) return { n: 0 };
+  const sm = buildStatsMap(duelos);   // mismas reglas que el Ranking, pero solo con las partidas entre ambos
+  const sa = sm[a] || {}, sb = sm[b] || {};
+  const u = duelos[duelos.length - 1];
+  const sw1 = (u.seriesWins && u.seriesWins.p1) || 0, sw2 = (u.seriesWins && u.seriesWins.p2) || 0;
+  return {
+    n: duelos.length,
+    partidas: { a: sa.partidasW || 0, b: sb.partidasW || 0 },
+    series: { a: sa.seriesW || 0, b: sb.seriesW || 0 },
+    juegos: { a: sa.juegosW || 0, b: sb.juegosW || 0 },
+    ultima: { fecha: u.closedAt || u.createdAt || null, ganador: sw1 > sw2 ? u.p1Name : (sw2 > sw1 ? u.p2Name : null) },
+  };
+}
+
 function PerfilJugadorModal() {
   const [, forzar] = React.useState(0);
   React.useEffect(() => {
@@ -571,6 +591,26 @@ function PerfilJugadorModal() {
   const pl = perfilStore.playersList.find(x => (typeof x === "string" ? x : x.name) === nombre);
   const color = (pl && typeof pl === "object" && pl.color) || "#e0e0e0";
   const colorPct = (v) => (v === null ? "#666" : (v >= 50 ? "#4ade80" : "#f9e04b"));
+  // Duelos directos: solo si quien mira es un jugador registrado y está viendo el perfil de OTRO jugador
+  const yo = perfilStore.yo;
+  const duelo = (yo && yo !== nombre) ? calcDuelo(perfilStore.matches, yo, nombre) : null;
+  const colorDe = (n) => {
+    const x = perfilStore.playersList.find(y => (typeof y === "string" ? y : y.name) === n);
+    return (x && typeof x === "object" && x.color) || "#e0e0e0";
+  };
+  const barraDuelo = (clave, nom, a, b) => (
+    <div style={{marginTop:10}}>
+      <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between"}}>
+        <span data-pf={"duelo-" + clave + "-a"} style={{fontSize:20,fontWeight:900,color:"#4ade80"}}>{a}</span>
+        <span style={{fontSize:11,color:"#aaa",fontWeight:700}}>{nom}</span>
+        <span data-pf={"duelo-" + clave + "-b"} style={{fontSize:20,fontWeight:900,color:"#f9e04b"}}>{b}</span>
+      </div>
+      <div style={{display:"flex",height:5,borderRadius:3,overflow:"hidden",background:"rgba(255,255,255,0.1)"}}>
+        {(a + b) > 0 ? <div style={{width:((a / (a + b)) * 100) + "%",background:"#4ade80"}} /> : null}
+        {(a + b) > 0 ? <div style={{width:((b / (a + b)) * 100) + "%",background:"#f9e04b"}} /> : null}
+      </div>
+    </div>
+  );
   const titulo = (txt) => (
     <div style={{fontSize:11,color:"#63b3ed",fontWeight:800,letterSpacing:1,textTransform:"uppercase",margin:"16px 0 8px"}}>{txt}</div>
   );
@@ -595,6 +635,26 @@ function PerfilJugadorModal() {
         </div>
         <div style={{fontSize:11,color:"#888",marginTop:2}}>Toda la historia · solo partidas terminadas</div>
 
+        {duelo && (<>
+          {titulo("⚔️ Duelos directos")}
+          <div data-pf="duelos" style={{padding:"12px",borderRadius:12,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)"}}>
+            <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8}}>
+              <div style={{fontSize:14,fontWeight:800,color:colorDe(yo),wordBreak:"break-word"}}>{yo}</div>
+              <div style={{fontSize:11,color:"#888",flexShrink:0}}>vs</div>
+              <div style={{fontSize:14,fontWeight:800,color:colorDe(nombre),textAlign:"right",wordBreak:"break-word"}}>{nombre}</div>
+            </div>
+            {duelo.n === 0
+              ? <div data-pf="duelos-vacio" style={{fontSize:12,color:"#888",marginTop:8}}>Aún no han jugado entre sí.</div>
+              : <>
+                  <div data-pf="duelos-total" style={{fontSize:11,color:"#888",marginTop:2,textAlign:"center"}}>{duelo.n + (duelo.n === 1 ? " partida jugada entre ustedes" : " partidas jugadas entre ustedes")}</div>
+                  {barraDuelo("partidas", "Partidas", duelo.partidas.a, duelo.partidas.b)}
+                  {barraDuelo("series", "Series", duelo.series.a, duelo.series.b)}
+                  {barraDuelo("juegos", "Juegos", duelo.juegos.a, duelo.juegos.b)}
+                  <div data-pf="duelos-ultima" style={{fontSize:11,color:"#aaa",marginTop:10}}>{"Último duelo: " + [duelo.ultima.fecha ? formatDate(duelo.ultima.fecha) : "", duelo.ultima.ganador ? "ganó " + duelo.ultima.ganador : "empate"].filter(Boolean).join(" · ")}</div>
+                </>}
+          </div>
+        </>)}
+
         {titulo("Insignias")}
         {p.insignias.length === 0
           ? <div style={{fontSize:12,color:"#666"}}>Aún no tiene insignias.</div>
@@ -617,7 +677,7 @@ function PerfilJugadorModal() {
         <div style={{display:"flex",gap:8}}>
           {[["partidas", "Partidas seguidas"], ["series", "Series seguidas"], ["juegos", "Juegos seguidos"]].map(([k, t]) => (
             <div key={k} data-pf={"racha-" + k} style={{flex:1,textAlign:"center",padding:"10px 4px",borderRadius:12,background:"rgba(249,224,75,0.07)",border:"1px solid rgba(249,224,75,0.2)"}}>
-              <div style={{fontSize:26,fontWeight:900,color:"#f9e04b",lineHeight:1}}>{p.rachas[k]}</div>
+              <div style={{fontSize:26,fontWeight:900,color:"#4ade80",lineHeight:1}}>{p.rachas[k]}</div>
               <div style={{fontSize:10,color:"#aaa",marginTop:4}}>{t}</div>
             </div>
           ))}
@@ -629,7 +689,6 @@ function PerfilJugadorModal() {
             <div style={{fontSize:11,color:"#aaa",marginTop:4}}>{p.cr.mejor === null ? "Sin rondas válidas todavía" : "Ronda más rápida" + (p.cr.fecha ? " · " + formatDate(p.cr.fecha) : "") + " · de " + p.cr.rondas + (p.cr.rondas === 1 ? " ronda válida" : " rondas válidas")}</div>
           </div>
         </>)}
-        <div style={{fontSize:10,color:"#666",marginTop:12,lineHeight:1.4}}>Las rachas cuentan victorias consecutivas del jugador, solo con sus propias partidas, series o juegos. Contrarreloj suma en series y juegos (rondas). El récord es la ronda más rápida, sin contar rondas perdidas por faltas.</div>
       </div>
     </div>
   );
@@ -1120,12 +1179,6 @@ function BillarApp() {
   const datosAlerta = datosKB !== null && datosKB >= 820;
   const datosColor = datosKB === null ? "#4ade80" : (datosAlerta ? "#f87171" : (datosKB >= 500 ? "#f9e04b" : "#4ade80"));
   const datosPct = datosKB === null ? 0 : Math.min(100, (datosKB / 1024) * 100);
-  // Mantiene al día los datos que usa la ventana del perfil de jugador
-  React.useEffect(() => {
-    perfilStore.matches = matches;
-    perfilStore.playersList = playersList;
-    perfilAvisar();
-  }, [matches, playersList]);
   // Indicador de sincronización: verde = confirmado, amarillo = enviando/reconectando, rojo = sin conexión
   const syncOffline = !isOnline;
   const syncEnviando = reconectando || pendingWrites > 0;
@@ -1141,6 +1194,13 @@ function BillarApp() {
     });
     return p ? (typeof p === "string" ? p : p.name) : deviceName;
   })();
+  // Mantiene al día los datos que usa la ventana del perfil de jugador (y quién la está mirando)
+  React.useEffect(() => {
+    perfilStore.matches = matches;
+    perfilStore.playersList = playersList;
+    perfilStore.yo = miNombre;
+    perfilAvisar();
+  }, [matches, playersList, miNombre]);
   const [organizarOrder, setOrganizarOrder] = React.useState([]); // ids en nuevo orden
   React.useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
@@ -1598,7 +1658,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v422</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v423</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
