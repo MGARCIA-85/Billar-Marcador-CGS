@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v420</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v421</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v420</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v421</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -275,6 +275,327 @@ function estimateFsBytes(v) {
     return n;
   }
   return 0;
+}
+
+// Acumula las estadísticas de cada jugador a partir de una lista de partidas terminadas
+function buildStatsMap(lista) {
+    const statsMap = {};
+    const ensurePlayer = (name) => {
+      if (!statsMap[name]) statsMap[name] = {
+        name, partidas:0, partidasW:0, series:0, seriesW:0,
+        juegos:0, juegosW:0, rachaMejor:0, rachaActual:0,
+        goldenBreaks:0, mesas:0, breakRuns:0, remontadas:0, imparables:0, granDefensas:0, tresAlHilo:0, reyDelDia:0,
+        crRondas:0, crRondasW:0, crTimes:[]
+      };
+    };
+
+    lista.forEach(m => {
+      if (m.modalidad === "Contrarreloj") {
+        const players = m.crPlayers||[];
+        const order = m.crOrder||[];
+        const serieWinsCR = m.crSerieWins||{};
+        const roundWinsCR = m.crRoundWins||{};
+        const accumTime = m.crAccumTime||{};
+        const validRoundsCR = m.crValidRounds||{};
+        const totalSeriesCR = m.crTotalSeries||1;
+        const totalRoundsCR = m.crTotalRounds||1;
+        // Ganador = más series; empate = mejor promedio
+        const crStandings = [...order].sort((a,b)=>{
+          const sw=(serieWinsCR[b]||0)-(serieWinsCR[a]||0); if(sw!==0) return sw;
+          const aAvg=validRoundsCR[a]>0?(accumTime[a]||0)/validRoundsCR[a]:Infinity;
+          const bAvg=validRoundsCR[b]>0?(accumTime[b]||0)/validRoundsCR[b]:Infinity;
+          return aAvg-bAvg;
+        });
+        players.forEach((name,i) => {
+          if (!name?.trim()) return;
+          ensurePlayer(name);
+          const s = statsMap[name];
+          // CR no cuenta en partidas (👑), solo en series y juegos
+          // Series = partidas CR ganadas (para columna 🏆)
+          s.seriesW += (serieWinsCR[i]||0);
+          s.series += totalSeriesCR;
+          // JG = rondas ganadas en CR
+          s.juegosW += (roundWinsCR[i]||0);
+          // JG total = rondas realmente jugadas (no fijas)
+          const totalRoundsPlayed = Object.values(roundWinsCR).reduce((a,b)=>a+b,0) || (totalSeriesCR * totalRoundsCR);
+          s.juegos += totalRoundsPlayed;
+          const vr = validRoundsCR[i];
+          if (accumTime[i] && vr > 0) s.crTimes.push(accumTime[i]/vr);
+        });
+      } else {
+        const history = m.seriesHistory||[];
+        const sw1 = m.seriesWins?.p1||0;
+        const sw2 = m.seriesWins?.p2||0;
+        const pWinner = sw1>sw2?"p1":sw2>sw1?"p2":null;
+
+        [m.p1Name, m.p2Name].forEach((name,pi) => {
+          if (!name?.trim()) return;
+          const key = pi===0?"p1":"p2";
+          ensurePlayer(name);
+          const s = statsMap[name];
+          s.partidas++;
+          if (pWinner===key) s.partidasW++;
+
+          history.forEach(ser => {
+            s.series++;
+            const won = ser.winner===key;
+            if (won) s.seriesW++;
+            const serGames = ser.games||[];
+            serGames.forEach(g => {
+              s.juegos++;
+              if (g.winner===key) s.juegosW++;
+            });
+            // Golden break: juegos donde este jugador tiene bola dorada
+            serGames.filter(g=>g.winner===key && g.ballType==="gold").forEach(()=>s.goldenBreaks++);
+            serGames.filter(g=>g.winner===key && g.ballType==="breakrun").forEach(()=>s.breakRuns++);
+            serGames.filter(g=>g.winner===key && g.ballType==="grandefensa").forEach(()=>s.granDefensas=(s.granDefensas||0)+1);
+            // Mesa limpia/barrida: juegos donde este jugador tiene diamante
+            serGames.filter(g=>g.winner===key && g.ballType==="diamond").forEach(()=>s.mesas++);
+            // Remontada: en algún momento de la serie el rival tuvo carrera-1 wins y el jugador tenía 0
+            if (won && m.carrera>1) {
+              const serGamesArr = ser.games||[];
+              let myW=0, rivW=0;
+              let huboRemontada=false;
+              for (let gi=0; gi<serGamesArr.length; gi++) {
+                const g = serGamesArr[gi];
+                if (myW===0 && rivW>=(m.carrera-1)) { huboRemontada=true; break; }
+                if (g.winner===key) myW++; else rivW++;
+              }
+              if (huboRemontada) s.remontadas=(s.remontadas||0)+1;
+            }
+            // Imparable: ganó la serie dejando al oponente en 0 juegos
+            if (won) {
+              const rivFinalWins = key==="p1"?(ser.p2wins||0):(ser.p1wins||0);
+              if (rivFinalWins===0 && m.carrera>1) s.imparables=(s.imparables||0)+1;
+            }
+            // Racha
+            if (won) { s.rachaActual++; if(s.rachaActual>s.rachaMejor) s.rachaMejor=s.rachaActual; }
+            else s.rachaActual=0;
+          });
+          // 3 Series al hilo: 3 series consecutivas ganadas en la misma partida
+          {
+            let consecutivas = 0;
+            let maxConsec = 0;
+            (m.seriesHistory||[]).forEach(ser => {
+              if (ser.winner===key) { consecutivas++; if(consecutivas>maxConsec) maxConsec=consecutivas; }
+              else consecutivas=0;
+            });
+            if (maxConsec>=3) s.tresAlHilo=(s.tresAlHilo||0)+1;
+          }
+          (m.games||[]).forEach(g => {
+            s.juegos++;
+            if (g.winner===key) s.juegosW++;
+          });
+        });
+      }
+    });
+  return statsMap;
+}
+
+// Insignias históricas (toda la historia) y cálculo del Rey del Día
+function buildHistIns(closed) {
+    // Calcular insignias históricas
+    const histIns = {};
+    const ensureHist = (name) => { if(!histIns[name]) histIns[name]={br:0,ro:0,gb:0,rem:0,imp:0,gd:0,tal:0,rey:0}; };
+    closed.forEach(m => {
+      if (m.modalidad==="Contrarreloj") return;
+      [["p1",m.p1Name],["p2",m.p2Name]].forEach(([key,name])=>{
+        if(!name) return;
+        ensureHist(name);
+        const hist = m.seriesHistory||[];
+        hist.forEach(ser => {
+          const won = ser.winner===key;
+          const serG = ser.games||[];
+          serG.forEach(g => {
+            if(g.winner===key){
+              if(g.ballType==="breakrun") histIns[name].br++;
+              if(g.ballType==="diamond") histIns[name].ro++;
+              if(g.ballType==="gold") histIns[name].gb++;
+              if(g.ballType==="grandefensa") histIns[name].gd++;
+            }
+          });
+          if(won){
+            const riv=key==="p1"?(ser.p2wins||0):(ser.p1wins||0);
+            if(riv===0&&m.carrera>1) histIns[name].imp++;
+            if(m.carrera>1){
+              let my=0,rv=0,rem=false;
+              for(let g of serG){if(my===0&&rv>=(m.carrera-1)){rem=true;break;}if(g.winner===key)my++;else rv++;}
+              if(rem) histIns[name].rem++;
+            }
+          }
+        });
+        let consec=0,maxC=0;
+        hist.forEach(ser=>{if(ser.winner===key){consec++;if(consec>maxC)maxC=consec;}else consec=0;});
+        if(maxC>=3) histIns[name].tal++;
+      });
+    });
+
+    // Rey del Día — por día calendario. Se otorga si un jugador venció a
+    // MÁS DE 1 oponente diferente el mismo día (1 solo oponente no cuenta).
+    const allClosedForRey = closed.filter(m => m.modalidad !== "Contrarreloj");
+    const byDay = {};
+    allClosedForRey.forEach(m => {
+      if (!m.closedAt) return;
+      const day = new Date(m.closedAt).toISOString().slice(0,10);
+      if (!byDay[day]) byDay[day] = [];
+      byDay[day].push(m);
+    });
+    const computeRey = (dayMatches) => {
+      const participantes = new Set();
+      const victorias = {};
+      dayMatches.forEach(m => {
+        const s1=(m.seriesWins&&m.seriesWins.p1)||0, s2=(m.seriesWins&&m.seriesWins.p2)||0;
+        const gw=s1>s2?m.p1Name:s2>s1?m.p2Name:null;
+        const gl=s1>s2?m.p2Name:s2>s1?m.p1Name:null;
+        if(m.p1Name) participantes.add(m.p1Name);
+        if(m.p2Name) participantes.add(m.p2Name);
+        if(!gw||!gl) return;
+        if(!victorias[gw]) victorias[gw]=[];
+        if(victorias[gw].indexOf(gl)===-1) victorias[gw].push(gl);
+      });
+      const reyes = [];
+      participantes.forEach(jugador=>{
+        const oponentes=[...participantes].filter(p=>p!==jugador);
+        const vic=victorias[jugador]||[];
+        if(oponentes.length>1 && oponentes.every(p=>vic.indexOf(p)!==-1)){
+          reyes.push(jugador);
+        }
+      });
+      return reyes;
+    };
+
+    // Histórico (silueta): todos los días, sin filtro de período
+    Object.values(byDay).forEach(dayMatches => {
+      computeRey(dayMatches).forEach(jugador => {
+        ensureHist(jugador);
+        histIns[jugador].rey=(histIns[jugador].rey||0)+1;
+      });
+    });
+  return { histIns, byDay, computeRey };
+}
+
+// ===== Perfil de jugador: se abre al tocar su nombre en cualquier parte de la app =====
+const INSIGNIAS_DEF = [
+  { k: "br",  src: "insignia_break_run.png",    label: "Break & Run",      color: "#ffd700" },
+  { k: "ro",  src: "insignia_run_out.png",      label: "Run Out",          color: "#63b3ed" },
+  { k: "imp", src: "insignia_imparable.png",    label: "Imparable",        color: "#a78bfa" },
+  { k: "rem", src: "insignia_remontada.png",    label: "Remontada",        color: "#f87171" },
+  { k: "gb",  src: "insignia_golden_break.png", label: "Golden Break",     color: "#f9e04b" },
+  { k: "gd",  src: "insignia_gran_defensa.png", label: "Gran Defensa",     color: "#34d399" },
+  { k: "tal", src: "insignia_3s_al_hilo.png",   label: "3 Series al hilo", color: "#f97316" },
+  { k: "rey", src: "insignia_rey_día.png",      label: "Rey del Día",      color: "#fbbf24" },
+];
+const perfilStore = { nombre: null, matches: [], playersList: [], subs: new Set() };
+const perfilAvisar = () => { perfilStore.subs.forEach(f => f()); };
+function abrirPerfil(nombre) {
+  if (!nombre || !String(nombre).trim()) return;
+  perfilStore.nombre = nombre;
+  perfilAvisar();
+}
+function cerrarPerfil() { perfilStore.nombre = null; perfilAvisar(); }
+// Devuelve el manejador de toque de un nombre (no deja pasar el toque a lo que haya debajo)
+const tapPerfil = (nombre) => (e) => { if (e && e.stopPropagation) e.stopPropagation(); abrirPerfil(nombre); };
+
+// Estadísticas de TODA la historia de un jugador (solo partidas terminadas), con la misma lógica del Ranking
+function calcPerfilJugador(matches, nombre) {
+  const closed = matches.filter(m => m.matchClosed);
+  const s = buildStatsMap(closed)[nombre] || { partidas: 0, partidasW: 0, series: 0, seriesW: 0, juegos: 0, juegosW: 0 };
+  const h = buildHistIns(closed).histIns[nombre] || {};
+  // Rachas: victorias consecutivas del jugador, en orden cronológico, contando solo sus propios resultados
+  const propias = closed
+    .filter(m => m.modalidad !== "Contrarreloj" && (m.p1Name === nombre || m.p2Name === nombre))
+    .sort((a, b) => (a.closedAt || a.createdAt || 0) - (b.closedAt || b.createdAt || 0));
+  let rP = 0, mP = 0, rS = 0, mS = 0, rJ = 0, mJ = 0;
+  propias.forEach(m => {
+    const key = m.p1Name === nombre ? "p1" : "p2";
+    const sw1 = (m.seriesWins && m.seriesWins.p1) || 0;
+    const sw2 = (m.seriesWins && m.seriesWins.p2) || 0;
+    if (key === "p1" ? sw1 > sw2 : sw2 > sw1) { rP++; if (rP > mP) mP = rP; } else rP = 0;
+    const juego = (g) => { if (g.winner === key) { rJ++; if (rJ > mJ) mJ = rJ; } else rJ = 0; };
+    (m.seriesHistory || []).forEach(ser => {
+      if (ser.winner === key) { rS++; if (rS > mS) mS = rS; } else rS = 0;
+      (ser.games || []).forEach(juego);
+    });
+    (m.games || []).forEach(juego);
+  });
+  const pct = (g, t) => (t > 0 ? Math.round((g / t) * 100) : null);
+  return {
+    partidas: { g: s.partidasW, t: s.partidas, p: pct(s.partidasW, s.partidas) },
+    series:   { g: s.seriesW,   t: s.series,   p: pct(s.seriesW, s.series) },
+    juegos:   { g: s.juegosW,   t: s.juegos,   p: pct(s.juegosW, s.juegos) },
+    rachas: { partidas: mP, series: mS, juegos: mJ },
+    insignias: INSIGNIAS_DEF.map(d => ({ ...d, n: h[d.k] || 0 })).filter(d => d.n > 0),
+  };
+}
+
+function PerfilJugadorModal() {
+  const [, forzar] = React.useState(0);
+  React.useEffect(() => {
+    const f = () => forzar(n => n + 1);
+    perfilStore.subs.add(f);
+    return () => { perfilStore.subs.delete(f); };
+  }, []);
+  const nombre = perfilStore.nombre;
+  if (!nombre) return null;
+  const p = calcPerfilJugador(perfilStore.matches, nombre);
+  const pl = perfilStore.playersList.find(x => (typeof x === "string" ? x : x.name) === nombre);
+  const color = (pl && typeof pl === "object" && pl.color) || "#e0e0e0";
+  const colorPct = (v) => (v === null ? "#666" : (v >= 50 ? "#4ade80" : "#f9e04b"));
+  const titulo = (txt) => (
+    <div style={{fontSize:11,color:"#63b3ed",fontWeight:800,letterSpacing:1,textTransform:"uppercase",margin:"16px 0 8px"}}>{txt}</div>
+  );
+  const fila = (clave, nom, d, fem) => (
+    <div data-pf={"fila-" + clave} style={{padding:"10px 12px",borderRadius:12,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",marginBottom:8}}>
+      <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between"}}>
+        <div style={{fontSize:14,fontWeight:800,color:"#e0e0e0"}}>{nom}</div>
+        <div style={{fontSize:20,fontWeight:900,color:colorPct(d.p)}}>{d.p === null ? "—" : d.p + "%"}</div>
+      </div>
+      <div style={{fontSize:12,color:"#aaa",marginTop:2}}>{d.g + " " + (fem ? (d.g === 1 ? "ganada" : "ganadas") : (d.g === 1 ? "ganado" : "ganados")) + " de " + d.t + " " + (fem ? (d.t === 1 ? "jugada" : "jugadas") : (d.t === 1 ? "jugado" : "jugados"))}</div>
+      <div style={{height:5,borderRadius:3,background:"rgba(255,255,255,0.1)",marginTop:6,overflow:"hidden"}}>
+        <div style={{height:"100%",width:(d.p === null ? 0 : d.p) + "%",background:colorPct(d.p)}} />
+      </div>
+    </div>
+  );
+  return (
+    <div onClick={cerrarPerfil} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.78)",zIndex:5000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div onClick={(e) => e.stopPropagation()} style={{background:"#0f2a5a",border:"1px solid rgba(99,179,237,0.35)",borderRadius:18,padding:"18px 16px",width:"100%",maxWidth:420,maxHeight:"92vh",overflowY:"auto"}}>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8}}>
+          <div data-pf="nombre" style={{fontSize:24,fontWeight:900,color:color,wordBreak:"break-word",lineHeight:1.15}}>{nombre}</div>
+          <button onClick={cerrarPerfil} style={{width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,0.1)",border:"none",color:"#fff",fontSize:16,cursor:"pointer",flexShrink:0}}>✕</button>
+        </div>
+        <div style={{fontSize:11,color:"#888",marginTop:2}}>Toda la historia · solo partidas terminadas</div>
+
+        {titulo("Insignias")}
+        {p.insignias.length === 0
+          ? <div style={{fontSize:12,color:"#666"}}>Aún no tiene insignias.</div>
+          : <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {p.insignias.map(ins => (
+                <div key={ins.k} data-pf={"ins-" + ins.k} style={{display:"flex",flexDirection:"column",alignItems:"center",width:"22%",minWidth:68}}>
+                  <img src={ins.src} alt={ins.label} style={{width:58,height:58,objectFit:"contain"}} />
+                  <span style={{fontSize:12,fontWeight:800,color:ins.color}}>{"x" + ins.n}</span>
+                  <span style={{fontSize:9,color:"#888",textAlign:"center",lineHeight:1.2}}>{ins.label}</span>
+                </div>
+              ))}
+            </div>}
+
+        {titulo("Estadísticas")}
+        {fila("partidas", "Partidas", p.partidas, true)}
+        {fila("series", "Series", p.series, true)}
+        {fila("juegos", "Juegos", p.juegos, false)}
+
+        {titulo("🔥 Mejor racha de victorias")}
+        <div style={{display:"flex",gap:8}}>
+          {[["partidas", "Partidas seguidas"], ["series", "Series seguidas"], ["juegos", "Juegos seguidos"]].map(([k, t]) => (
+            <div key={k} data-pf={"racha-" + k} style={{flex:1,textAlign:"center",padding:"10px 4px",borderRadius:12,background:"rgba(249,224,75,0.07)",border:"1px solid rgba(249,224,75,0.2)"}}>
+              <div style={{fontSize:26,fontWeight:900,color:"#f9e04b",lineHeight:1}}>{p.rachas[k]}</div>
+              <div style={{fontSize:10,color:"#aaa",marginTop:4}}>{t}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{fontSize:10,color:"#666",marginTop:12,lineHeight:1.4}}>Las rachas cuentan victorias consecutivas del jugador, solo con sus propias partidas, series o juegos. Contrarreloj suma en series y juegos (rondas).</div>
+      </div>
+    </div>
+  );
 }
 
 function BillarApp() {
@@ -762,6 +1083,12 @@ function BillarApp() {
   const datosAlerta = datosKB !== null && datosKB >= 820;
   const datosColor = datosKB === null ? "#4ade80" : (datosAlerta ? "#f87171" : (datosKB >= 500 ? "#f9e04b" : "#4ade80"));
   const datosPct = datosKB === null ? 0 : Math.min(100, (datosKB / 1024) * 100);
+  // Mantiene al día los datos que usa la ventana del perfil de jugador
+  React.useEffect(() => {
+    perfilStore.matches = matches;
+    perfilStore.playersList = playersList;
+    perfilAvisar();
+  }, [matches, playersList]);
   // Indicador de sincronización: verde = confirmado, amarillo = enviando/reconectando, rojo = sin conexión
   const syncOffline = !isOnline;
   const syncEnviando = reconectando || pendingWrites > 0;
@@ -1234,12 +1561,12 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v420</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v421</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
               background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
-              color:isAdmin?"#f9e04b":isOperario?"#4ade80":"#888"}}>
+              color:isAdmin?"#f9e04b":isOperario?"#4ade80":"#888",cursor:miNombre?"pointer":"default"}} onClick={miNombre?tapPerfil(miNombre):undefined}>
               {(isAdmin?"👑 ADMIN":isOperario?"⚙️ OPERARIO":"🎱 JUGADOR") + (miNombre ? " · " + miNombre.toUpperCase() : "")}
             </div>
           </div>
@@ -1248,7 +1575,7 @@ function BillarApp() {
         <div style={{display:"flex",padding:"12px 16px 0",gap:8,alignItems:"flex-end"}}>
           {["active","closed","stats"].map(tab => (
             <button key={tab} onClick={()=>{ setLobbyTab(tab); localStorage.setItem("bg_lobbyTab",tab); }} style={{flex:1,padding:"9px 0",borderRadius:"10px 10px 0 0",border:lobbyTab===tab?"1px solid rgba(74,222,128,0.25)":"1px solid rgba(255,255,255,0.07)",borderBottom:"none",background:lobbyTab===tab?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.04)",color:lobbyTab===tab?"#4ade80":"#777",fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
-              {tab==="active"?"En juego":tab==="closed"?"Terminadas":"Estadísticas"}
+              {tab==="active"?"En juego":tab==="closed"?"Terminadas":"Ranking"}
               {tab==="active" && activeMatches.length > 0 && <span style={{background:"#4ade80",color:"#081530",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:800,marginLeft:6}}>{activeMatches.length}</span>}
             </button>
           ))}
@@ -1286,19 +1613,19 @@ function BillarApp() {
           {list.map((m,_idx) => {
             const ordenIdx = organizarMode && lobbyTab==="active" ? organizarOrder.indexOf(m.id) : -1;
             const yaSeleccionada = ordenIdx !== -1;
+            const alternarSeleccion = () => {
+              if (yaSeleccionada) { setOrganizarOrder(organizarOrder.filter(id => id !== m.id)); }
+              else { setOrganizarOrder([...organizarOrder, m.id]); }
+            };
             return (
-            <div key={m.id} style={{position:"relative"}}
-              onClick={organizarMode&&lobbyTab==="active"?(e)=>{
-                if(yaSeleccionada){ setOrganizarOrder(organizarOrder.filter(id=>id!==m.id)); }
-                else { setOrganizarOrder([...organizarOrder, m.id]); }
-              }:undefined}>
+            <div key={m.id} style={{position:"relative"}}>
               {organizarMode && lobbyTab==="active" && (
                 <div style={{position:"absolute",top:8,right:8,zIndex:100,width:30,height:30,borderRadius:"50%",background:yaSeleccionada?"rgba(74,222,128,0.9)":"rgba(0,0,0,0.5)",border:yaSeleccionada?"2px solid #4ade80":"2px solid rgba(255,255,255,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:yaSeleccionada?"#081530":"#666",pointerEvents:"none"}}>
                   {yaSeleccionada ? ordenIdx+1 : ""}
                 </div>
               )}
               {organizarMode && lobbyTab==="active" && (
-                <div style={{position:"absolute",inset:0,zIndex:50,borderRadius:16,border:yaSeleccionada?"2px solid rgba(74,222,128,0.5)":"2px solid transparent",pointerEvents:"none"}} />
+                <div onClick={alternarSeleccion} style={{position:"absolute",inset:0,zIndex:50,borderRadius:16,cursor:"pointer",border:yaSeleccionada?"2px solid rgba(74,222,128,0.5)":"2px solid transparent"}} />
               )}
               <LobbyCard key={m.id} m={m} compact={isLandscape} onOpen={()=>{setActiveIdP(m.id);setScreenP("match");}} onDelete={isAdmin?()=>deleteMatch(m.id):null} isAdminMode={isAdmin} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
@@ -1587,194 +1914,9 @@ function BillarApp() {
     });
 
     // Calcular stats por jugador
-    const statsMap = {};
-    const ensurePlayer = (name) => {
-      if (!statsMap[name]) statsMap[name] = {
-        name, partidas:0, partidasW:0, series:0, seriesW:0,
-        juegos:0, juegosW:0, rachaMejor:0, rachaActual:0,
-        goldenBreaks:0, mesas:0, breakRuns:0, remontadas:0, imparables:0, granDefensas:0, tresAlHilo:0, reyDelDia:0,
-        crRondas:0, crRondasW:0, crTimes:[]
-      };
-    };
+    const statsMap = buildStatsMap(filtered);
 
-    filtered.forEach(m => {
-      if (m.modalidad === "Contrarreloj") {
-        const players = m.crPlayers||[];
-        const order = m.crOrder||[];
-        const serieWinsCR = m.crSerieWins||{};
-        const roundWinsCR = m.crRoundWins||{};
-        const accumTime = m.crAccumTime||{};
-        const validRoundsCR = m.crValidRounds||{};
-        const totalSeriesCR = m.crTotalSeries||1;
-        const totalRoundsCR = m.crTotalRounds||1;
-        // Ganador = más series; empate = mejor promedio
-        const crStandings = [...order].sort((a,b)=>{
-          const sw=(serieWinsCR[b]||0)-(serieWinsCR[a]||0); if(sw!==0) return sw;
-          const aAvg=validRoundsCR[a]>0?(accumTime[a]||0)/validRoundsCR[a]:Infinity;
-          const bAvg=validRoundsCR[b]>0?(accumTime[b]||0)/validRoundsCR[b]:Infinity;
-          return aAvg-bAvg;
-        });
-        players.forEach((name,i) => {
-          if (!name?.trim()) return;
-          ensurePlayer(name);
-          const s = statsMap[name];
-          // CR no cuenta en partidas (👑), solo en series y juegos
-          // Series = partidas CR ganadas (para columna 🏆)
-          s.seriesW += (serieWinsCR[i]||0);
-          s.series += totalSeriesCR;
-          // JG = rondas ganadas en CR
-          s.juegosW += (roundWinsCR[i]||0);
-          // JG total = rondas realmente jugadas (no fijas)
-          const totalRoundsPlayed = Object.values(roundWinsCR).reduce((a,b)=>a+b,0) || (totalSeriesCR * totalRoundsCR);
-          s.juegos += totalRoundsPlayed;
-          const vr = validRoundsCR[i];
-          if (accumTime[i] && vr > 0) s.crTimes.push(accumTime[i]/vr);
-        });
-      } else {
-        const history = m.seriesHistory||[];
-        const sw1 = m.seriesWins?.p1||0;
-        const sw2 = m.seriesWins?.p2||0;
-        const pWinner = sw1>sw2?"p1":sw2>sw1?"p2":null;
-
-        [m.p1Name, m.p2Name].forEach((name,pi) => {
-          if (!name?.trim()) return;
-          const key = pi===0?"p1":"p2";
-          ensurePlayer(name);
-          const s = statsMap[name];
-          s.partidas++;
-          if (pWinner===key) s.partidasW++;
-
-          history.forEach(ser => {
-            s.series++;
-            const won = ser.winner===key;
-            if (won) s.seriesW++;
-            const serGames = ser.games||[];
-            serGames.forEach(g => {
-              s.juegos++;
-              if (g.winner===key) s.juegosW++;
-            });
-            // Golden break: juegos donde este jugador tiene bola dorada
-            serGames.filter(g=>g.winner===key && g.ballType==="gold").forEach(()=>s.goldenBreaks++);
-            serGames.filter(g=>g.winner===key && g.ballType==="breakrun").forEach(()=>s.breakRuns++);
-            serGames.filter(g=>g.winner===key && g.ballType==="grandefensa").forEach(()=>s.granDefensas=(s.granDefensas||0)+1);
-            // Mesa limpia/barrida: juegos donde este jugador tiene diamante
-            serGames.filter(g=>g.winner===key && g.ballType==="diamond").forEach(()=>s.mesas++);
-            // Remontada: en algún momento de la serie el rival tuvo carrera-1 wins y el jugador tenía 0
-            if (won && m.carrera>1) {
-              const serGamesArr = ser.games||[];
-              let myW=0, rivW=0;
-              let huboRemontada=false;
-              for (let gi=0; gi<serGamesArr.length; gi++) {
-                const g = serGamesArr[gi];
-                if (myW===0 && rivW>=(m.carrera-1)) { huboRemontada=true; break; }
-                if (g.winner===key) myW++; else rivW++;
-              }
-              if (huboRemontada) s.remontadas=(s.remontadas||0)+1;
-            }
-            // Imparable: ganó la serie dejando al oponente en 0 juegos
-            if (won) {
-              const rivFinalWins = key==="p1"?(ser.p2wins||0):(ser.p1wins||0);
-              if (rivFinalWins===0 && m.carrera>1) s.imparables=(s.imparables||0)+1;
-            }
-            // Racha
-            if (won) { s.rachaActual++; if(s.rachaActual>s.rachaMejor) s.rachaMejor=s.rachaActual; }
-            else s.rachaActual=0;
-          });
-          // 3 Series al hilo: 3 series consecutivas ganadas en la misma partida
-          {
-            let consecutivas = 0;
-            let maxConsec = 0;
-            (m.seriesHistory||[]).forEach(ser => {
-              if (ser.winner===key) { consecutivas++; if(consecutivas>maxConsec) maxConsec=consecutivas; }
-              else consecutivas=0;
-            });
-            if (maxConsec>=3) s.tresAlHilo=(s.tresAlHilo||0)+1;
-          }
-          (m.games||[]).forEach(g => {
-            s.juegos++;
-            if (g.winner===key) s.juegosW++;
-          });
-        });
-      }
-    });
-
-    // Calcular insignias históricas
-    const histIns = {};
-    const ensureHist = (name) => { if(!histIns[name]) histIns[name]={br:0,ro:0,gb:0,rem:0,imp:0,gd:0,tal:0,rey:0}; };
-    closed.forEach(m => {
-      if (m.modalidad==="Contrarreloj") return;
-      [["p1",m.p1Name],["p2",m.p2Name]].forEach(([key,name])=>{
-        if(!name) return;
-        ensureHist(name);
-        const hist = m.seriesHistory||[];
-        hist.forEach(ser => {
-          const won = ser.winner===key;
-          const serG = ser.games||[];
-          serG.forEach(g => {
-            if(g.winner===key){
-              if(g.ballType==="breakrun") histIns[name].br++;
-              if(g.ballType==="diamond") histIns[name].ro++;
-              if(g.ballType==="gold") histIns[name].gb++;
-              if(g.ballType==="grandefensa") histIns[name].gd++;
-            }
-          });
-          if(won){
-            const riv=key==="p1"?(ser.p2wins||0):(ser.p1wins||0);
-            if(riv===0&&m.carrera>1) histIns[name].imp++;
-            if(m.carrera>1){
-              let my=0,rv=0,rem=false;
-              for(let g of serG){if(my===0&&rv>=(m.carrera-1)){rem=true;break;}if(g.winner===key)my++;else rv++;}
-              if(rem) histIns[name].rem++;
-            }
-          }
-        });
-        let consec=0,maxC=0;
-        hist.forEach(ser=>{if(ser.winner===key){consec++;if(consec>maxC)maxC=consec;}else consec=0;});
-        if(maxC>=3) histIns[name].tal++;
-      });
-    });
-
-    // Rey del Día — por día calendario. Se otorga si un jugador venció a
-    // MÁS DE 1 oponente diferente el mismo día (1 solo oponente no cuenta).
-    const allClosedForRey = matches.filter(m => m.matchClosed && m.modalidad !== "Contrarreloj");
-    const byDay = {};
-    allClosedForRey.forEach(m => {
-      if (!m.closedAt) return;
-      const day = new Date(m.closedAt).toISOString().slice(0,10);
-      if (!byDay[day]) byDay[day] = [];
-      byDay[day].push(m);
-    });
-    const computeRey = (dayMatches) => {
-      const participantes = new Set();
-      const victorias = {};
-      dayMatches.forEach(m => {
-        const s1=(m.seriesWins&&m.seriesWins.p1)||0, s2=(m.seriesWins&&m.seriesWins.p2)||0;
-        const gw=s1>s2?m.p1Name:s2>s1?m.p2Name:null;
-        const gl=s1>s2?m.p2Name:s2>s1?m.p1Name:null;
-        if(m.p1Name) participantes.add(m.p1Name);
-        if(m.p2Name) participantes.add(m.p2Name);
-        if(!gw||!gl) return;
-        if(!victorias[gw]) victorias[gw]=[];
-        if(victorias[gw].indexOf(gl)===-1) victorias[gw].push(gl);
-      });
-      const reyes = [];
-      participantes.forEach(jugador=>{
-        const oponentes=[...participantes].filter(p=>p!==jugador);
-        const vic=victorias[jugador]||[];
-        if(oponentes.length>1 && oponentes.every(p=>vic.indexOf(p)!==-1)){
-          reyes.push(jugador);
-        }
-      });
-      return reyes;
-    };
-
-    // Histórico (silueta): todos los días, sin filtro de período
-    Object.values(byDay).forEach(dayMatches => {
-      computeRey(dayMatches).forEach(jugador => {
-        ensureHist(jugador);
-        histIns[jugador].rey=(histIns[jugador].rey||0)+1;
-      });
-    });
+    const { histIns, byDay, computeRey } = buildHistIns(closed);
 
     // Período filtrado: solo días dentro del rango activo
     const diaEnPeriodo = (dayStr) => {
@@ -1921,7 +2063,7 @@ function BillarApp() {
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
                       <img src={i===0?"https://em-content.zobj.net/source/google/387/1st-place-medal_1f947.png":i===1?"https://em-content.zobj.net/source/google/387/2nd-place-medal_1f948.png":"https://em-content.zobj.net/source/google/387/3rd-place-medal_1f949.png"} style={{width:i===0?42:34,height:i===0?42:34,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none";}}/>
                       <div>
-                        <div style={{fontSize:i===0?22:17,fontWeight:900,color:i===0?"#f9e04b":i===1?"#e0e0e0":"#cd7f32",letterSpacing:0.5,wordBreak:"break-word"}}>{r.name}</div>
+                        <div style={{fontSize:i===0?22:17,fontWeight:900,color:i===0?"#f9e04b":i===1?"#e0e0e0":"#cd7f32",letterSpacing:0.5,wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</div>
                         <div style={{fontSize:10,color:"#888"}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
                       </div>
                     </div>
@@ -1982,7 +2124,7 @@ function BillarApp() {
                         {sortedRows.map((r,i)=>(
                       <tr key={r.name} style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:i%2===0?"transparent":"rgba(255,255,255,0.01)"}}>
                         <td style={{padding:"8px 4px",color:i===0?"#f9e04b":i===1?"#ccc":i===2?"#cd7f32":"#555",fontWeight:700}}>{i+1}</td>
-                        <td style={{padding:"8px 4px",fontWeight:700,color:"#e0e0e0",whiteSpace:"nowrap"}}>{r.name}</td>
+                        <td style={{padding:"8px 4px",fontWeight:700,color:"#e0e0e0",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.partidasW}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:600}}>{r.seriesW}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:600}}>{r.juegosW}</td>
@@ -2167,7 +2309,7 @@ function BillarApp() {
                 <div key={i} style={{padding:"12px 14px",borderRadius:12,background:isThisDevice?"rgba(74,222,128,0.08)":"rgba(255,255,255,0.04)",border:`1px solid ${isThisDevice?"rgba(74,222,128,0.35)":"rgba(255,255,255,0.08)"}`,marginBottom:8}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                      <span style={{fontSize:15,fontWeight:700,color:p.color||"#e0e0e0"}}>🎱 {p.name}</span>
+                      <span style={{fontSize:15,fontWeight:700,color:p.color||"#e0e0e0",cursor:"pointer"}} onClick={tapPerfil(p.name)}>🎱 {p.name}</span>
                       {p.id && <span style={{fontSize:11,fontWeight:800,color:"#f9e04b",background:"rgba(249,224,75,0.12)",border:"1px solid rgba(249,224,75,0.25)",borderRadius:6,padding:"2px 7px"}}>{p.id}</span>}
                       
                       {isAdmin && <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:5,
@@ -2507,7 +2649,7 @@ function BillarApp() {
       {/* Series bar */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",background:"rgba(0,0,0,0.45)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-          <span style={{fontSize:11,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,maxWidth:85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p1Name}</span>
+          <span style={{fontSize:11,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,maxWidth:85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(p1Name)}>{p1Name}</span>
           <span style={{fontSize:30,fontWeight:900,lineHeight:1,color:sw1>sw2?"#f9e04b":"#fff"}}>{sw1}</span>
         </div>
         <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
@@ -2515,7 +2657,7 @@ function BillarApp() {
           <div style={{fontSize:18,color:"#333",fontWeight:700}}>-</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10,flex:1,flexDirection:"row-reverse"}}>
-          <span style={{fontSize:11,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,maxWidth:85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p2Name}</span>
+          <span style={{fontSize:11,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,maxWidth:85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(p2Name)}>{p2Name}</span>
           <span style={{fontSize:30,fontWeight:900,lineHeight:1,color:sw2>sw1?"#f9e04b":"#fff"}}>{sw2}</span>
         </div>
       </div>
@@ -2535,7 +2677,7 @@ function BillarApp() {
               const sw=k==="p1"?sw1:sw2, name=k==="p1"?p1Name:p2Name;
               const tFS=sw<=5?24:sw<=10?21:sw<=15?18:15;
               return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.25)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 8px 6px",overflow:"hidden",boxSizing:"border-box"}}>
-                <div style={{fontSize:26,fontWeight:800,color:"#e0e0e0",lineHeight:1.15,width:"100%",wordBreak:"break-word",flexShrink:0,marginBottom:6}}>{name}</div>
+                <div style={{fontSize:26,fontWeight:800,color:"#e0e0e0",lineHeight:1.15,width:"100%",wordBreak:"break-word",flexShrink:0,marginBottom:6,cursor:"pointer"}} onClick={tapPerfil(name)}>{name}</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:1,width:"100%",overflow:"hidden"}}>
                   {Array.from({length:sw},(_,i)=><span key={i} style={{fontSize:tFS,lineHeight:1.1}}>&#127942;</span>)}
                 </div>
@@ -2822,7 +2964,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
             const sw=k==="p1"?p1wins:p2wins;
             const trophyFS=sw<=5?22:sw<=10?19:sw<=15?16:13;
             return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.3)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 8px 6px",overflow:"hidden",boxSizing:"border-box"}}>
-              {(()=>{ const nm=k==="p1"?p1Name:p2Name; const col=getPlayerColor(nm); return <div style={{fontSize:24,fontWeight:800,color:col||"#e0e0e0",lineHeight:1.2,wordBreak:"break-word",marginBottom:5}}>{nm}</div>; })()}
+              {(()=>{ const nm=k==="p1"?p1Name:p2Name; const col=getPlayerColor(nm); return <div style={{fontSize:24,fontWeight:800,color:col||"#e0e0e0",lineHeight:1.2,wordBreak:"break-word",marginBottom:5,cursor:"pointer"}} onClick={tapPerfil(nm)}>{nm}</div>; })()}
               <div style={{display:"flex",flexWrap:"wrap",gap:1}}>
                 {Array.from({length:sw},(_,i)=><span key={i} style={{fontSize:trophyFS,lineHeight:1.1}}>&#127942;</span>)}
               </div>
@@ -2866,9 +3008,9 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
         <div style={{background:"rgba(0,0,0,0.3)",border:"1px solid rgba(74,222,128,0.15)",borderRadius:14,padding:"14px 12px",marginBottom:14}}>
           {/* Nombres y bola */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <div style={{fontSize:18,fontWeight:900,color:getPlayerColor(p1Name)||"#fff",flex:1}}>{p1Name}</div>
+            <div style={{fontSize:18,fontWeight:900,color:getPlayerColor(p1Name)||"#fff",flex:1,cursor:"pointer"}} onClick={tapPerfil(p1Name)}>{p1Name}</div>
             <BallIcon modalidad={modalidad} size={32}/>
-            <div style={{fontSize:18,fontWeight:900,color:getPlayerColor(p2Name)||"#fff",flex:1,textAlign:"right"}}>{p2Name}</div>
+            <div style={{fontSize:18,fontWeight:900,color:getPlayerColor(p2Name)||"#fff",flex:1,textAlign:"right",cursor:"pointer"}} onClick={tapPerfil(p2Name)}>{p2Name}</div>
           </div>
           {/* Trofeos y marcador */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"8px 10px"}}>
@@ -2929,7 +3071,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                  {true && (
                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                      <div style={{flex:1}}>
-                       <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":(getPlayerColor(p1Name)||"#666"),marginBottom:4,fontWeight:s.p1wins>s.p2wins?700:400}}>{s.p1wins>s.p2wins?"🏆 ":""}{p1Name}</div>
+                       <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":(getPlayerColor(p1Name)||"#666"),marginBottom:4,fontWeight:s.p1wins>s.p2wins?700:400,cursor:"pointer"}} onClick={tapPerfil(p1Name)}>{s.p1wins>s.p2wins?"🏆 ":""}{p1Name}</div>
                        <div style={{display:"flex",flexWrap:"wrap",gap:2}}>
                          {(s.games||fakeGames).filter(g=>g.winner==="p1").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:20,height:30,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={modalidad} size={20}/>)}
                          {s.p1wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
@@ -2941,7 +3083,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                        <span style={{color:s.p2wins>s.p1wins?"#4ade80":"#555"}}>{s.p2wins}</span>
                      </div>
                      <div style={{flex:1,textAlign:"right"}}>
-                       <div style={{fontSize:11,color:s.p2wins>s.p1wins?"#4ade80":(getPlayerColor(p2Name)||"#666"),marginBottom:4,textAlign:"right",fontWeight:s.p2wins>s.p1wins?700:400}}>{p2Name}{s.p2wins>s.p1wins?" 🏆":""}</div>
+                       <div style={{fontSize:11,color:s.p2wins>s.p1wins?"#4ade80":(getPlayerColor(p2Name)||"#666"),marginBottom:4,textAlign:"right",fontWeight:s.p2wins>s.p1wins?700:400,cursor:"pointer"}} onClick={tapPerfil(p2Name)}>{p2Name}{s.p2wins>s.p1wins?" 🏆":""}</div>
                        <div style={{display:"flex",flexWrap:"wrap",gap:2,justifyContent:"flex-end"}}>
                          {(s.games||fakeGames).filter(g=>g.winner==="p2").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:20,height:30,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={modalidad} size={20}/>)}
                          {s.p2wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
@@ -3281,7 +3423,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:11,color:"#555",fontWeight:700,minWidth:14}}>{pos+1}.</span>
                   <div>
-                    <div style={{fontSize:12,fontWeight:800,color:isCurrent?"#4ade80":"#e0e0e0"}}>{name}</div>
+                    <div style={{fontSize:12,fontWeight:800,color:isCurrent?"#4ade80":"#e0e0e0",cursor:"pointer"}} onClick={tapPerfil(name)}>{name}</div>
                     <div style={{fontSize:9,color:"#888"}}>
                       {(serieWins[pidx]||0)>0?`🏆 ${serieWins[pidx]}S`:""}{wins>0?` · ${wins}R`:""}
                     </div>
@@ -3456,7 +3598,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               const isSaque=!m.seriesFinished&&m.currentServe===k;
               return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.2)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 10px",overflow:"hidden",boxSizing:"border-box"}}>
                 <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
-                  <div style={{fontSize:20,fontWeight:800,color:getPlayerColor(name)||"#e0e0e0",lineHeight:1.2}}>{name}</div>
+                  <div style={{fontSize:20,fontWeight:800,color:getPlayerColor(name)||"#e0e0e0",lineHeight:1.2,cursor:"pointer"}} onClick={tapPerfil(name)}>{name}</div>
                   
                 </div>
                 <div style={{fontSize:18,display:"flex",flexWrap:"wrap",gap:2}}>{Array.from({length:k==="p1"?sw1:sw2},(_,i)=><span key={i}>&#127942;</span>)}</div>
@@ -3582,9 +3724,9 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
             <div style={{background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"10px 10px 8px",marginBottom:8}}>
               {/* Nombres y bola */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                <div style={{fontSize:15,fontWeight:900,color:getPlayerColor(m.p1Name)||"#fff",flex:1}}>{m.p1Name}</div>
+                <div style={{fontSize:15,fontWeight:900,color:getPlayerColor(m.p1Name)||"#fff",flex:1,cursor:"pointer"}} onClick={tapPerfil(m.p1Name)}>{m.p1Name}</div>
                 <BallIcon modalidad={m.modalidad} size={24}/>
-                <div style={{fontSize:15,fontWeight:900,color:getPlayerColor(m.p2Name)||"#fff",flex:1,textAlign:"right"}}>{m.p2Name}</div>
+                <div style={{fontSize:15,fontWeight:900,color:getPlayerColor(m.p2Name)||"#fff",flex:1,textAlign:"right",cursor:"pointer"}} onClick={tapPerfil(m.p2Name)}>{m.p2Name}</div>
               </div>
               {/* Trofeos y marcador */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(0,0,0,0.2)",borderRadius:8,padding:"6px 8px"}}>
@@ -3641,7 +3783,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
 function App() {
   const [ok, setOk] = useState(()=>!!localStorage.getItem("bg"));
   if (!ok) return <Acceso ok={()=>setOk(true)} />;
-  return <BillarApp />;
+  return (<><BillarApp /><PerfilJugadorModal /></>);
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
