@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v433</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v434</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v433</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v434</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -642,9 +642,9 @@ function categoriasRecordGeneral(rachas, rg) {
   return ["partidas", "series", "juegos"].filter(k => rachas[k].n > 0 && rg[k] > 0 && rachas[k].n >= rg[k]);
 }
 
-// Bloque "Racha activa:" (encabezado y ficha). Todo en blanco; solo la etiqueta [Récord personal] va en amarillo y [Récord general] en verde.
+// Bloque "Racha activa:" (encabezado y ficha). Todo en blanco; solo la etiqueta "Récord personal" (amarilla) y "Récord general" (verde) lleva color.
 //   Racha activa:
-//   🔥4 partidas [Récord personal]  🔥12 series [Récord general]  🔥17 juegos
+//   🔥4 partidas (Récord personal)  🔥12 series (Récord general)  🔥17 juegos
 function ChipRacha({ segmentos, dataPf, onClick, fontSize, padding }) {
   return (
     <div data-pf={dataPf} onClick={onClick} style={{fontSize:fontSize,fontWeight:800,padding:padding,borderRadius:8,background:"rgba(255,255,255,0.07)",color:"#ffffff",cursor:onClick ? "pointer" : "default",lineHeight:1.5}}>
@@ -653,7 +653,7 @@ function ChipRacha({ segmentos, dataPf, onClick, fontSize, padding }) {
         {segmentos.map(s => (
           <span key={s.k} data-pf={dataPf + "-" + s.k} style={{whiteSpace:"nowrap"}}>
             {"🔥" + s.actual + " " + nombreRacha(s.k, s.actual)}
-            {s.tipo ? <span data-pf={dataPf + "-" + s.k + "-record"} style={{marginLeft:4,fontWeight:900,color:COLOR_RECORD[s.tipo]}}>{"[" + ETIQUETA_RECORD[s.tipo] + "]"}</span> : null}
+            {s.tipo ? <span data-pf={dataPf + "-" + s.k + "-record"} style={{marginLeft:5,fontSize:fontSize - 1,fontWeight:900,padding:"0 6px",borderRadius:5,background:COLOR_RECORD[s.tipo],color:"#111827"}}>{ETIQUETA_RECORD[s.tipo]}</span> : null}
           </span>
         ))}
       </div>
@@ -1835,7 +1835,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v433</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v434</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
