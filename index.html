@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v423</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v425</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v423</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v425</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -496,6 +496,15 @@ function cerrarPerfil() { perfilStore.nombre = null; perfilAvisar(); }
 // Devuelve el manejador de toque de un nombre (no deja pasar el toque a lo que haya debajo)
 const tapPerfil = (nombre) => (e) => { if (e && e.stopPropagation) e.stopPropagation(); abrirPerfil(nombre); };
 
+// Fecha corta para el perfil: "Jue 3 Sep" (agrega el año solo si no es el año actual)
+function fechaCorta(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const dias = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  const meses = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  return dias[d.getDay()] + " " + d.getDate() + " " + meses[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "");
+}
+
 // Récord de Contrarreloj: la ronda más rápida del jugador (sin contar rondas perdidas por 3 faltas)
 function calcRecordCR(closed, nombre) {
   const crs = closed
@@ -530,19 +539,30 @@ function calcPerfilJugador(matches, nombre) {
   const closed = matches.filter(m => m.matchClosed);
   const s = buildStatsMap(closed)[nombre] || { partidas: 0, partidasW: 0, series: 0, seriesW: 0, juegos: 0, juegosW: 0 };
   const h = buildHistIns(closed).histIns[nombre] || {};
-  // Rachas: victorias consecutivas del jugador, en orden cronológico, contando solo sus propios resultados
+  // Rachas: victorias consecutivas del jugador, en orden cronológico, contando solo sus propios resultados.
+  // De cada racha se guarda: su largo, la fecha en que se logró y si sigue activa (la racha en curso es la mejor)
+  const nuevaRacha = () => ({ run: 0, best: 0, fechaBest: null, fechaRun: null });
+  const avanza = (r, gano, fecha) => {
+    if (gano) { r.run++; r.fechaRun = fecha; if (r.run > r.best) { r.best = r.run; r.fechaBest = fecha; } }
+    else { r.run = 0; r.fechaRun = null; }
+  };
+  const resumen = (r) => {
+    const activa = r.best > 0 && r.run === r.best;
+    return { n: r.best, activa: activa, fecha: r.best > 0 ? (activa ? r.fechaRun : r.fechaBest) : null };
+  };
+  const rP = nuevaRacha(), rS = nuevaRacha(), rJ = nuevaRacha();
   const propias = closed
     .filter(m => m.modalidad !== "Contrarreloj" && (m.p1Name === nombre || m.p2Name === nombre))
     .sort((a, b) => (a.closedAt || a.createdAt || 0) - (b.closedAt || b.createdAt || 0));
-  let rP = 0, mP = 0, rS = 0, mS = 0, rJ = 0, mJ = 0;
   propias.forEach(m => {
     const key = m.p1Name === nombre ? "p1" : "p2";
+    const fecha = m.closedAt || m.createdAt || null;
     const sw1 = (m.seriesWins && m.seriesWins.p1) || 0;
     const sw2 = (m.seriesWins && m.seriesWins.p2) || 0;
-    if (key === "p1" ? sw1 > sw2 : sw2 > sw1) { rP++; if (rP > mP) mP = rP; } else rP = 0;
-    const juego = (g) => { if (g.winner === key) { rJ++; if (rJ > mJ) mJ = rJ; } else rJ = 0; };
+    avanza(rP, key === "p1" ? sw1 > sw2 : sw2 > sw1, fecha);
+    const juego = (g) => avanza(rJ, g.winner === key, fecha);
     (m.seriesHistory || []).forEach(ser => {
-      if (ser.winner === key) { rS++; if (rS > mS) mS = rS; } else rS = 0;
+      avanza(rS, ser.winner === key, fecha);
       (ser.games || []).forEach(juego);
     });
     (m.games || []).forEach(juego);
@@ -552,7 +572,7 @@ function calcPerfilJugador(matches, nombre) {
     partidas: { g: s.partidasW, t: s.partidas, p: pct(s.partidasW, s.partidas) },
     series:   { g: s.seriesW,   t: s.series,   p: pct(s.seriesW, s.series) },
     juegos:   { g: s.juegosW,   t: s.juegos,   p: pct(s.juegosW, s.juegos) },
-    rachas: { partidas: mP, series: mS, juegos: mJ },
+    rachas: { partidas: resumen(rP), series: resumen(rS), juegos: resumen(rJ) },
     insignias: INSIGNIAS_DEF.map(d => ({ ...d, n: h[d.k] || 0 })).filter(d => d.n > 0),
     cr: calcRecordCR(closed, nombre),
   };
@@ -675,12 +695,19 @@ function PerfilJugadorModal() {
 
         {titulo("🔥 Mejor racha de victorias")}
         <div style={{display:"flex",gap:8}}>
-          {[["partidas", "Partidas seguidas"], ["series", "Series seguidas"], ["juegos", "Juegos seguidos"]].map(([k, t]) => (
-            <div key={k} data-pf={"racha-" + k} style={{flex:1,textAlign:"center",padding:"10px 4px",borderRadius:12,background:"rgba(249,224,75,0.07)",border:"1px solid rgba(249,224,75,0.2)"}}>
-              <div style={{fontSize:26,fontWeight:900,color:"#4ade80",lineHeight:1}}>{p.rachas[k]}</div>
-              <div style={{fontSize:10,color:"#aaa",marginTop:4}}>{t}</div>
-            </div>
-          ))}
+          {[["partidas", "Partidas seguidas"], ["series", "Series seguidas"], ["juegos", "Juegos seguidos"]].map(([k, t]) => {
+            const r = p.rachas[k];
+            return (
+              <div key={k} data-pf={"racha-" + k} style={{flex:1,minWidth:0,textAlign:"center",padding:"8px 4px 10px",borderRadius:12,background:"rgba(249,224,75,0.07)",border:"1px solid rgba(249,224,75,0.2)"}}>
+                <div style={{height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {r.activa ? <span data-pf={"racha-" + k + "-activa"} style={{fontSize:9,fontWeight:900,letterSpacing:0.5,color:"#052e16",background:"#4ade80",borderRadius:8,padding:"1px 7px"}}>● ACTIVA</span> : null}
+                </div>
+                <div data-pf={"racha-" + k + "-n"} style={{fontSize:26,fontWeight:900,color:"#4ade80",lineHeight:1,marginTop:2}}>{r.n}</div>
+                <div style={{fontSize:10,color:"#aaa",marginTop:4}}>{t}</div>
+                <div data-pf={"racha-" + k + "-fecha"} style={{fontSize:10,color:"#888",marginTop:2,whiteSpace:"nowrap"}}>{r.n > 0 && r.fecha ? fechaCorta(r.fecha) : "—"}</div>
+              </div>
+            );
+          })}
         </div>
         {p.cr && (<>
           {titulo("⏱ Récord Contrarreloj")}
@@ -1658,7 +1685,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v423</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v425</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
