@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v428</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v429</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v428</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v429</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -536,8 +536,10 @@ function calcRecordCR(closed, nombre) {
 
 // Desde cuántas victorias seguidas se muestra "🔥 Racha activa" en el encabezado y la ficha (fácil de ajustar)
 const RACHA_MIN = { partidas: 1, series: 1, juegos: 1 };
-// Para el ícono 🔥 del Ranking se piden más, para que no se llene de llamas con cada ganador reciente
-const RACHA_MIN_ICONO = { partidas: 2, series: 3, juegos: 5 };
+// Color de cada tipo de récord, en toda la app: personal = amarillo, general (del local) = verde
+const COLOR_RECORD = { personal: "#f9e04b", general: "#4ade80" };
+// Fondo suave y borde para las tarjetas según el tipo de récord
+const FONDO_RECORD = { personal: ["rgba(249,224,75,0.07)", "rgba(249,224,75,0.25)"], general: ["rgba(74,222,128,0.08)", "rgba(74,222,128,0.3)"] };
 // Una racha solo está "activa" si su última victoria fue reciente (días); una racha vieja que nadie cortó no está "en llamas"
 const RACHA_VIGENCIA_DIAS = 7;
 
@@ -616,11 +618,6 @@ function segmentosRachaActiva(rachas, rg) {
     .filter(k => rachas[k].actual >= RACHA_MIN[k])
     .map(k => ({ k: k, actual: rachas[k].actual, tipo: tipoRecord(rachas[k].actual, rachas[k].n, rg[k]) }));
 }
-// ¿Merece el ícono 🔥 del Ranking? (mínimos más altos que los del encabezado)
-function hayRachaParaIcono(rachas) {
-  return ["partidas", "series", "juegos"].some(k => rachas[k].actual >= RACHA_MIN_ICONO[k]);
-}
-
 // Etiqueta "🔥 Racha activa: ..." (encabezado y ficha). Las partes que igualan o superan su récord van en verde con "Mejor récord"
 function ChipRacha({ segmentos, dataPf, onClick, fontSize, padding }) {
   return (
@@ -629,9 +626,9 @@ function ChipRacha({ segmentos, dataPf, onClick, fontSize, padding }) {
       {segmentos.map((s, i) => (
         <React.Fragment key={s.k}>
           {i > 0 ? " · " : ""}
-          <span data-pf={dataPf + "-" + s.k} style={{color:s.tipo ? "#4ade80" : "#fb923c",whiteSpace:"nowrap"}}>
+          <span data-pf={dataPf + "-" + s.k} style={{color:s.tipo ? COLOR_RECORD[s.tipo] : "#fb923c",whiteSpace:"nowrap"}}>
             {s.actual + " " + nombreRacha(s.k, s.actual)}
-            {s.tipo ? <span data-pf={dataPf + "-" + s.k + "-record"} style={{marginLeft:4,fontSize:fontSize - 1,fontWeight:900,padding:"0 5px",borderRadius:5,background:s.tipo === "general" ? "#f9e04b" : "#4ade80",color:"#052e16"}}>{ETIQUETA_RECORD[s.tipo]}</span> : null}
+            {s.tipo ? <span data-pf={dataPf + "-" + s.k + "-record"} style={{marginLeft:4,fontSize:fontSize - 1,fontWeight:900,padding:"0 5px",borderRadius:5,background:COLOR_RECORD[s.tipo],color:"#111827"}}>{ETIQUETA_RECORD[s.tipo]}</span> : null}
           </span>
         </React.Fragment>
       ))}
@@ -651,6 +648,18 @@ function calcLider(matches, playersList) {
   const cmp = (a, b) => (b.partidasW - a.partidasW) || (b.seriesW - a.seriesW) || (b.juegosW - a.juegosW) || (b.crRondasW - a.crRondasW);
   filas.sort(cmp);
   return new Set(filas.filter(r => cmp(filas[0], r) === 0).map(r => r.name));
+}
+
+// Récord general de Contrarreloj: la ronda más rápida de todo el local (null si nadie tiene una ronda válida)
+let _cacheCRGen = { ref: null, val: null };
+function calcRecordCRGeneral(matches) {
+  if (_cacheCRGen.ref === matches) return _cacheCRGen.val;
+  const closed = matches.filter(m => m.matchClosed);
+  const nombres = [...new Set(closed.filter(m => m.modalidad === "Contrarreloj").flatMap(m => m.crPlayers || []))];
+  let mejor = null;
+  nombres.forEach(n => { const r = calcRecordCR(closed, n); if (r && r.mejor !== null && (mejor === null || r.mejor < mejor)) mejor = r.mejor; });
+  _cacheCRGen = { ref: matches, val: mejor };
+  return mejor;
 }
 
 // Estadísticas de TODA la historia de un jugador (solo partidas terminadas), con la misma lógica del Ranking
@@ -701,6 +710,8 @@ function PerfilJugadorModal() {
   const p = calcPerfilJugador(perfilStore.matches, nombre);
   const lider = calcLider(perfilStore.matches, perfilStore.playersList).has(nombre);
   const rg = calcRecordsGenerales(perfilStore.matches);
+  const crGen = calcRecordCRGeneral(perfilStore.matches);
+  const tipoCR = (p.cr && p.cr.mejor !== null) ? ((crGen !== null && p.cr.mejor <= crGen) ? "general" : "personal") : null;
   const rachaSegs = segmentosRachaActiva(p.rachas, rg);
   const pl = perfilStore.playersList.find(x => (typeof x === "string" ? x : x.name) === nombre);
   const color = (pl && typeof pl === "object" && pl.color) || "#e0e0e0";
@@ -799,15 +810,15 @@ function PerfilJugadorModal() {
             const r = p.rachas[k];
             const tipoR = r.n > 0 ? tipoRecord(r.n, r.n, rg[k]) : null;   // la tarjeta muestra el récord personal; si además iguala al del local, es general
             return (
-              <div key={k} data-pf={"racha-" + k} style={{flex:1,minWidth:0,textAlign:"center",padding:"8px 4px 10px",borderRadius:12,background:"rgba(249,224,75,0.07)",border:"1px solid rgba(249,224,75,0.2)"}}>
+              <div key={k} data-pf={"racha-" + k} style={{flex:1,minWidth:0,textAlign:"center",padding:"8px 4px 10px",borderRadius:12,background:tipoR ? FONDO_RECORD[tipoR][0] : "rgba(255,255,255,0.04)",border:"1px solid " + (tipoR ? FONDO_RECORD[tipoR][1] : "rgba(255,255,255,0.1)")}}>
                 <div style={{height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  {r.activa ? <span data-pf={"racha-" + k + "-activa"} style={{fontSize:9,fontWeight:900,letterSpacing:0.5,color:"#052e16",background:"#4ade80",borderRadius:8,padding:"1px 7px"}}>● ACTIVA</span> : null}
+                  {r.activa ? <span data-pf={"racha-" + k + "-activa"} style={{fontSize:9,fontWeight:900,letterSpacing:0.5,color:"#111827",background:"#fb923c",borderRadius:8,padding:"1px 7px"}}>● ACTIVA</span> : null}
                 </div>
-                <div data-pf={"racha-" + k + "-n"} style={{fontSize:26,fontWeight:900,color:"#4ade80",lineHeight:1,marginTop:2}}>{r.n}</div>
+                <div data-pf={"racha-" + k + "-n"} style={{fontSize:26,fontWeight:900,color:tipoR ? COLOR_RECORD[tipoR] : "#777",lineHeight:1,marginTop:2}}>{r.n}</div>
                 <div style={{fontSize:10,color:"#aaa",marginTop:4}}>{t}</div>
                 <div data-pf={"racha-" + k + "-fecha"} style={{fontSize:10,color:"#888",marginTop:2,whiteSpace:"nowrap"}}>{r.n > 0 && r.fecha ? fechaCorta(r.fecha) : "—"}</div>
                 <div style={{height:15,marginTop:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  {tipoR ? <span data-pf={"racha-" + k + "-record"} style={{fontSize:8,fontWeight:900,whiteSpace:"nowrap",padding:"1px 5px",borderRadius:6,background:tipoR === "general" ? "#f9e04b" : "#4ade80",color:"#052e16"}}>{ETIQUETA_RECORD[tipoR]}</span> : null}
+                  {tipoR ? <span data-pf={"racha-" + k + "-record"} style={{fontSize:8,fontWeight:900,whiteSpace:"nowrap",padding:"1px 5px",borderRadius:6,background:COLOR_RECORD[tipoR],color:"#111827"}}>{ETIQUETA_RECORD[tipoR]}</span> : null}
                 </div>
               </div>
             );
@@ -815,8 +826,9 @@ function PerfilJugadorModal() {
         </div>
         {p.cr && (<>
           {titulo("⏱ Récord Contrarreloj")}
-          <div data-pf="record-cr" style={{padding:"12px",borderRadius:12,background:"rgba(74,222,128,0.07)",border:"1px solid rgba(74,222,128,0.25)",textAlign:"center"}}>
-            <div style={{fontSize:30,fontWeight:900,color:p.cr.mejor === null ? "#666" : "#4ade80",fontVariantNumeric:"tabular-nums",lineHeight:1.1}}>{p.cr.mejor === null ? "—" : fmtTime(p.cr.mejor)}</div>
+          <div data-pf="record-cr" style={{padding:"12px",borderRadius:12,background:tipoCR ? FONDO_RECORD[tipoCR][0] : "rgba(255,255,255,0.04)",border:"1px solid " + (tipoCR ? FONDO_RECORD[tipoCR][1] : "rgba(255,255,255,0.1)"),textAlign:"center"}}>
+            <div data-pf="record-cr-tiempo" style={{fontSize:30,fontWeight:900,color:tipoCR ? COLOR_RECORD[tipoCR] : "#666",fontVariantNumeric:"tabular-nums",lineHeight:1.1}}>{p.cr.mejor === null ? "—" : fmtTime(p.cr.mejor)}</div>
+            {tipoCR ? <div style={{marginTop:4}}><span data-pf="record-cr-tipo" style={{fontSize:9,fontWeight:900,padding:"1px 7px",borderRadius:6,background:COLOR_RECORD[tipoCR],color:"#111827"}}>{ETIQUETA_RECORD[tipoCR]}</span></div> : null}
             <div style={{fontSize:11,color:"#aaa",marginTop:4}}>{p.cr.mejor === null ? "Sin rondas válidas todavía" : "Ronda más rápida" + (p.cr.fecha ? " · " + formatDate(p.cr.fecha) : "") + " · de " + p.cr.rondas + (p.cr.rondas === 1 ? " ronda válida" : " rondas válidas")}</div>
           </div>
         </>)}
@@ -1796,7 +1808,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v428</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v429</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -2192,12 +2204,13 @@ function BillarApp() {
     const isCRonly = sfModalidades.length===1 && sfModalidades[0]==="Contrarreloj";
     const showCR = sfModalidades.includes("Contrarreloj") || sfModalidades.length===0;
 
-    // Estatus junto al nombre: 👑 líder del mes y 🔥 racha activa (el detalle se ve en la ficha)
-    const lideres = calcLider(matches, playersList);
-    const iconosDe = (n) => {
-      const l = lideres.has(n);
-      const ra = hayRachaParaIcono(calcRachasJugador(matches, n));
-      return (l || ra) ? " " + (l ? "👑" : "") + (ra ? "🔥" : "") : "";
+    // Junto al nombre, solo si su racha activa es récord GENERAL del local: 🔥 y de qué tipo (partidas, series y/o juegos)
+    const rgLocal = calcRecordsGenerales(matches);
+    const indicadorRacha = (n) => {
+      const ks = segmentosRachaActiva(calcRachasJugador(matches, n), rgLocal).filter(s => s.tipo === "general").map(s => s.k);
+      return ks.length > 0
+        ? <span data-pf="rank-racha" style={{display:"block",fontSize:9,fontWeight:800,color:COLOR_RECORD.general,letterSpacing:0.3,lineHeight:1.3}}>{"🔥 " + ks.join(" · ")}</span>
+        : null;
     };
     const chipS = (active) => ({
       padding:"5px 12px",borderRadius:20,fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer",
@@ -2307,7 +2320,7 @@ function BillarApp() {
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
                       <img src={i===0?"https://em-content.zobj.net/source/google/387/1st-place-medal_1f947.png":i===1?"https://em-content.zobj.net/source/google/387/2nd-place-medal_1f948.png":"https://em-content.zobj.net/source/google/387/3rd-place-medal_1f949.png"} style={{width:i===0?42:34,height:i===0?42:34,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none";}}/>
                       <div>
-                        <div style={{fontSize:i===0?22:17,fontWeight:900,color:i===0?"#f9e04b":i===1?"#e0e0e0":"#cd7f32",letterSpacing:0.5,wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name + iconosDe(r.name)}</div>
+                        <div style={{fontSize:i===0?22:17,fontWeight:900,color:i===0?"#f9e04b":i===1?"#e0e0e0":"#cd7f32",letterSpacing:0.5,wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}{indicadorRacha(r.name)}</div>
                         <div style={{fontSize:10,color:"#888"}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
                       </div>
                     </div>
@@ -2369,7 +2382,7 @@ function BillarApp() {
                         {sortedRows.map((r,i)=>(
                       <tr key={r.name} style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:i%2===0?"transparent":"rgba(255,255,255,0.01)"}}>
                         <td style={{padding:"8px 4px",color:i===0?"#f9e04b":i===1?"#ccc":i===2?"#cd7f32":"#555",fontWeight:700}}>{i+1}</td>
-                        <td style={{padding:"8px 4px",fontWeight:700,color:"#e0e0e0",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name + iconosDe(r.name)}</td>
+                        <td style={{padding:"8px 4px",fontWeight:700,color:"#e0e0e0",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}{indicadorRacha(r.name)}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.partidasW}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:600}}>{r.seriesW}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:600}}>{r.juegosW}</td>
