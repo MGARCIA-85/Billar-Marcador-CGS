@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v431</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v432</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v431</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v432</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -636,6 +636,12 @@ function segmentosRachaActiva(rachas, rg) {
     .filter(k => rachas[k].actual >= RACHA_MIN[k])
     .map(k => ({ k: k, actual: rachas[k].actual, tipo: tipoRecord(rachas[k].actual, rachas[k].n, rg[k]) }));
 }
+// Tipos de racha en los que el jugador es dueño del récord GENERAL del local: su mejor racha iguala o supera la mejor de todo el local.
+// Es el mismo criterio que usa la ficha en sus tarjetas ("Récord general"), esté o no activa esa racha en este momento.
+function categoriasRecordGeneral(rachas, rg) {
+  return ["partidas", "series", "juegos"].filter(k => rachas[k].n > 0 && rg[k] > 0 && rachas[k].n >= rg[k]);
+}
+
 // Etiqueta "🔥 Racha activa: ..." (encabezado y ficha). Las partes que igualan o superan su récord van en verde con "Mejor récord"
 function ChipRacha({ segmentos, dataPf, onClick, fontSize, padding }) {
   return (
@@ -1828,7 +1834,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v431</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v432</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -2224,10 +2230,10 @@ function BillarApp() {
     const isCRonly = sfModalidades.length===1 && sfModalidades[0]==="Contrarreloj";
     const showCR = sfModalidades.includes("Contrarreloj") || sfModalidades.length===0;
 
-    // Junto al nombre, solo si su racha activa es récord GENERAL del local: 🔥 y de qué tipo (partidas, series y/o juegos)
+    // Junto al nombre, si es dueño de algún récord GENERAL de racha del local: 🔥 y de qué tipo (partidas, series y/o juegos)
     const rgLocal = calcRecordsGenerales(matches);
     const indicadorRacha = (n) => {
-      const ks = segmentosRachaActiva(calcRachasJugador(matches, n), rgLocal).filter(s => s.tipo === "general").map(s => s.k);
+      const ks = categoriasRecordGeneral(calcRachasJugador(matches, n), rgLocal);
       return ks.length > 0
         ? <span data-pf="rank-racha" style={{display:"block",fontSize:9,fontWeight:800,color:COLOR_RECORD.general,letterSpacing:0.3,lineHeight:1.3}}>{"🔥 " + ks.join(" · ")}</span>
         : null;
