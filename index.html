@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v427</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v428</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v427</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v428</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -534,8 +534,10 @@ function calcRecordCR(closed, nombre) {
   return { mejor, fecha, rondas };
 }
 
-// Desde cuántas victorias seguidas se muestra "🔥 Racha activa" (fácil de ajustar)
-const RACHA_MIN = { partidas: 2, series: 3, juegos: 5 };
+// Desde cuántas victorias seguidas se muestra "🔥 Racha activa" en el encabezado y la ficha (fácil de ajustar)
+const RACHA_MIN = { partidas: 1, series: 1, juegos: 1 };
+// Para el ícono 🔥 del Ranking se piden más, para que no se llene de llamas con cada ganador reciente
+const RACHA_MIN_ICONO = { partidas: 2, series: 3, juegos: 5 };
 // Una racha solo está "activa" si su última victoria fue reciente (días); una racha vieja que nadie cortó no está "en llamas"
 const RACHA_VIGENCIA_DIAS = 7;
 
@@ -583,28 +585,53 @@ function calcRachasJugador(matches, nombre) {
   return { partidas: resumen(rP), series: resumen(rS), juegos: resumen(rJ) };
 }
 
-// Racha activa según lo que aplique (llega al mínimo). De cada parte: su largo y si iguala o supera el récord personal
-function segmentosRachaActiva(rachas) {
+// Récords generales del local: la mejor racha de cada tipo entre TODOS los jugadores (también los inactivos en el Ranking).
+// Se guarda el último resultado para no recalcularlo en cada pantalla mientras los datos no cambien.
+let _cacheRecordsGen = { ref: null, val: null };
+function calcRecordsGenerales(matches) {
+  if (_cacheRecordsGen.ref === matches) return _cacheRecordsGen.val;
+  const nombres = [...new Set(matches.filter(m => m.modalidad !== "Contrarreloj").flatMap(m => [m.p1Name, m.p2Name]).filter(Boolean))];
+  const rg = { partidas: 0, series: 0, juegos: 0 };
+  nombres.forEach(n => {
+    const r = calcRachasJugador(matches, n);
+    ["partidas", "series", "juegos"].forEach(k => { if (r[k].n > rg[k]) rg[k] = r[k].n; });
+  });
+  _cacheRecordsGen = { ref: matches, val: rg };
+  return rg;
+}
+
+// Tipo de récord de un valor: "general" (iguala o supera la mejor marca del local), "personal" (iguala o supera la del jugador) o null
+function tipoRecord(valor, mejorPersonal, mejorGeneral) {
+  if (mejorGeneral > 0 && valor >= mejorGeneral) return "general";
+  if (mejorPersonal > 0 && valor >= mejorPersonal) return "personal";
+  return null;
+}
+const ETIQUETA_RECORD = { personal: "Récord personal", general: "Récord general" };
+const NOMBRE_RACHA = { partidas: ["partida", "partidas"], series: ["serie", "series"], juegos: ["juego", "juegos"] };
+const nombreRacha = (k, n) => NOMBRE_RACHA[k][n === 1 ? 0 : 1];
+
+// Racha activa según lo que aplique (llega al mínimo). De cada parte: su largo y si es récord personal o general
+function segmentosRachaActiva(rachas, rg) {
   return ["partidas", "series", "juegos"]
     .filter(k => rachas[k].actual >= RACHA_MIN[k])
-    .map(k => ({ k: k, actual: rachas[k].actual, record: rachas[k].actual >= rachas[k].n }));
+    .map(k => ({ k: k, actual: rachas[k].actual, tipo: tipoRecord(rachas[k].actual, rachas[k].n, rg[k]) }));
 }
-// Lo mismo en texto: "4 partidas · 6 juegos" ("" si ninguna llega al mínimo)
-function textoRachaActiva(rachas) {
-  return segmentosRachaActiva(rachas).map(s => s.actual + " " + s.k).join(" · ");
+// ¿Merece el ícono 🔥 del Ranking? (mínimos más altos que los del encabezado)
+function hayRachaParaIcono(rachas) {
+  return ["partidas", "series", "juegos"].some(k => rachas[k].actual >= RACHA_MIN_ICONO[k]);
 }
 
 // Etiqueta "🔥 Racha activa: ..." (encabezado y ficha). Las partes que igualan o superan su récord van en verde con "Mejor récord"
 function ChipRacha({ segmentos, dataPf, onClick, fontSize, padding }) {
   return (
-    <div data-pf={dataPf} onClick={onClick} style={{fontSize:fontSize,fontWeight:800,padding:padding,borderRadius:6,background:"rgba(249,115,22,0.15)",color:"#fb923c",cursor:onClick ? "pointer" : "default",lineHeight:1.6}}>
+    <div data-pf={dataPf} onClick={onClick} style={{fontSize:fontSize,fontWeight:800,padding:padding,borderRadius:6,background:"rgba(249,115,22,0.15)",color:"#ffffff",cursor:onClick ? "pointer" : "default",lineHeight:1.6}}>
       {"🔥 Racha activa: "}
       {segmentos.map((s, i) => (
         <React.Fragment key={s.k}>
           {i > 0 ? " · " : ""}
-          <span data-pf={dataPf + "-" + s.k} style={{color:s.record ? "#4ade80" : "#fb923c",whiteSpace:"nowrap"}}>
-            {s.actual + " " + s.k}
-            {s.record ? <span data-pf={dataPf + "-" + s.k + "-record"} style={{marginLeft:4,fontSize:fontSize - 1,fontWeight:900,padding:"0 5px",borderRadius:5,background:"#4ade80",color:"#052e16"}}>Mejor récord</span> : null}
+          <span data-pf={dataPf + "-" + s.k} style={{color:s.tipo ? "#4ade80" : "#fb923c",whiteSpace:"nowrap"}}>
+            {s.actual + " " + nombreRacha(s.k, s.actual)}
+            {s.tipo ? <span data-pf={dataPf + "-" + s.k + "-record"} style={{marginLeft:4,fontSize:fontSize - 1,fontWeight:900,padding:"0 5px",borderRadius:5,background:s.tipo === "general" ? "#f9e04b" : "#4ade80",color:"#052e16"}}>{ETIQUETA_RECORD[s.tipo]}</span> : null}
           </span>
         </React.Fragment>
       ))}
@@ -673,7 +700,8 @@ function PerfilJugadorModal() {
   if (!nombre) return null;
   const p = calcPerfilJugador(perfilStore.matches, nombre);
   const lider = calcLider(perfilStore.matches, perfilStore.playersList).has(nombre);
-  const rachaSegs = segmentosRachaActiva(p.rachas);
+  const rg = calcRecordsGenerales(perfilStore.matches);
+  const rachaSegs = segmentosRachaActiva(p.rachas, rg);
   const pl = perfilStore.playersList.find(x => (typeof x === "string" ? x : x.name) === nombre);
   const color = (pl && typeof pl === "object" && pl.color) || "#e0e0e0";
   const colorPct = (v) => (v === null ? "#666" : (v >= 50 ? "#4ade80" : "#f9e04b"));
@@ -769,6 +797,7 @@ function PerfilJugadorModal() {
         <div style={{display:"flex",gap:8}}>
           {[["partidas", "Partidas seguidas"], ["series", "Series seguidas"], ["juegos", "Juegos seguidos"]].map(([k, t]) => {
             const r = p.rachas[k];
+            const tipoR = r.n > 0 ? tipoRecord(r.n, r.n, rg[k]) : null;   // la tarjeta muestra el récord personal; si además iguala al del local, es general
             return (
               <div key={k} data-pf={"racha-" + k} style={{flex:1,minWidth:0,textAlign:"center",padding:"8px 4px 10px",borderRadius:12,background:"rgba(249,224,75,0.07)",border:"1px solid rgba(249,224,75,0.2)"}}>
                 <div style={{height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -777,6 +806,9 @@ function PerfilJugadorModal() {
                 <div data-pf={"racha-" + k + "-n"} style={{fontSize:26,fontWeight:900,color:"#4ade80",lineHeight:1,marginTop:2}}>{r.n}</div>
                 <div style={{fontSize:10,color:"#aaa",marginTop:4}}>{t}</div>
                 <div data-pf={"racha-" + k + "-fecha"} style={{fontSize:10,color:"#888",marginTop:2,whiteSpace:"nowrap"}}>{r.n > 0 && r.fecha ? fechaCorta(r.fecha) : "—"}</div>
+                <div style={{height:15,marginTop:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {tipoR ? <span data-pf={"racha-" + k + "-record"} style={{fontSize:8,fontWeight:900,whiteSpace:"nowrap",padding:"1px 5px",borderRadius:6,background:tipoR === "general" ? "#f9e04b" : "#4ade80",color:"#052e16"}}>{ETIQUETA_RECORD[tipoR]}</span> : null}
+                </div>
               </div>
             );
           })}
@@ -1304,7 +1336,7 @@ function BillarApp() {
   const estatusYo = React.useMemo(() => {
     if (!miNombre) return null;
     const lider = calcLider(matches, playersList).has(miNombre);
-    const racha = segmentosRachaActiva(calcRachasJugador(matches, miNombre));
+    const racha = segmentosRachaActiva(calcRachasJugador(matches, miNombre), calcRecordsGenerales(matches));
     return (lider || racha.length > 0) ? { lider: lider, racha: racha } : null;
   }, [matches, playersList, miNombre]);
   const [organizarOrder, setOrganizarOrder] = React.useState([]); // ids en nuevo orden
@@ -1764,12 +1796,12 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v427</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v428</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
               background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
-              color:isAdmin?"#f9e04b":isOperario?"#4ade80":"#888",cursor:miNombre?"pointer":"default"}} onClick={miNombre?tapPerfil(miNombre):undefined}>
+              color:"#ffffff",cursor:miNombre?"pointer":"default"}} onClick={miNombre?tapPerfil(miNombre):undefined}>
               {"🎱 " + (isAdmin?"ADMIN":isOperario?"OPERARIO":"JUGADOR") + (miNombre ? " · " + miNombre.toUpperCase() : "")}
             </div>
             {estatusYo && estatusYo.lider ? <div data-pf="estatus-lider" onClick={tapPerfil(miNombre)} style={{fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:6,background:"rgba(249,224,75,0.15)",color:"#f9e04b",cursor:"pointer"}}>👑 Líder actual</div> : null}
@@ -2164,7 +2196,7 @@ function BillarApp() {
     const lideres = calcLider(matches, playersList);
     const iconosDe = (n) => {
       const l = lideres.has(n);
-      const ra = textoRachaActiva(calcRachasJugador(matches, n));
+      const ra = hayRachaParaIcono(calcRachasJugador(matches, n));
       return (l || ra) ? " " + (l ? "👑" : "") + (ra ? "🔥" : "") : "";
     };
     const chipS = (active) => ({
