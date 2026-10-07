@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v429</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v430</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v429</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v430</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -327,14 +327,18 @@ function buildStatsMap(lista) {
         const sw1 = m.seriesWins?.p1||0;
         const sw2 = m.seriesWins?.p2||0;
         const pWinner = sw1>sw2?"p1":sw2>sw1?"p2":null;
+        // Una partida sin ninguna serie concluida (0:0) no cuenta como partida; sus juegos sí cuentan
+        const concluida = (sw1 + sw2) > 0;
 
         [m.p1Name, m.p2Name].forEach((name,pi) => {
           if (!name?.trim()) return;
           const key = pi===0?"p1":"p2";
           ensurePlayer(name);
           const s = statsMap[name];
-          s.partidas++;
-          if (pWinner===key) s.partidasW++;
+          if (concluida) {
+            s.partidas++;
+            if (pWinner===key) s.partidasW++;
+          }
 
           history.forEach(ser => {
             s.series++;
@@ -382,9 +386,16 @@ function buildStatsMap(lista) {
             });
             if (maxConsec>=3) s.tresAlHilo=(s.tresAlHilo||0)+1;
           }
+          // Juegos de la serie sin terminar: cuentan los juegos y también las bolas especiales
           (m.games||[]).forEach(g => {
             s.juegos++;
-            if (g.winner===key) s.juegosW++;
+            if (g.winner===key) {
+              s.juegosW++;
+              if (g.ballType==="gold") s.goldenBreaks++;
+              if (g.ballType==="breakrun") s.breakRuns++;
+              if (g.ballType==="grandefensa") s.granDefensas=(s.granDefensas||0)+1;
+              if (g.ballType==="diamond") s.mesas++;
+            }
           });
         });
       }
@@ -424,6 +435,15 @@ function buildHistIns(closed) {
             }
           }
         });
+        // bolas especiales de la serie sin terminar (sus juegos están en m.games, no en el historial)
+        (m.games||[]).forEach(g => {
+          if(g.winner===key){
+            if(g.ballType==="breakrun") histIns[name].br++;
+            if(g.ballType==="diamond") histIns[name].ro++;
+            if(g.ballType==="gold") histIns[name].gb++;
+            if(g.ballType==="grandefensa") histIns[name].gd++;
+          }
+        });
         let consec=0,maxC=0;
         hist.forEach(ser=>{if(ser.winner===key){consec++;if(consec>maxC)maxC=consec;}else consec=0;});
         if(maxC>=3) histIns[name].tal++;
@@ -445,6 +465,7 @@ function buildHistIns(closed) {
       const victorias = {};
       dayMatches.forEach(m => {
         const s1=(m.seriesWins&&m.seriesWins.p1)||0, s2=(m.seriesWins&&m.seriesWins.p2)||0;
+        if (s1 + s2 === 0) return;   // partida sin ninguna serie concluida: no cuenta ni suma rivales
         const gw=s1>s2?m.p1Name:s2>s1?m.p2Name:null;
         const gl=s1>s2?m.p2Name:s2>s1?m.p1Name:null;
         if(m.p1Name) participantes.add(m.p1Name);
@@ -575,7 +596,7 @@ function calcRachasJugador(matches, nombre) {
     if (m.matchClosed) {
       const sw1 = (m.seriesWins && m.seriesWins.p1) || 0;
       const sw2 = (m.seriesWins && m.seriesWins.p2) || 0;
-      avanza(rP, key === "p1" ? sw1 > sw2 : sw2 > sw1, fecha);
+      if (sw1 + sw2 > 0) avanza(rP, key === "p1" ? sw1 > sw2 : sw2 > sw1, fecha);   // una partida 0:0 no cuenta ni corta la racha
     }
     const juego = (g) => avanza(rJ, g.winner === key, fecha);
     (m.seriesHistory || []).forEach(ser => {
@@ -684,17 +705,19 @@ function calcDuelo(matches, a, b) {
     .filter(m => m.matchClosed && m.modalidad !== "Contrarreloj" &&
       ((m.p1Name === a && m.p2Name === b) || (m.p1Name === b && m.p2Name === a)))
     .sort((x, y) => (x.closedAt || x.createdAt || 0) - (y.closedAt || y.createdAt || 0));
-  if (duelos.length === 0) return { n: 0 };
+  if (duelos.length === 0) return { n: 0, total: 0 };
+  const concl = (m) => ((m.seriesWins && m.seriesWins.p1) || 0) + ((m.seriesWins && m.seriesWins.p2) || 0) > 0;
   const sm = buildStatsMap(duelos);   // mismas reglas que el Ranking, pero solo con las partidas entre ambos
   const sa = sm[a] || {}, sb = sm[b] || {};
   const u = duelos[duelos.length - 1];
   const sw1 = (u.seriesWins && u.seriesWins.p1) || 0, sw2 = (u.seriesWins && u.seriesWins.p2) || 0;
   return {
-    n: duelos.length,
+    n: duelos.filter(concl).length,   // partidas jugadas = las que tuvieron al menos una serie concluida
+    total: duelos.length,
     partidas: { a: sa.partidasW || 0, b: sb.partidasW || 0 },
     series: { a: sa.seriesW || 0, b: sb.seriesW || 0 },
     juegos: { a: sa.juegosW || 0, b: sb.juegosW || 0 },
-    ultima: { fecha: u.closedAt || u.createdAt || null, ganador: sw1 > sw2 ? u.p1Name : (sw2 > sw1 ? u.p2Name : null) },
+    ultima: { fecha: u.closedAt || u.createdAt || null, ganador: sw1 > sw2 ? u.p1Name : (sw2 > sw1 ? u.p2Name : null), concluida: concl(u) },
   };
 }
 
@@ -774,14 +797,14 @@ function PerfilJugadorModal() {
               <div style={{fontSize:11,color:"#888",flexShrink:0}}>vs</div>
               <div style={{fontSize:14,fontWeight:800,color:colorDe(nombre),textAlign:"right",wordBreak:"break-word"}}>{nombre}</div>
             </div>
-            {duelo.n === 0
+            {duelo.total === 0
               ? <div data-pf="duelos-vacio" style={{fontSize:12,color:"#888",marginTop:8}}>Aún no han jugado entre sí.</div>
               : <>
-                  <div data-pf="duelos-total" style={{fontSize:11,color:"#888",marginTop:2,textAlign:"center"}}>{duelo.n + (duelo.n === 1 ? " partida jugada entre ustedes" : " partidas jugadas entre ustedes")}</div>
+                  <div data-pf="duelos-total" style={{fontSize:11,color:"#888",marginTop:2,textAlign:"center"}}>{duelo.n === 0 ? "Sin partidas concluidas entre ustedes" : duelo.n + (duelo.n === 1 ? " partida jugada entre ustedes" : " partidas jugadas entre ustedes")}</div>
                   {barraDuelo("partidas", "Partidas", duelo.partidas.a, duelo.partidas.b)}
                   {barraDuelo("series", "Series", duelo.series.a, duelo.series.b)}
                   {barraDuelo("juegos", "Juegos", duelo.juegos.a, duelo.juegos.b)}
-                  <div data-pf="duelos-ultima" style={{fontSize:11,color:"#aaa",marginTop:10}}>{"Último duelo: " + [duelo.ultima.fecha ? formatDate(duelo.ultima.fecha) : "", duelo.ultima.ganador ? "ganó " + duelo.ultima.ganador : "empate"].filter(Boolean).join(" · ")}</div>
+                  <div data-pf="duelos-ultima" style={{fontSize:11,color:"#aaa",marginTop:10}}>{"Último duelo: " + [duelo.ultima.fecha ? formatDate(duelo.ultima.fecha) : "", duelo.ultima.ganador ? "ganó " + duelo.ultima.ganador : (duelo.ultima.concluida ? "empate" : "partida sin concluir")].filter(Boolean).join(" · ")}</div>
                 </>}
           </div>
         </>)}
@@ -1808,7 +1831,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v429</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v430</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
