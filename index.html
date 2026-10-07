@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v426</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v427</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v426</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v427</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -583,9 +583,33 @@ function calcRachasJugador(matches, nombre) {
   return { partidas: resumen(rP), series: resumen(rS), juegos: resumen(rJ) };
 }
 
-// Texto de la racha activa según lo que aplique: "4 partidas · 6 juegos" ("" si ninguna llega al mínimo)
+// Racha activa según lo que aplique (llega al mínimo). De cada parte: su largo y si iguala o supera el récord personal
+function segmentosRachaActiva(rachas) {
+  return ["partidas", "series", "juegos"]
+    .filter(k => rachas[k].actual >= RACHA_MIN[k])
+    .map(k => ({ k: k, actual: rachas[k].actual, record: rachas[k].actual >= rachas[k].n }));
+}
+// Lo mismo en texto: "4 partidas · 6 juegos" ("" si ninguna llega al mínimo)
 function textoRachaActiva(rachas) {
-  return ["partidas", "series", "juegos"].filter(k => rachas[k].actual >= RACHA_MIN[k]).map(k => rachas[k].actual + " " + k).join(" · ");
+  return segmentosRachaActiva(rachas).map(s => s.actual + " " + s.k).join(" · ");
+}
+
+// Etiqueta "🔥 Racha activa: ..." (encabezado y ficha). Las partes que igualan o superan su récord van en verde con "Mejor récord"
+function ChipRacha({ segmentos, dataPf, onClick, fontSize, padding }) {
+  return (
+    <div data-pf={dataPf} onClick={onClick} style={{fontSize:fontSize,fontWeight:800,padding:padding,borderRadius:6,background:"rgba(249,115,22,0.15)",color:"#fb923c",cursor:onClick ? "pointer" : "default",lineHeight:1.6}}>
+      {"🔥 Racha activa: "}
+      {segmentos.map((s, i) => (
+        <React.Fragment key={s.k}>
+          {i > 0 ? " · " : ""}
+          <span data-pf={dataPf + "-" + s.k} style={{color:s.record ? "#4ade80" : "#fb923c",whiteSpace:"nowrap"}}>
+            {s.actual + " " + s.k}
+            {s.record ? <span data-pf={dataPf + "-" + s.k + "-record"} style={{marginLeft:4,fontSize:fontSize - 1,fontWeight:900,padding:"0 5px",borderRadius:5,background:"#4ade80",color:"#052e16"}}>Mejor récord</span> : null}
+          </span>
+        </React.Fragment>
+      ))}
+    </div>
+  );
 }
 
 // Líder actual: el primero del Ranking de ESTE MES, con el mismo orden que el Ranking.
@@ -649,7 +673,7 @@ function PerfilJugadorModal() {
   if (!nombre) return null;
   const p = calcPerfilJugador(perfilStore.matches, nombre);
   const lider = calcLider(perfilStore.matches, perfilStore.playersList).has(nombre);
-  const rachaTxt = textoRachaActiva(p.rachas);
+  const rachaSegs = segmentosRachaActiva(p.rachas);
   const pl = perfilStore.playersList.find(x => (typeof x === "string" ? x : x.name) === nombre);
   const color = (pl && typeof pl === "object" && pl.color) || "#e0e0e0";
   const colorPct = (v) => (v === null ? "#666" : (v >= 50 ? "#4ade80" : "#f9e04b"));
@@ -695,10 +719,10 @@ function PerfilJugadorModal() {
           <div data-pf="nombre" style={{fontSize:24,fontWeight:900,color:color,wordBreak:"break-word",lineHeight:1.15}}>{nombre}</div>
           <button onClick={cerrarPerfil} style={{width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,0.1)",border:"none",color:"#fff",fontSize:16,cursor:"pointer",flexShrink:0}}>✕</button>
         </div>
-        {(lider || rachaTxt) ? (
+        {(lider || rachaSegs.length > 0) ? (
           <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:6}}>
             {lider ? <span data-pf="ficha-lider" style={{fontSize:11,fontWeight:800,padding:"2px 9px",borderRadius:6,background:"rgba(249,224,75,0.15)",color:"#f9e04b"}}>👑 Líder actual</span> : null}
-            {rachaTxt ? <span data-pf="ficha-racha" style={{fontSize:11,fontWeight:800,padding:"2px 9px",borderRadius:6,background:"rgba(249,115,22,0.15)",color:"#fb923c"}}>{"🔥 Racha activa: " + rachaTxt}</span> : null}
+            {rachaSegs.length > 0 ? <ChipRacha segmentos={rachaSegs} dataPf="ficha-racha" fontSize={11} padding="2px 9px" /> : null}
           </div>
         ) : null}
         <div style={{fontSize:11,color:"#888",marginTop:2}}>Toda la historia · partidas terminadas (las rachas incluyen la partida en curso)</div>
@@ -1280,8 +1304,8 @@ function BillarApp() {
   const estatusYo = React.useMemo(() => {
     if (!miNombre) return null;
     const lider = calcLider(matches, playersList).has(miNombre);
-    const racha = textoRachaActiva(calcRachasJugador(matches, miNombre));
-    return (lider || racha) ? { lider: lider, racha: racha } : null;
+    const racha = segmentosRachaActiva(calcRachasJugador(matches, miNombre));
+    return (lider || racha.length > 0) ? { lider: lider, racha: racha } : null;
   }, [matches, playersList, miNombre]);
   const [organizarOrder, setOrganizarOrder] = React.useState([]); // ids en nuevo orden
   React.useEffect(() => {
@@ -1740,16 +1764,16 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v426</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v427</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
               background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
               color:isAdmin?"#f9e04b":isOperario?"#4ade80":"#888",cursor:miNombre?"pointer":"default"}} onClick={miNombre?tapPerfil(miNombre):undefined}>
-              {(isAdmin?"👑 ADMIN":isOperario?"⚙️ OPERARIO":"🎱 JUGADOR") + (miNombre ? " · " + miNombre.toUpperCase() : "")}
+              {"🎱 " + (isAdmin?"ADMIN":isOperario?"OPERARIO":"JUGADOR") + (miNombre ? " · " + miNombre.toUpperCase() : "")}
             </div>
             {estatusYo && estatusYo.lider ? <div data-pf="estatus-lider" onClick={tapPerfil(miNombre)} style={{fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:6,background:"rgba(249,224,75,0.15)",color:"#f9e04b",cursor:"pointer"}}>👑 Líder actual</div> : null}
-            {estatusYo && estatusYo.racha ? <div data-pf="estatus-racha" onClick={tapPerfil(miNombre)} style={{fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:6,background:"rgba(249,115,22,0.15)",color:"#fb923c",cursor:"pointer"}}>{"🔥 Racha activa: " + estatusYo.racha}</div> : null}
+            {estatusYo && estatusYo.racha.length > 0 ? <ChipRacha segmentos={estatusYo.racha} dataPf="estatus-racha" onClick={tapPerfil(miNombre)} fontSize={10} padding="2px 8px" /> : null}
           </div>
 
         </div>
@@ -2461,7 +2485,7 @@ function BillarApp() {
                               style={{flex:1,padding:"7px",borderRadius:8,border:"1px solid rgba(255,255,255,0.15)",
                                 background:(p.role||"jugador")===r?"rgba(74,222,128,0.2)":"rgba(255,255,255,0.06)",
                                 color:(p.role||"jugador")===r?"#4ade80":"#888",fontFamily:"inherit",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                              {r=="jugador"?"🎱":r=="operario"?"⚙️":"👑"} {r.charAt(0).toUpperCase()+r.slice(1)}
+                              🎱 {r.charAt(0).toUpperCase()+r.slice(1)}
                             </button>
                           ))}
                         </div>
@@ -2504,7 +2528,7 @@ function BillarApp() {
                       {isAdmin && <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:5,
                         background:(p.role||"jugador")==="admin"?"rgba(249,224,75,0.15)":(p.role||"jugador")==="operario"?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
                         color:(p.role||"jugador")==="admin"?"#f9e04b":(p.role||"jugador")==="operario"?"#4ade80":"#888"}}>
-                        {(p.role||"jugador")==="admin"?"👑 Admin":(p.role||"jugador")==="operario"?"⚙️ Operario":"🎱 Jugador"}
+                        {"🎱 " + ((p.role||"jugador")==="admin"?"Admin":(p.role||"jugador")==="operario"?"Operario":"Jugador")}
                       </span>}
                       {isAdmin && (
                         <span style={{fontSize:10,padding:"2px 7px",borderRadius:5,
@@ -2534,7 +2558,7 @@ function BillarApp() {
                             background:(p.role||"jugador")===r?r==="admin"?"rgba(249,224,75,0.2)":r==="operario"?"rgba(74,222,128,0.2)":"rgba(255,255,255,0.12)":"rgba(255,255,255,0.04)",
                             border:`1px solid ${(p.role||"jugador")===r?r==="admin"?"rgba(249,224,75,0.4)":r==="operario"?"rgba(74,222,128,0.4)":"rgba(255,255,255,0.3)":"rgba(255,255,255,0.1)"}`,
                             color:(p.role||"jugador")===r?r==="admin"?"#f9e04b":r==="operario"?"#4ade80":"#ccc":"#555"}}>
-                            {r==="admin"?"👑":r==="operario"?"⚙️":"🎱"} {r.charAt(0).toUpperCase()+r.slice(1)}
+                            🎱 {r.charAt(0).toUpperCase()+r.slice(1)}
                           </button>
                         ))}
                       </div>
