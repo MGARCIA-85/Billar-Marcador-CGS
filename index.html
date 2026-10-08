@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v436</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v437</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v436</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v437</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1437,8 +1437,8 @@ function BillarApp() {
   // Aviso de récord general: solo calcula con los datos que ya llegan; no escribe nada en Firebase.
   // Se silencia al abrir la app, al volver al primer plano y mientras se reconecta, para no avisar cosas viejas.
   const [avisoRecord, setAvisoRecord] = useState(null);
-  const fotoRef = useRef(null);
-  const silencioRef = useRef(Date.now() + 8000);
+  const fotoRef = React.useRef(null);
+  const silencioRef = React.useRef(Date.now() + 8000);
   useEffect(() => {
     const onVis = () => { if (document.visibilityState === "visible") silencioRef.current = Date.now() + 8000; };
     document.addEventListener("visibilitychange", onVis);
@@ -1908,7 +1908,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v436</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v437</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
