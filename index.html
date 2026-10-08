@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v441</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v442</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v441</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v442</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -613,13 +613,15 @@ function calcSalonJugadores(matches, playersList) {
     return { fila: r, ins: insigniasDeFila(r), rec: { partidas: dueno("partidas"), series: dueno("series"), juegos: dueno("juegos"), cr: (cr && cr.mejor !== null && crGen !== null && cr.mejor <= crGen) ? cr.mejor : null } };
   });
 }
+// El emoji ⏱ sale gris en muchos teléfonos: con este filtro se ve blanco y resalta
+const ICONO_BLANCO = { filter: "brightness(0) invert(1)" };
 // Una insignia del Salón de la fama: a color si ya se ganó, opaca si no. Con `src` usa imagen; si no, el emoji provisional.
 function InsigniaSalon({ src, emoji, label, color, ganada, texto, dataPf }) {
   return (
     <div data-pf={dataPf} data-ganada={ganada ? "1" : "0"} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}>
       {src
         ? <img src={src} alt={label} style={{width:64,height:64,objectFit:"contain",opacity:ganada?1:0.2,filter:ganada?"none":"grayscale(100%)"}}/>
-        : <div style={{width:64,height:64,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,boxSizing:"border-box",background:ganada?"rgba(74,222,128,0.12)":"rgba(255,255,255,0.04)",border:"2px solid "+(ganada?color:"rgba(255,255,255,0.12)"),opacity:ganada?1:0.2,filter:ganada?"none":"grayscale(100%)"}}>{emoji}</div>}
+        : <div style={{width:64,height:64,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,boxSizing:"border-box",background:ganada?"rgba(74,222,128,0.12)":"rgba(255,255,255,0.04)",border:"2px solid "+(ganada?color:"rgba(255,255,255,0.12)"),opacity:ganada?1:0.2,filter:ganada?"none":"grayscale(100%)"}}><span style={emoji==="⏱"?ICONO_BLANCO:undefined}>{emoji}</span></div>}
       <span style={{fontSize:11,color:ganada?color:"#444",fontWeight:700,minHeight:13}}>{ganada?texto:""}</span>
       <span style={{fontSize:9,color:ganada?"#888":"#444",textAlign:"center",lineHeight:1.15,wordBreak:"break-word"}}>{label}</span>
     </div>
@@ -833,13 +835,13 @@ function detectarRecords(ant, nue) {
     if (!(rg >= AVISO_MIN[k])) return;
     Object.keys(nue.n).forEach(nom => {
       const antes = (ant.n[nom] && ant.n[nom][k]) || 0;
-      if (nue.n[nom][k] >= rg && antes < rg) out.push({ clave: nom + "|" + k + "|" + rg, texto: "🏆 ¡" + nom + " " + (rg > ant.rg[k] ? "rompió" : "igualó") + " el récord general de " + k + " (" + rg + ")!" });
+      if (nue.n[nom][k] >= rg && antes < rg) out.push({ clave: nom + "|" + k + "|" + rg, emoji: "🔥", texto: "🏆 ¡" + nom + " " + (rg > ant.rg[k] ? "rompió" : "igualó") + " el récord general de " + k + " (" + rg + ")!" });
     });
   });
   if (nue.crGen !== null) {
     Object.keys(nue.cr).forEach(nom => {
       const antes = ant.cr[nom] !== undefined ? ant.cr[nom] : null;
-      if (nue.cr[nom] <= nue.crGen && (antes === null || antes > nue.crGen)) out.push({ clave: nom + "|cr|" + nue.crGen, texto: "🏆 ¡" + nom + " " + (ant.crGen === null || nue.crGen < ant.crGen ? "rompió" : "igualó") + " el récord general de Contrarreloj (" + fmtTime(nue.crGen) + ")!" });
+      if (nue.cr[nom] <= nue.crGen && (antes === null || antes > nue.crGen)) out.push({ clave: nom + "|cr|" + nue.crGen, emoji: "⏱", texto: "🏆 ¡" + nom + " " + (ant.crGen === null || nue.crGen < ant.crGen ? "rompió" : "igualó") + " el récord general de Contrarreloj (" + fmtTime(nue.crGen) + ")!" });
     });
   }
   return out;
@@ -1560,21 +1562,28 @@ function BillarApp() {
     const nueva = fotoRecords(matches);
     const ant = fotoRef.current;
     fotoRef.current = nueva;
-    if (!ant || reconectando || Date.now() < silencioRef.current) return;
+    if (!ant) return;
+    // Si se deshizo un juego y el logro ya no existe, se olvida su aviso: al volver a marcarlo avisa de nuevo
+    const vacia = { rg: { partidas: 0, series: 0, juegos: 0 }, n: {}, cr: {}, crGen: null, ins: {} };
+    const vigentes = new Set([...detectarRecords(vacia, nueva), ...detectarInsignias(vacia, nueva)].map(x => x.clave));
+    [...avisadasRef.current].forEach(c => { if (!vigentes.has(c)) avisadasRef.current.delete(c); });
+    if (reconectando || Date.now() < silencioRef.current) return;
     const lista = [...detectarRecords(ant, nueva), ...detectarInsignias(ant, nueva)].filter(x => !avisadasRef.current.has(x.clave));
-    lista.forEach(x => avisadasRef.current.add(x.clave));   // si se deshace y se repite un juego, no se avisa dos veces
+    lista.forEach(x => avisadasRef.current.add(x.clave));   // evita repetir el mismo aviso mientras el logro siga vigente
     if (lista.length > 0) setAvisoRecord(lista);
   }, [matches]);
   useEffect(() => {
     if (!avisoRecord) return;
-    const t = setTimeout(() => setAvisoRecord(null), avisoRecord.some(x => x.ins) ? 10000 : 8000);
+    const t = setTimeout(() => setAvisoRecord(null), avisoRecord.some(x => x.ins || x.emoji) ? 10000 : 8000);
     return () => clearTimeout(t);
   }, [avisoRecord]);
 
   // Franja de aviso (récords e insignias). Se dibuja en el lobby y también en el Modo Enfoque, que es otra pantalla.
   const renderBannerAviso = (enfoque) => avisoRecord ? (
     <div data-pf="aviso-record" onClick={()=>setAvisoRecord(null)} style={{position:"fixed",top:8,left:enfoque?64:8,right:enfoque?110:8,zIndex:1000,background:"rgba(20,60,40,0.97)",border:"1px solid "+COLOR_RECORD.general,borderRadius:12,padding:"10px 14px",color:"#ffffff",fontSize:13,fontWeight:800,textAlign:"center",boxShadow:"0 6px 24px rgba(0,0,0,0.5)"}}>
-      {avisoRecord.map((x,i)=> x.ins
+      {avisoRecord.map((x,i)=> x.emoji
+        ? <div key={i} data-pf="aviso-icono-record" style={{padding:"6px 0"}}><div style={{width:enfoque?90:130,height:enfoque?90:130,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:enfoque?44:64,boxSizing:"border-box",background:"rgba(74,222,128,0.12)",border:"3px solid "+COLOR_RECORD.general,margin:"0 auto 4px"}}><span style={x.emoji==="⏱"?ICONO_BLANCO:undefined}>{x.emoji}</span></div><div style={{fontSize:15,color:COLOR_RECORD.general}}>{x.texto}</div></div>
+        : x.ins
         ? <div key={i} data-pf="aviso-insignia" style={{padding:"6px 0"}}><img src={x.ins.src} alt={x.ins.label} style={{width:enfoque?90:130,height:enfoque?90:130,objectFit:"contain",display:"block",margin:"0 auto 4px"}} /><div style={{fontSize:15,color:x.ins.color}}>{"🏅 " + x.texto}</div></div>
         : <div key={i}>{x.texto}</div>)}
     </div>
@@ -2226,7 +2235,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v441</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v442</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
