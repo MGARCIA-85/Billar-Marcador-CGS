@@ -1,4 +1,4 @@
-const CACHE = 'billares-v437';
+const CACHE = 'billares-v438';
 const FILES = ['/index.html'];
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -13,12 +13,14 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = e.request.url;
   if (!url.startsWith('http')) return;
+  // Solo se intercepta lo propio de la app (mismo sitio y GET). Lo de otros sitios (Google, Firebase...) va directo a la red.
+  if (e.request.method !== 'GET' || new URL(url).origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request).then(res => {
       if (!res || res.status !== 200 || res.type !== 'basic') return res;
       const clone = res.clone();
       caches.open(CACHE).then(c => c.put(e.request, clone));
       return res;
-    }).catch(() => caches.match(e.request))
+    }).catch(() => caches.match(e.request).then(r => r || Response.error()))
   );
 });
