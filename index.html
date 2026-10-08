@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v440</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v441</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v440</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v441</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -510,6 +510,122 @@ const INSIGNIAS_DEF = [
   { k: "tal", src: "insignia_3s_al_hilo.png",   label: "3 Series al hilo", color: "#f97316" },
   { k: "rey", src: "insignia_rey_día.png",      label: "Rey del Día",      color: "#fbbf24" },
 ];
+// ===== Sistema de puntos del Ranking =====
+// Partida ganada 10 · serie ganada 3 · juego ganado 1 · insignias según su relevancia (cada vez que se ganan).
+// Para cambiar los valores basta con editar estas dos líneas.
+const PUNTOS_RANKING = { partida: 10, serie: 3, juego: 1 };
+const PUNTOS_INSIGNIA = { br: 8, ro: 4, rey: 3, tal: 3, rem: 3, imp: 3, gd: 2, gb: 2 };
+// Orden en que se muestran las insignias (de más a menos relevante)
+const ORDEN_INSIGNIAS = ["br", "ro", "rey", "tal", "rem", "imp", "gd", "gb"];
+
+function filaVacia(name) {
+  return { name: name, partidas: 0, partidasW: 0, series: 0, seriesW: 0, juegos: 0, juegosW: 0, rachaMejor: 0, rachaActual: 0, goldenBreaks: 0, mesas: 0, breakRuns: 0, remontadas: 0, imparables: 0, granDefensas: 0, tresAlHilo: 0, reyDelDia: 0, crRondas: 0, crRondasW: 0, crTimes: [] };
+}
+// Conteo de cada insignia de una fila del Ranking, con las claves de INSIGNIAS_DEF
+function insigniasDeFila(r) {
+  return { br: r.breakRuns || 0, ro: r.mesas || 0, imp: r.imparables || 0, rem: r.remontadas || 0, gb: r.goldenBreaks || 0, gd: r.granDefensas || 0, tal: r.tresAlHilo || 0, rey: r.reyDelDia || 0 };
+}
+function totalInsignias(r) {
+  const ins = insigniasDeFila(r);
+  return Object.keys(ins).reduce((a, k) => a + ins[k], 0);
+}
+function puntosRanking(r) {
+  const ins = insigniasDeFila(r);
+  let p = PUNTOS_RANKING.partida * (r.partidasW || 0) + PUNTOS_RANKING.serie * (r.seriesW || 0) + PUNTOS_RANKING.juego * (r.juegosW || 0);
+  Object.keys(PUNTOS_INSIGNIA).forEach(k => { p += PUNTOS_INSIGNIA[k] * (ins[k] || 0); });
+  return p;
+}
+// Resultado directo entre a y b (positivo = a va ganando): partidas terminadas, series confirmadas y juegos
+function netoDirecto(lista, a, b) {
+  let p = 0, s = 0, j = 0;
+  lista.forEach(m => {
+    if (m.modalidad === "Contrarreloj") return;
+    let ka = null;
+    if (m.p1Name === a && m.p2Name === b) ka = "p1"; else if (m.p1Name === b && m.p2Name === a) ka = "p2"; else return;
+    const kb = ka === "p1" ? "p2" : "p1";
+    if (m.matchClosed) {
+      const sa = (m.seriesWins && m.seriesWins[ka]) || 0, sb = (m.seriesWins && m.seriesWins[kb]) || 0;
+      if (sa > sb) p++; else if (sb > sa) p--;
+    }
+    const juego = (g) => { if (g.winner === ka) j++; else if (g.winner === kb) j--; };
+    (m.seriesHistory || []).forEach(ser => { if (ser.winner === ka) s++; else if (ser.winner === kb) s--; (ser.games || []).forEach(juego); });
+    (m.games || []).forEach(juego);
+  });
+  return { p: p, s: s, j: j };
+}
+// Ordena las filas por puntos. Si hay empate de puntos: primero los enfrentamientos directos entre los empatados
+// (partidas, luego series, luego juegos), después las partidas ganadas y después la cantidad de insignias. Si aún siguen iguales comparten la posición.
+// Los directos se miden entre todos los empatados a la vez, así un círculo (A le ganó a B, B a C, C a A) no desempata y pasa al siguiente criterio.
+function ordenarRanking(rows, lista) {
+  const filas = rows.map(r => Object.assign({}, r, { pts: puntosRanking(r), nIns: totalInsignias(r) }));
+  filas.sort((a, b) => b.pts - a.pts);
+  const salida = [];
+  let i = 0;
+  while (i < filas.length) {
+    let j = i;
+    while (j < filas.length && filas[j].pts === filas[i].pts) j++;
+    const grupo = filas.slice(i, j);
+    grupo.forEach(g => {
+      g.dir = { p: 0, s: 0, j: 0 };
+      if (grupo.length > 1) grupo.forEach(o => { if (o !== g) { const n = netoDirecto(lista, g.name, o.name); g.dir.p += n.p; g.dir.s += n.s; g.dir.j += n.j; } });
+    });
+    if (grupo.length > 1) grupo.sort((a, b) => (b.dir.p - a.dir.p) || (b.dir.s - a.dir.s) || (b.dir.j - a.dir.j) || (b.partidasW - a.partidasW) || (b.nIns - a.nIns));
+    grupo.forEach(g => salida.push(g));
+    i = j;
+  }
+  salida.forEach((r, k) => {
+    const prev = salida[k - 1];
+    const igual = prev && prev.pts === r.pts && prev.dir.p === r.dir.p && prev.dir.s === r.dir.s && prev.dir.j === r.dir.j && prev.partidasW === r.partidasW && prev.nIns === r.nIns;
+    r.pos = igual ? prev.pos : k + 1;
+  });
+  return salida;
+}
+// Filas del Ranking ya ordenadas. enVivo = todas las partidas que cuentan; filtrada = las del período/filtros;
+// diaEnPeriodo(yyyy-mm-dd) decide qué días cuentan para el Rey del Día. Incluye a los jugadores activos aunque aún no tengan partidas.
+function construirFilasRanking(enVivo, filtrada, playersList, diaEnPeriodo) {
+  const statsMap = buildStatsMap(filtrada);
+  const reyInfo = buildHistIns(enVivo);
+  Object.entries(reyInfo.byDay).forEach(([day, dayMatches]) => {
+    if (!diaEnPeriodo(day)) return;
+    reyInfo.computeRey(dayMatches).forEach(jugador => { if (statsMap[jugador]) statsMap[jugador].reyDelDia = (statsMap[jugador].reyDelDia || 0) + 1; });
+  });
+  let rows = Object.values(statsMap);
+  playersList.forEach(pl => {
+    const pname = typeof pl === "string" ? pl : pl.name;
+    const isActive = typeof pl === "object" ? pl.rankActivo !== false : false;
+    if (isActive && !statsMap[pname]) rows.push(filaVacia(pname));
+  });
+  const inactivos = new Set(playersList.filter(pl => typeof pl === "object" && (pl.rankActivo === false || pl.rankActivo === 0)).map(pl => pl.name));
+  rows = rows.filter(r => !inactivos.has(r.name));
+  return ordenarRanking(rows, filtrada);
+}
+// Salón de la fama: jugadores activos con sus insignias de TODOS los tiempos y sus récords generales, en el orden del Ranking histórico
+function calcSalonJugadores(matches, playersList) {
+  const enVivo = partidasEnVivo(matches);
+  const filas = construirFilasRanking(enVivo, enVivo, playersList, () => true);
+  const rg = calcRecordsGenerales(matches);
+  const crGen = calcRecordCRGeneral(matches);
+  const closed = matches.filter(m => m.matchClosed);
+  return filas.map(r => {
+    const ra = calcRachasJugador(matches, r.name);
+    const cr = calcRecordCR(closed, r.name);
+    const dueno = (k) => (ra[k].n > 0 && rg[k] > 0 && ra[k].n >= rg[k]) ? ra[k].n : 0;
+    return { fila: r, ins: insigniasDeFila(r), rec: { partidas: dueno("partidas"), series: dueno("series"), juegos: dueno("juegos"), cr: (cr && cr.mejor !== null && crGen !== null && cr.mejor <= crGen) ? cr.mejor : null } };
+  });
+}
+// Una insignia del Salón de la fama: a color si ya se ganó, opaca si no. Con `src` usa imagen; si no, el emoji provisional.
+function InsigniaSalon({ src, emoji, label, color, ganada, texto, dataPf }) {
+  return (
+    <div data-pf={dataPf} data-ganada={ganada ? "1" : "0"} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}>
+      {src
+        ? <img src={src} alt={label} style={{width:64,height:64,objectFit:"contain",opacity:ganada?1:0.2,filter:ganada?"none":"grayscale(100%)"}}/>
+        : <div style={{width:64,height:64,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,boxSizing:"border-box",background:ganada?"rgba(74,222,128,0.12)":"rgba(255,255,255,0.04)",border:"2px solid "+(ganada?color:"rgba(255,255,255,0.12)"),opacity:ganada?1:0.2,filter:ganada?"none":"grayscale(100%)"}}>{emoji}</div>}
+      <span style={{fontSize:11,color:ganada?color:"#444",fontWeight:700,minHeight:13}}>{ganada?texto:""}</span>
+      <span style={{fontSize:9,color:ganada?"#888":"#444",textAlign:"center",lineHeight:1.15,wordBreak:"break-word"}}>{label}</span>
+    </div>
+  );
+}
+
 const perfilStore = { nombre: null, yo: "", matches: [], playersList: [], subs: new Set() };
 const perfilAvisar = () => { perfilStore.subs.forEach(f => f()); };
 function abrirPerfil(nombre) {
@@ -661,18 +777,17 @@ function ChipRacha({ segmentos, dataPf, onClick, fontSize, padding }) {
   );
 }
 
-// Líder actual: el primero del Ranking de ESTE MES, con el mismo orden que el Ranking.
+// Líder actual: el primero de la tabla de posiciones de ESTE MES (puntos y desempates del Ranking).
 // Si empatan en todo, comparten la corona. Los jugadores inactivos en el Ranking no pueden ser líderes.
 function calcLider(matches, playersList) {
   const hoy = new Date();
-  const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1, 0, 0, 0, 0).getTime();
-  const delMes = partidasEnVivo(matches).filter(m => (m.closedAt || (m.matchClosed ? m.createdAt : Date.now()) || 0) >= inicioMes);
-  const inactivos = new Set(playersList.filter(pl => typeof pl === "object" && (pl.rankActivo === false || pl.rankActivo === 0)).map(pl => pl.name));
-  const filas = Object.values(buildStatsMap(delMes)).filter(r => !inactivos.has(r.name) && r.partidasW > 0);
-  if (filas.length === 0) return new Set();
-  const cmp = (a, b) => (b.partidasW - a.partidasW) || (b.seriesW - a.seriesW) || (b.juegosW - a.juegosW) || (b.crRondasW - a.crRondasW);
-  filas.sort(cmp);
-  return new Set(filas.filter(r => cmp(filas[0], r) === 0).map(r => r.name));
+  const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1, 0, 0, 0, 0);
+  const enVivo = partidasEnVivo(matches);
+  const delMes = enVivo.filter(m => (m.closedAt || (m.matchClosed ? m.createdAt : Date.now()) || 0) >= inicioMes.getTime());
+  const diaEnMes = (dayStr) => { const [y, mm, d] = dayStr.split("-").map(Number); return new Date(y, mm - 1, d) >= inicioMes; };
+  // Primer lugar de la tabla de este mes (si empatan en todo, comparten la corona); debe tener al menos una partida ganada
+  const filas = construirFilasRanking(enVivo, delMes, playersList, diaEnMes).filter(r => r.pos === 1 && r.partidasW > 0);
+  return new Set(filas.map(r => r.name));
 }
 
 // Récord general de Contrarreloj: la ronda más rápida de todo el local (null si nadie tiene una ronda válida)
@@ -685,21 +800,6 @@ function calcRecordCRGeneral(matches) {
   nombres.forEach(n => { const r = calcRecordCR(closed, n); if (r && r.mejor !== null && (mejor === null || r.mejor < mejor)) mejor = r.mejor; });
   _cacheCRGen = { ref: matches, val: mejor };
   return mejor;
-}
-
-// Salón de la fama: dueños de cada récord general del local (si empatan, salen todos), con cifra y fecha
-function calcSalonFama(matches) {
-  const closed = matches.filter(m => m.matchClosed);
-  const nombres = [...new Set(matches.filter(m => m.modalidad !== "Contrarreloj").flatMap(m => [m.p1Name, m.p2Name]).filter(Boolean))];
-  const rg = calcRecordsGenerales(matches);
-  const racha = {};
-  ["partidas", "series", "juegos"].forEach(k => {
-    racha[k] = rg[k] > 0 ? nombres.map(n => ({ nombre: n, r: calcRachasJugador(matches, n)[k] })).filter(x => x.r.n === rg[k]).map(x => ({ nombre: x.nombre, n: x.r.n, fecha: x.r.fecha })) : [];
-  });
-  const crGen = calcRecordCRGeneral(matches);
-  const crNombres = [...new Set(closed.filter(m => m.modalidad === "Contrarreloj").flatMap(m => m.crPlayers || []))];
-  const cr = crGen === null ? [] : crNombres.map(n => ({ nombre: n, r: calcRecordCR(closed, n) })).filter(x => x.r && x.r.mejor !== null && x.r.mejor <= crGen).map(x => ({ nombre: x.nombre, mejor: x.r.mejor, fecha: x.r.fecha }));
-  return { partidas: racha.partidas, series: racha.series, juegos: racha.juegos, cr: cr };
 }
 
 // Foto de los récords para detectar cuándo alguien iguala o rompe uno (solo calcula, no escribe nada)
@@ -1014,7 +1114,7 @@ function BillarApp() {
   const [sfModalidades, setSfModalidades] = useState([]);
   const [sfJugadores, setSfJugadores] = useState([]);
   const [sfPeriod, setSfPeriod] = useState("Este mes");
-  const [sortCol, setSortCol] = useState("partidasW");
+  const [sortCol, setSortCol] = useState("pts");
   const [filtrosOpen, setFiltrosOpen] = useState(false);
   const [pinRequerido, setPinRequerido] = useState(()=>localStorage.getItem("bg_pinReq")!=="0");
   const [pinRegistroModal, setPinRegistroModal] = useState(null); // {jugKey, jugName, existingDevs, newDev}
@@ -2126,7 +2226,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v440</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v441</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -2300,11 +2400,6 @@ function BillarApp() {
       return true;
     });
 
-    // Calcular stats por jugador
-    const statsMap = buildStatsMap(filtered);
-
-    const { histIns, byDay, computeRey } = buildHistIns(enVivo);
-
     // Período filtrado: solo días dentro del rango activo
     const diaEnPeriodo = (dayStr) => {
       const [yy,mm2,dd] = dayStr.split("-").map(Number);
@@ -2322,23 +2417,10 @@ function BillarApp() {
       }
       return true; // "Todo"
     };
-    Object.entries(byDay).forEach(([day, dayMatches]) => {
-      if (!diaEnPeriodo(day)) return;
-      computeRey(dayMatches).forEach(jugador => {
-        if(statsMap[jugador]) statsMap[jugador].reyDelDia=(statsMap[jugador].reyDelDia||0)+1;
-      });
-    });
-    let rows = Object.values(statsMap);
-    playersList.forEach(pl => {
-      const pname = typeof pl==="string"?pl:pl.name;
-      const isActive = typeof pl==="object"?pl.rankActivo!==false:false;
-      if (isActive && !statsMap[pname]) rows.push({name:pname,partidas:0,partidasW:0,series:0,seriesW:0,juegos:0,juegosW:0,rachaMejor:0,rachaActual:0,goldenBreaks:0,mesas:0,breakRuns:0,remontadas:0,imparables:0,granDefensas:0,tresAlHilo:0,reyDelDia:0,crRondas:0,crRondasW:0,crTimes:[]});
-    });
-    // Filtrar jugadores inactivos
-    const inactivos = new Set(playersList.filter(pl=>typeof pl==="object"&&(pl.rankActivo===false||pl.rankActivo===0)).map(pl=>pl.name));
-    rows = rows.filter(r=>!inactivos.has(r.name));
-    rows.sort((a,b)=>(b.partidasW-a.partidasW)||(b.seriesW-a.seriesW)||(b.juegosW-a.juegosW)||(b.crRondasW-a.crRondasW));
+    // Filas ordenadas por puntos (con desempates). El filtro de período/modalidad/jugadores solo afecta a esta tabla y al podio
+    const rows = construirFilasRanking(enVivo, filtered, playersList, diaEnPeriodo);
 
+    const salon = calcSalonJugadores(matches, playersList);   // todo el histórico, sin filtros
     const isCRonly = sfModalidades.length===1 && sfModalidades[0]==="Contrarreloj";
     const showCR = sfModalidades.includes("Contrarreloj") || sfModalidades.length===0;
 
@@ -2350,29 +2432,6 @@ function BillarApp() {
 
     return (
       <div style={{paddingTop:8,paddingBottom:24}}>
-          {(() => {
-            const sf = calcSalonFama(matches);
-            const filas = [["partidas","partidas seguidas"],["series","series seguidas"],["juegos","juegos seguidos"]].filter(([k]) => sf[k].length > 0);
-            if (filas.length === 0 && sf.cr.length === 0) return null;
-            const dueños = (arr) => arr.map((x, i) => (
-              <span key={i}><span data-pf="salon-nombre" onClick={tapPerfil(x.nombre)} style={{fontWeight:800,color:"#ffffff",cursor:"pointer"}}>{x.nombre}</span>{x.fecha ? <span style={{color:"#999",fontSize:11}}>{" · " + fechaCorta(x.fecha)}</span> : null}{i < arr.length - 1 ? <span style={{color:"#999"}}>{"  y  "}</span> : null}</span>
-            ));
-            return (
-              <div data-pf="salon-fama" style={{background:FONDO_RECORD.general,border:"1px solid "+COLOR_RECORD.general,borderRadius:12,padding:"10px 12px",marginBottom:12}}>
-                <div style={{fontSize:11,fontWeight:800,letterSpacing:1,color:COLOR_RECORD.general,textTransform:"uppercase",marginBottom:6}}>🏆 Salón de la fama</div>
-                {filas.map(([k, txt]) => (
-                  <div key={k} data-pf={"salon-" + k} style={{fontSize:13,color:"#ffffff",marginBottom:4}}>
-                    <span style={{fontWeight:900,color:COLOR_RECORD.general}}>{"🔥 " + sf[k][0].n + " "}</span>{txt + ": "}{dueños(sf[k])}
-                  </div>
-                ))}
-                {sf.cr.length > 0 && (
-                  <div data-pf="salon-cr" style={{fontSize:13,color:"#ffffff"}}>
-                    <span style={{fontWeight:900,color:COLOR_RECORD.general}}>{"⏱ " + fmtTime(sf.cr[0].mejor) + " "}</span>{"ronda más rápida de Contrarreloj: "}{dueños(sf.cr)}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
           <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}>
               <button onClick={()=>setFiltrosOpen(o=>!o)} style={{background:filtrosOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:"1px solid "+(filtrosOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"),color:filtrosOpen?"#63b3ed":"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>🔍 {filtrosOpen?"▲":"▼"}</button>
           </div>
@@ -2468,47 +2527,35 @@ function BillarApp() {
                 </div>;
               })()}
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
-                {rows.slice(0,3).map((r,i)=>(
-                  <div key={r.name} style={{background:i===0?"rgba(249,224,75,0.08)":i===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:"1px solid "+(i===0?"rgba(249,224,75,0.25)":i===1?"rgba(200,200,200,0.15)":"rgba(150,100,50,0.2)"),borderRadius:14,padding:"14px 16px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
-                      <img src={i===0?"https://em-content.zobj.net/source/google/387/1st-place-medal_1f947.png":i===1?"https://em-content.zobj.net/source/google/387/2nd-place-medal_1f948.png":"https://em-content.zobj.net/source/google/387/3rd-place-medal_1f949.png"} style={{width:i===0?42:34,height:i===0?42:34,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none";}}/>
-                      <div>
-                        <div style={{fontSize:i===0?22:17,fontWeight:900,color:i===0?"#f9e04b":i===1?"#e0e0e0":"#cd7f32",letterSpacing:0.5,wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</div>
+                {rows.slice(0,3).map((r)=>{
+                  const pi = Math.min(r.pos,3)-1;   // 0 oro, 1 plata, 2 bronce; los empatados comparten medalla
+                  return (
+                  <div key={r.name} style={{background:pi===0?"rgba(249,224,75,0.08)":pi===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:"1px solid "+(pi===0?"rgba(249,224,75,0.25)":pi===1?"rgba(200,200,200,0.15)":"rgba(150,100,50,0.2)"),borderRadius:14,padding:"14px 16px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <img src={pi===0?"https://em-content.zobj.net/source/google/387/1st-place-medal_1f947.png":pi===1?"https://em-content.zobj.net/source/google/387/2nd-place-medal_1f948.png":"https://em-content.zobj.net/source/google/387/3rd-place-medal_1f949.png"} style={{width:pi===0?42:34,height:pi===0?42:34,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none";}}/>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:pi===0?22:17,fontWeight:900,color:pi===0?"#f9e04b":pi===1?"#e0e0e0":"#cd7f32",letterSpacing:0.5,wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</div>
                         <div style={{fontSize:10,color:"#888"}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
                       </div>
-                    </div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:8}}>
-                      {(()=>{
-                        const h = histIns[r.name]||{};
-                        const ins = [
-                          {src:"insignia_break_run.png",hist:h.br||0,per:r.breakRuns||0,color:"#ffd700"},
-                          {src:"insignia_run_out.png",hist:h.ro||0,per:r.mesas||0,color:"#63b3ed"},
-                          {src:"insignia_imparable.png",hist:h.imp||0,per:r.imparables||0,color:"#a78bfa"},
-                          {src:"insignia_remontada.png",hist:h.rem||0,per:r.remontadas||0,color:"#f87171"},
-                          {src:"insignia_golden_break.png",hist:h.gb||0,per:r.goldenBreaks||0,color:"#f9e04b"},
-                          {src:"insignia_gran_defensa.png",hist:h.gd||0,per:r.granDefensas||0,color:"#34d399"},
-                          {src:"insignia_3s_al_hilo.png",hist:h.tal||0,per:r.tresAlHilo||0,color:"#f97316"},
-                          {src:"insignia_rey_día.png",hist:h.rey||0,per:r.reyDelDia||0,color:"#fbbf24"},
-                        ].filter(x=>x.hist>0||x.per>0);
-                        return ins.map((ins2,ii)=>(
-                          <div key={ii} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}>
-                            <img src={ins2.src} style={{width:64,height:64,objectFit:"contain",opacity:ins2.per>0?1:0.2,filter:ins2.per>0?"none":"grayscale(100%)"}}/>
-                            <span style={{fontSize:11,color:ins2.per>0?ins2.color:"#444",fontWeight:700}}>{ins2.per>0?"x"+ins2.per:""}</span>
-                            <span style={{fontSize:9,color:ins2.per>0?"#888":"#444",textAlign:"center",lineHeight:1.15,wordBreak:"break-word"}}>{(INSIGNIAS_DEF.find(d => d.src === ins2.src) || {}).label}</span>
-                          </div>
-                        ));
-                      })()}
+                      <div data-pf="podio-pts" style={{textAlign:"right"}}>
+                        <div style={{fontSize:pi===0?22:17,fontWeight:900,color:pi===0?"#f9e04b":pi===1?"#e0e0e0":"#cd7f32"}}>{r.pts}</div>
+                        <div style={{fontSize:9,color:"#888"}}>pts</div>
+                      </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               {/* Tabla */}
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                   {(()=>{
-                    const colMap = {partidasW:"👑",seriesW:"🏆",juegosW:"JG",breakRuns:"⭐BR",mesas:"⭐RO",goldenBreaks:"⭐GB",juegos:"JJ",pct:"%"};
+                    const colMap = {pts:"Pts",partidasW:"👑",seriesW:"🏆",juegosW:"JG",breakRuns:"⭐BR",mesas:"⭐RO",goldenBreaks:"⭐GB",juegos:"JJ",pct:"%"};
                     const rowsConPct = rows.map(r=>({...r, pct:r.juegos>0?r.juegosW/r.juegos:0, crAvg:r.crTimes.length>0?r.crTimes.reduce((a,b)=>a+b,0)/r.crTimes.length:Infinity}));
-                    const sortedRows = [...rowsConPct].sort((a,b)=>{ const v=sortCol==="crAvg"?((a.crAvg===Infinity?9e9:a.crAvg)-(b.crAvg===Infinity?9e9:b.crAvg)):(a[sortCol]||0)-(b[sortCol]||0); return sortDir==="desc"?-v:v; });
+                    const sortedRows = sortCol==="pts"
+                      ? (sortDir==="desc" ? rowsConPct : [...rowsConPct].reverse())   // orden de puntos con sus desempates
+                      : [...rowsConPct].sort((a,b)=>{ const v=sortCol==="crAvg"?((a.crAvg===Infinity?9e9:a.crAvg)-(b.crAvg===Infinity?9e9:b.crAvg)):(a[sortCol]||0)-(b[sortCol]||0); return sortDir==="desc"?-v:v; });
+                    const numPos = (r,i) => (sortCol==="pts"&&sortDir==="desc") ? r.pos : i+1;   // empatados comparten posición
                     const thStyle = (col) => ({padding:"4px 3px",textAlign:"center",fontWeight:700,cursor:"pointer",userSelect:"none",
                       color:sortCol===col?"#fff":"#f9e04b",
                       background:sortCol===col?"rgba(74,222,128,0.15)":"transparent",
@@ -2521,7 +2568,7 @@ function BillarApp() {
                           <td style={{padding:"7px 4px",color:"#63b3ed",fontWeight:700}}>#</td>
                           <td style={{padding:"7px 4px",color:"#63b3ed",fontWeight:700}}>Jugador</td>
                           {Object.entries(colMap).map(([col,label])=>(
-                            <td key={col} style={thStyle(col)} onClick={()=>toggleSort(col)} title={col}>
+                            <td key={col} style={col==="pts"?{...thStyle(col),fontSize:14}:thStyle(col)} onClick={()=>toggleSort(col)} title={col}>
                               {label==="⭐GB"?<img src="golden_break.png" style={{width:26,height:39,objectFit:"contain"}}/>:
                                label==="⭐RO"?<img src="run_out.png" style={{width:26,height:39,objectFit:"contain",verticalAlign:"middle"}}/>:
                                label==="⭐BR"?<img src="break_run.png" style={{width:26,height:39,objectFit:"contain",verticalAlign:"middle"}}/>:
@@ -2534,8 +2581,9 @@ function BillarApp() {
                       <tbody>
                         {sortedRows.map((r,i)=>(
                       <tr key={r.name} style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:i%2===0?"transparent":"rgba(255,255,255,0.01)"}}>
-                        <td style={{padding:"8px 4px",color:i===0?"#f9e04b":i===1?"#ccc":i===2?"#cd7f32":"#555",fontWeight:700}}>{i+1}</td>
+                        <td style={{padding:"8px 4px",color:numPos(r,i)===1?"#f9e04b":numPos(r,i)===2?"#ccc":numPos(r,i)===3?"#cd7f32":"#555",fontWeight:700}}>{numPos(r,i)}</td>
                         <td style={{padding:"8px 4px",fontWeight:700,color:"#e0e0e0",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</td>
+                        <td data-pf="celda-pts" style={{padding:"8px 3px",textAlign:"center",color:"#f9e04b",fontWeight:800}}>{r.pts}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.partidasW}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:600}}>{r.seriesW}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:600}}>{r.juegosW}</td>
@@ -2563,8 +2611,43 @@ function BillarApp() {
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontWeight:800,fontSize:13}}>%</span></span><span style={{color:"#888"}}>Promedio</span></div>
                 {showCR&&<div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#4ade80",fontSize:18,lineHeight:1}}>⏱</span></span><span style={{color:"#888"}}>T.prom CR</span></div>}
               </div>
+              <div data-pf="nota-pts" style={{marginTop:14,fontSize:10,color:"#888",lineHeight:1.5}}>
+                {"Pts = partida ganada " + PUNTOS_RANKING.partida + " · serie " + PUNTOS_RANKING.serie + " · juego " + PUNTOS_RANKING.juego + " · insignias: " + ORDEN_INSIGNIAS.map(k => (INSIGNIAS_DEF.find(d => d.k === k) || {}).label + " " + PUNTOS_INSIGNIA[k]).join(" · ") + ". Si hay empate de puntos gana quien venció al otro en directo, luego quien tenga más partidas y más insignias."}
+              </div>
             </>)
           }
+
+          {/* Salón de la fama: insignias de todos los tiempos de los jugadores activos; no depende de los filtros */}
+          {salon.length>0 && (
+            <div data-pf="salon-fama" style={{marginTop:28}}>
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:15,fontWeight:800,color:"#f9e04b",letterSpacing:1,textAlign:"center"}}>🏆 Salón de la fama</div>
+                <div style={{fontSize:10,color:"#888",textAlign:"center",marginTop:2}}>Insignias de todos los tiempos · jugadores activos</div>
+                <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,transparent,#f9e04b,transparent)",marginTop:6}}></div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {salon.map(s => (
+                  <div key={s.fila.name} data-pf="salon-jugador" data-nombre={s.fila.name} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"12px 14px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                      <div style={{width:34,textAlign:"center",fontSize:s.fila.pos<=3?24:14,fontWeight:800,color:"#888"}}>{s.fila.pos===1?"🥇":s.fila.pos===2?"🥈":s.fila.pos===3?"🥉":s.fila.pos+"."}</div>
+                      <div style={{flex:1,fontSize:18,fontWeight:900,color:"#e0e0e0",wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(s.fila.name)}>{s.fila.name}</div>
+                      <div style={{textAlign:"right"}}><span style={{fontSize:18,fontWeight:900,color:"#f9e04b"}}>{s.fila.pts}</span><span style={{fontSize:9,color:"#888"}}> pts</span></div>
+                    </div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {ORDEN_INSIGNIAS.map(k => {
+                        const d = INSIGNIAS_DEF.find(x => x.k === k);
+                        return <InsigniaSalon key={k} dataPf={"salon-ins-" + k} src={d.src} label={d.label} color={d.color} ganada={s.ins[k] > 0} texto={"x" + s.ins[k]} />;
+                      })}
+                      <InsigniaSalon dataPf="salon-rec-partidas" emoji="🔥" label="Racha de partidas" color={COLOR_RECORD.general} ganada={s.rec.partidas > 0} texto={String(s.rec.partidas)} />
+                      <InsigniaSalon dataPf="salon-rec-series" emoji="🔥" label="Racha de series" color={COLOR_RECORD.general} ganada={s.rec.series > 0} texto={String(s.rec.series)} />
+                      <InsigniaSalon dataPf="salon-rec-juegos" emoji="🔥" label="Racha de juegos" color={COLOR_RECORD.general} ganada={s.rec.juegos > 0} texto={String(s.rec.juegos)} />
+                      <InsigniaSalon dataPf="salon-rec-cr" emoji="⏱" label="Contrarreloj" color={COLOR_RECORD.general} ganada={s.rec.cr !== null} texto={s.rec.cr !== null ? fmtTime(s.rec.cr) : ""} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
       </div>
     );
   }
