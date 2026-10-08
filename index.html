@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v438</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v439</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v438</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v439</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1471,6 +1471,15 @@ function BillarApp() {
     return () => clearTimeout(t);
   }, [avisoRecord]);
 
+  // Franja de aviso (récords e insignias). Se dibuja en el lobby y también en el Modo Enfoque, que es otra pantalla.
+  const renderBannerAviso = (enfoque) => avisoRecord ? (
+    <div data-pf="aviso-record" onClick={()=>setAvisoRecord(null)} style={{position:"fixed",top:8,left:enfoque?64:8,right:enfoque?110:8,zIndex:1000,background:"rgba(20,60,40,0.97)",border:"1px solid "+COLOR_RECORD.general,borderRadius:12,padding:"10px 14px",color:"#ffffff",fontSize:13,fontWeight:800,textAlign:"center",boxShadow:"0 6px 24px rgba(0,0,0,0.5)"}}>
+      {avisoRecord.map((x,i)=> x.ins
+        ? <div key={i} data-pf="aviso-insignia" style={{padding:"6px 0"}}><img src={x.ins.src} alt={x.ins.label} style={{width:enfoque?90:130,height:enfoque?90:130,objectFit:"contain",display:"block",margin:"0 auto 4px"}} /><div style={{fontSize:15,color:x.ins.color}}>{"🏅 " + x.texto}</div></div>
+        : <div key={i}>{x.texto}</div>)}
+    </div>
+  ) : null;
+
     // Modal de registro al entrar por primera vez
   if (showRegisterPrompt && fbLoaded) {
     const plNorm2 = playersList.map(p=>typeof p==="string"?{name:p,id:"",role:"jugador"}:p);
@@ -1769,6 +1778,7 @@ function BillarApp() {
             }
           }}
           style={{position:"fixed",inset:0,background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",display:"flex",flexDirection:"column",padding:8,WebkitTouchCallout:"none",userSelect:"none",WebkitUserSelect:"none"}}>
+          {renderBannerAviso(true)}
           <button onClick={()=>setFocusMode(false)}
             style={{position:"absolute",top:10,right:10,zIndex:999,padding:"6px 12px",borderRadius:20,background:"rgba(0,0,0,0.55)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>
             ✕ Salir
@@ -1920,7 +1930,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v438</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v439</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -1928,9 +1938,7 @@ function BillarApp() {
               color:"#ffffff",cursor:miNombre?"pointer":"default"}} onClick={miNombre?tapPerfil(miNombre):undefined}>
               {"🎱 " + (isAdmin?"ADMIN":isOperario?"OPERARIO":"JUGADOR") + (miNombre ? " · " + miNombre.toUpperCase() : "")}
             </div>
-            {avisoRecord && <div data-pf="aviso-record" onClick={()=>setAvisoRecord(null)} style={{position:"fixed",top:8,left:8,right:8,zIndex:500,background:"rgba(20,60,40,0.97)",border:"1px solid "+COLOR_RECORD.general,borderRadius:12,padding:"10px 14px",color:"#ffffff",fontSize:13,fontWeight:800,textAlign:"center",boxShadow:"0 6px 24px rgba(0,0,0,0.5)"}}>{avisoRecord.map((x,i)=> x.ins
-              ? <div key={i} data-pf="aviso-insignia" style={{padding:"6px 0"}}><img src={x.ins.src} alt={x.ins.label} style={{width:130,height:130,objectFit:"contain",display:"block",margin:"0 auto 4px"}} /><div style={{fontSize:15,color:x.ins.color}}>{"🏅 " + x.texto}</div></div>
-              : <div key={i}>{x.texto}</div>)}</div>}
+            {renderBannerAviso(false)}
             {estatusYo && estatusYo.lider ? <div data-pf="estatus-lider" onClick={tapPerfil(miNombre)} style={{fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:6,background:"rgba(249,224,75,0.15)",color:"#f9e04b",cursor:"pointer"}}>👑 Líder actual</div> : null}
             {lobbyTab === "active" && estatusYo && estatusYo.racha.length > 0 ? <div style={{flexBasis:"100%"}}><ChipRacha segmentos={estatusYo.racha} dataPf="estatus-racha" onClick={tapPerfil(miNombre)} fontSize={11} padding="4px 10px" /></div> : null}
           </div>
