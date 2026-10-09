@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v447</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v449</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v447</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v449</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -908,16 +908,11 @@ function PerfilJugadorModal() {
   const crGen = calcRecordCRGeneral(perfilStore.matches);
   const tipoCR = (p.cr && p.cr.mejor !== null) ? ((crGen !== null && p.cr.mejor <= crGen) ? "general" : "personal") : null;
   const rachaSegs = segmentosRachaActiva(p.rachas, rg);
-  const pl = perfilStore.playersList.find(x => (typeof x === "string" ? x : x.name) === nombre);
-  const color = (pl && typeof pl === "object" && pl.color) || "#e0e0e0";
+  const color = "#ffffff";   // los nombres siempre van en blanco; el color del jugador solo se usa en su ID al marcar un juego
   const colorPct = (v) => (v === null ? "#666" : (v >= 50 ? "#4ade80" : "#f9e04b"));
   // Duelos directos: solo si quien mira es un jugador registrado y está viendo el perfil de OTRO jugador
   const yo = perfilStore.yo;
   const duelo = (yo && yo !== nombre) ? calcDuelo(perfilStore.matches, yo, nombre) : null;
-  const colorDe = (n) => {
-    const x = perfilStore.playersList.find(y => (typeof y === "string" ? y : y.name) === n);
-    return (x && typeof x === "object" && x.color) || "#e0e0e0";
-  };
   const barraDuelo = (clave, nom, a, b) => (
     <div style={{marginTop:10}}>
       <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between"}}>
@@ -966,9 +961,9 @@ function PerfilJugadorModal() {
           {titulo("⚔️ Duelos directos")}
           <div data-pf="duelos" style={{padding:"12px",borderRadius:12,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)"}}>
             <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8}}>
-              <div style={{fontSize:14,fontWeight:800,color:colorDe(yo),wordBreak:"break-word"}}>{yo}</div>
+              <div style={{fontSize:14,fontWeight:800,color:"#ffffff",wordBreak:"break-word"}}>{yo}</div>
               <div style={{fontSize:11,color:"#888",flexShrink:0}}>vs</div>
-              <div style={{fontSize:14,fontWeight:800,color:colorDe(nombre),textAlign:"right",wordBreak:"break-word"}}>{nombre}</div>
+              <div style={{fontSize:14,fontWeight:800,color:"#ffffff",textAlign:"right",wordBreak:"break-word"}}>{nombre}</div>
             </div>
             {duelo.total === 0
               ? <div data-pf="duelos-vacio" style={{fontSize:12,color:"#888",marginTop:8}}>Aún no han jugado entre sí.</div>
@@ -1055,10 +1050,6 @@ function BillarApp() {
     const byName = dispositivosMap[p.name] || [];
     const combined = [...new Set([...byId, ...byName])];
     return combined;
-  };
-  const getPlayerColor = (name) => {
-    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
-    return (p && typeof p!=="string" && p.color) ? p.color : null;
   };
   const savePlayersList = (list) => {
     setPlayersList(list);
@@ -1720,7 +1711,7 @@ function BillarApp() {
                 }} style={{padding:"12px 16px",borderRadius:10,
                   background:bloqueado?"rgba(255,255,255,0.02)":yaRegistrado?"rgba(249,224,75,0.06)":"rgba(74,222,128,0.06)",
                   border:`1px solid ${bloqueado?"rgba(255,255,255,0.07)":yaRegistrado?"rgba(249,224,75,0.25)":"rgba(74,222,128,0.15)"}`,
-                  color:bloqueado?"#333":p.color||"#e0e0e0",fontFamily:"inherit",fontSize:15,fontWeight:700,
+                  color:bloqueado?"#333":"#ffffff",fontFamily:"inherit",fontSize:15,fontWeight:700,
                   cursor:bloqueado?"not-allowed":"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10,opacity:bloqueado?0.5:1}}>
                   <span>{bloqueado?"🔒":yaRegistrado?"📱":"🎱"}</span>
                   <span style={{flex:1}}>{p.name}</span>
@@ -1791,7 +1782,7 @@ function BillarApp() {
                 }} style={{padding:"11px 16px",borderRadius:10,
                   background:(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"rgba(255,255,255,0.02)":yaRegistrado?"rgba(249,224,75,0.06)":"rgba(74,222,128,0.06)"})(),
                   border:`1px solid ${(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"rgba(255,255,255,0.07)":yaRegistrado?"rgba(249,224,75,0.2)":"rgba(74,222,128,0.15)"})()}`,
-                  color:(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"#333":p.color||"#e0e0e0"})(),
+                  color:(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"#333":"#ffffff"})(),
                   fontFamily:"inherit",fontSize:14,fontWeight:700,
                   cursor:(()=>{const re=(p.role||"jugador")==="admin"||(p.role||"jugador")==="operario",bl=re&&!(dispositivosMap[p.id||p.name]?.length>0);return bl?"not-allowed":"pointer"})(),
                   textAlign:"left",display:"flex",alignItems:"center",gap:10,
@@ -2246,7 +2237,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v447</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v449</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -2438,7 +2429,7 @@ function BillarApp() {
       }
       return true; // "Todo"
     };
-    // Filas ordenadas por puntos (con desempates). El filtro de período/modalidad/jugadores solo afecta a esta tabla y al podio
+    // Filas ordenadas por puntos (con desempates). El filtro de período/modalidad/jugadores solo afecta a esta tabla
     const rows = construirFilasRanking(enVivo, filtered, playersList, diaEnPeriodo);
 
     const isCRonly = sfModalidades.length===1 && sfModalidades[0]==="Contrarreloj";
@@ -2541,36 +2532,6 @@ function BillarApp() {
           {rows.length===0
             ? <div style={{color:"#444",textAlign:"center",padding:"40px 0",fontSize:13}}>No hay datos para los filtros seleccionados</div>
             : (<>
-              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
-                {rows.slice(0,3).map((r)=>{
-                  const pi = Math.min(r.pos,3)-1;   // 0 oro, 1 plata, 2 bronce; los empatados comparten medalla
-                  return (
-                  <div key={r.name} style={{background:pi===0?"rgba(249,224,75,0.08)":pi===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:"1px solid "+(pi===0?"rgba(249,224,75,0.25)":pi===1?"rgba(200,200,200,0.15)":"rgba(150,100,50,0.2)"),borderRadius:14,padding:"14px 16px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <img src={pi===0?"https://em-content.zobj.net/source/google/387/1st-place-medal_1f947.png":pi===1?"https://em-content.zobj.net/source/google/387/2nd-place-medal_1f948.png":"https://em-content.zobj.net/source/google/387/3rd-place-medal_1f949.png"} style={{width:pi===0?42:34,height:pi===0?42:34,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none";}}/>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:pi===0?22:17,fontWeight:900,color:pi===0?"#f9e04b":pi===1?"#e0e0e0":"#cd7f32",letterSpacing:0.5,wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</div>
-                        <div style={{fontSize:10,color:"#888"}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
-                        {(() => { const insR = insigniasDeFila(r); const ganadas = ORDEN_INSIGNIAS.filter(k => insR[k] > 0); return ganadas.length > 0 ? (
-                          <div data-pf="podio-insignias" style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:6}}>
-                            {ganadas.map(k => { const d = INSIGNIAS_DEF.find(x => x.k === k); return (
-                              <div key={k} data-pf={"podio-ins-" + k} title={d.label} style={{display:"flex",alignItems:"center",gap:1}}>
-                                <img src={d.src} alt={d.label} style={{width:36,height:36,objectFit:"contain"}}/>
-                                {insR[k] > 1 && <span style={{fontSize:12,fontWeight:800,color:d.color}}>{"x" + insR[k]}</span>}
-                              </div>
-                            ); })}
-                          </div>
-                        ) : null; })()}
-                      </div>
-                      <div data-pf="podio-pts" style={{textAlign:"right"}}>
-                        <div style={{fontSize:pi===0?22:17,fontWeight:900,color:pi===0?"#f9e04b":pi===1?"#e0e0e0":"#cd7f32"}}>{r.pts}</div>
-                        <div style={{fontSize:9,color:"#888"}}>pts</div>
-                      </div>
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
               {/* Tabla */}
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
@@ -2600,10 +2561,15 @@ function BillarApp() {
                         </tr>
                       </thead>
                       <tbody>
-                        {sortedRows.map((r,i)=>(
-                      <tr key={r.name} style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:i%2===0?"transparent":"rgba(255,255,255,0.01)"}}>
-                        <td style={{padding:"8px 4px",color:numPos(r,i)===1?"#f9e04b":numPos(r,i)===2?"#ccc":numPos(r,i)===3?"#cd7f32":"#555",fontWeight:700}}>{numPos(r,i)}</td>
-                        <td style={{padding:"8px 4px",fontWeight:700,color:"#e0e0e0",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</td>
+                        {sortedRows.map((r,i)=>{
+                      const insR = insigniasDeFila(r);
+                      const ganadas = ORDEN_INSIGNIAS.filter(k => insR[k] > 0);
+                      const medalla = (sortCol==="pts"&&sortDir==="desc"&&numPos(r,i)<=3) ? ["🥇","🥈","🥉"][numPos(r,i)-1] : null;
+                      const fondo = i%2===0?"transparent":"rgba(255,255,255,0.01)";
+                      return (<React.Fragment key={r.name}>
+                      <tr style={{borderBottom:ganadas.length>0?"none":"1px solid rgba(255,255,255,0.05)",background:fondo}}>
+                        <td data-pf="celda-pos" style={{padding:"8px 4px",color:"#555",fontWeight:700,fontSize:medalla?20:11,lineHeight:1}}>{medalla||numPos(r,i)}</td>
+                        <td data-pf="celda-nombre" style={{padding:"8px 4px",fontWeight:800,fontSize:15,color:"#ffffff",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</td>
                         <td data-pf="celda-pts" style={{padding:"8px 3px",textAlign:"center",color:"#f9e04b",fontWeight:800}}>{r.pts}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.partidasW}</td>
                         <td data-pf="celda-pi" style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.ptsIns}</td>
@@ -2612,7 +2578,23 @@ function BillarApp() {
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#888",fontWeight:600}}>{r.juegos}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:r.juegos>0&&(r.juegosW/r.juegos)>=0.5?"#4ade80":"#888",fontWeight:700}}>{r.juegos>0?Math.round(r.juegosW/r.juegos*100)+"%":"—"}</td>
                       </tr>
-                    ))}
+                      {ganadas.length>0 && (
+                        <tr data-pf="fila-insignias" style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:fondo}}>
+                          <td></td>
+                          <td colSpan={8} style={{padding:"0 4px 8px"}}>
+                            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                              {ganadas.map(k => { const d = INSIGNIAS_DEF.find(x => x.k === k); return (
+                                <div key={k} data-pf={"tabla-ins-" + k} title={d.label} style={{display:"flex",alignItems:"center",gap:1}}>
+                                  <img src={d.src} alt={d.label} style={{width:36,height:36,objectFit:"contain"}}/>
+                                  {insR[k] > 1 && <span style={{fontSize:12,fontWeight:800,color:d.color}}>{"x" + insR[k]}</span>}
+                                </div>
+                              ); })}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>);
+                    })}
                         </tbody>
                       </>);
                   })()}
@@ -2655,7 +2637,7 @@ function BillarApp() {
                   <div key={s.fila.name} data-pf="salon-jugador" data-nombre={s.fila.name} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"12px 14px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                       <div style={{width:34,textAlign:"center",fontSize:s.pos<=3?24:14,fontWeight:800,color:"#888"}}>{s.pos===1?"🥇":s.pos===2?"🥈":s.pos===3?"🥉":s.pos+"."}</div>
-                      <div style={{flex:1,fontSize:18,fontWeight:900,color:"#e0e0e0",wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(s.fila.name)}>{s.fila.name}</div>
+                      <div style={{flex:1,fontSize:18,fontWeight:900,color:"#ffffff",wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(s.fila.name)}>{s.fila.name}</div>
                       <div style={{textAlign:"right"}}><span data-pf="salon-pts" style={{fontSize:18,fontWeight:900,color:"#f9e04b"}}>{s.ptsIns}</span><span style={{fontSize:9,color:"#888"}}> pts</span></div>
                     </div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
@@ -2827,7 +2809,7 @@ function BillarApp() {
                 <div key={i} style={{padding:"12px 14px",borderRadius:12,background:isThisDevice?"rgba(74,222,128,0.08)":"rgba(255,255,255,0.04)",border:`1px solid ${isThisDevice?"rgba(74,222,128,0.35)":"rgba(255,255,255,0.08)"}`,marginBottom:8}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                      <span style={{fontSize:15,fontWeight:700,color:p.color||"#e0e0e0",cursor:"pointer"}} onClick={tapPerfil(p.name)}>🎱 {p.name}</span>
+                      <span style={{fontSize:15,fontWeight:700,color:"#ffffff",cursor:"pointer"}} onClick={tapPerfil(p.name)}>🎱 {p.name}</span>
                       {p.id && <span style={{fontSize:11,fontWeight:800,color:"#f9e04b",background:"rgba(249,224,75,0.12)",border:"1px solid rgba(249,224,75,0.25)",borderRadius:6,padding:"2px 7px"}}>{p.id}</span>}
                       
                       {isAdmin && <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:5,
@@ -3167,7 +3149,7 @@ function BillarApp() {
       {/* Series bar */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",background:"rgba(0,0,0,0.45)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-          <span style={{fontSize:11,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,maxWidth:85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(p1Name)}>{p1Name}</span>
+          <span style={{fontSize:11,color:"#ffffff",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,maxWidth:85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(p1Name)}>{p1Name}</span>
           <span style={{fontSize:30,fontWeight:900,lineHeight:1,color:sw1>sw2?"#f9e04b":"#fff"}}>{sw1}</span>
         </div>
         <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
@@ -3175,7 +3157,7 @@ function BillarApp() {
           <div style={{fontSize:18,color:"#333",fontWeight:700}}>-</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10,flex:1,flexDirection:"row-reverse"}}>
-          <span style={{fontSize:11,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,maxWidth:85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(p2Name)}>{p2Name}</span>
+          <span style={{fontSize:11,color:"#ffffff",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5,maxWidth:85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(p2Name)}>{p2Name}</span>
           <span style={{fontSize:30,fontWeight:900,lineHeight:1,color:sw2>sw1?"#f9e04b":"#fff"}}>{sw2}</span>
         </div>
       </div>
@@ -3195,7 +3177,7 @@ function BillarApp() {
               const sw=k==="p1"?sw1:sw2, name=k==="p1"?p1Name:p2Name;
               const tFS=sw<=5?24:sw<=10?21:sw<=15?18:15;
               return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.25)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 8px 6px",overflow:"hidden",boxSizing:"border-box"}}>
-                <div style={{fontSize:26,fontWeight:800,color:"#e0e0e0",lineHeight:1.15,width:"100%",wordBreak:"break-word",flexShrink:0,marginBottom:6,cursor:"pointer"}} onClick={tapPerfil(name)}>{name}</div>
+                <div style={{fontSize:26,fontWeight:800,color:"#ffffff",lineHeight:1.15,width:"100%",wordBreak:"break-word",flexShrink:0,marginBottom:6,cursor:"pointer"}} onClick={tapPerfil(name)}>{name}</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:1,width:"100%",overflow:"hidden"}}>
                   {Array.from({length:sw},(_,i)=><span key={i} style={{fontSize:tFS,lineHeight:1.1}}>&#127942;</span>)}
                 </div>
@@ -3460,10 +3442,6 @@ function BillarApp() {
 function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, seriesWins,
   games, seriesCount, seriesFinished, seriesWinner, matchClosed,
   onClose, onEditCurrentGame, onDeleteLastSeries, onEditHistoryGame, onRestoreLastSeries, onRestoreAnySeries, onReactivar, playersList=[]}) {
-  const getPlayerColor = (name) => {
-    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
-    return (p && typeof p!=="string" && p.color) ? p.color : null;
-  };
 
   const sw = seriesWins||{p1:0,p2:0};
   const d1 = sw.p1+(seriesFinished&&!matchClosed&&seriesWinner==="p1"?1:0);
@@ -3482,7 +3460,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
             const sw=k==="p1"?p1wins:p2wins;
             const trophyFS=sw<=5?22:sw<=10?19:sw<=15?16:13;
             return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.3)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 8px 6px",overflow:"hidden",boxSizing:"border-box"}}>
-              {(()=>{ const nm=k==="p1"?p1Name:p2Name; const col=getPlayerColor(nm); return <div style={{fontSize:24,fontWeight:800,color:col||"#e0e0e0",lineHeight:1.2,wordBreak:"break-word",marginBottom:5,cursor:"pointer"}} onClick={tapPerfil(nm)}>{nm}</div>; })()}
+              {(()=>{ const nm=k==="p1"?p1Name:p2Name; return <div style={{fontSize:24,fontWeight:800,color:"#ffffff",lineHeight:1.2,wordBreak:"break-word",marginBottom:5,cursor:"pointer"}} onClick={tapPerfil(nm)}>{nm}</div>; })()}
               <div style={{display:"flex",flexWrap:"wrap",gap:1}}>
                 {Array.from({length:sw},(_,i)=><span key={i} style={{fontSize:trophyFS,lineHeight:1.1}}>&#127942;</span>)}
               </div>
@@ -3526,9 +3504,9 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
         <div style={{background:"rgba(0,0,0,0.3)",border:"1px solid rgba(74,222,128,0.15)",borderRadius:14,padding:"14px 12px",marginBottom:14}}>
           {/* Nombres y bola */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <div style={{fontSize:18,fontWeight:900,color:getPlayerColor(p1Name)||"#fff",flex:1,cursor:"pointer"}} onClick={tapPerfil(p1Name)}>{p1Name}</div>
+            <div style={{fontSize:18,fontWeight:900,color:"#ffffff",flex:1,cursor:"pointer"}} onClick={tapPerfil(p1Name)}>{p1Name}</div>
             <BallIcon modalidad={modalidad} size={32}/>
-            <div style={{fontSize:18,fontWeight:900,color:getPlayerColor(p2Name)||"#fff",flex:1,textAlign:"right",cursor:"pointer"}} onClick={tapPerfil(p2Name)}>{p2Name}</div>
+            <div style={{fontSize:18,fontWeight:900,color:"#ffffff",flex:1,textAlign:"right",cursor:"pointer"}} onClick={tapPerfil(p2Name)}>{p2Name}</div>
           </div>
           {/* Trofeos y marcador */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"8px 10px"}}>
@@ -3589,7 +3567,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                  {true && (
                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                      <div style={{flex:1}}>
-                       <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":(getPlayerColor(p1Name)||"#666"),marginBottom:4,fontWeight:s.p1wins>s.p2wins?700:400,cursor:"pointer"}} onClick={tapPerfil(p1Name)}>{s.p1wins>s.p2wins?"🏆 ":""}{p1Name}</div>
+                       <div style={{fontSize:11,color:s.p1wins>s.p2wins?"#4ade80":"#ffffff",marginBottom:4,fontWeight:s.p1wins>s.p2wins?700:400,cursor:"pointer"}} onClick={tapPerfil(p1Name)}>{s.p1wins>s.p2wins?"🏆 ":""}{p1Name}</div>
                        <div style={{display:"flex",flexWrap:"wrap",gap:2}}>
                          {(s.games||fakeGames).filter(g=>g.winner==="p1").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:20,height:30,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={modalidad} size={20}/>)}
                          {s.p1wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
@@ -3601,7 +3579,7 @@ function HistorialEditable({p1Name, p2Name, modalidad, carrera, seriesHistory, s
                        <span style={{color:s.p2wins>s.p1wins?"#4ade80":"#555"}}>{s.p2wins}</span>
                      </div>
                      <div style={{flex:1,textAlign:"right"}}>
-                       <div style={{fontSize:11,color:s.p2wins>s.p1wins?"#4ade80":(getPlayerColor(p2Name)||"#666"),marginBottom:4,textAlign:"right",fontWeight:s.p2wins>s.p1wins?700:400,cursor:"pointer"}} onClick={tapPerfil(p2Name)}>{p2Name}{s.p2wins>s.p1wins?" 🏆":""}</div>
+                       <div style={{fontSize:11,color:s.p2wins>s.p1wins?"#4ade80":"#ffffff",marginBottom:4,textAlign:"right",fontWeight:s.p2wins>s.p1wins?700:400,cursor:"pointer"}} onClick={tapPerfil(p2Name)}>{p2Name}{s.p2wins>s.p1wins?" 🏆":""}</div>
                        <div style={{display:"flex",flexWrap:"wrap",gap:2,justifyContent:"flex-end"}}>
                          {(s.games||fakeGames).filter(g=>g.winner==="p2").map((g,j)=>g.ballType==="gold"?<img key={j} src="golden_break.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="diamond"?<img key={j} src="run_out.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="breakrun"?<img key={j} src="break_run.png" style={{width:20,height:30,objectFit:"contain"}}/>:g.ballType==="grandefensa"?<img key={j} src="gran_defensa.png" style={{width:20,height:30,objectFit:"contain"}}/>:<BallIcon key={j} modalidad={modalidad} size={20}/>)}
                          {s.p2wins===0 && <span style={{fontSize:11,color:"#444"}}>—</span>}
@@ -3653,10 +3631,6 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
   const cFontName = compact ? 13 : 15;
   const cFontSub = compact ? 10 : 11;
   const cFontScore = compact ? 22 : 28;
-  const getPlayerColor = (name) => {
-    const p = playersList.find(pl=>(typeof pl==="string"?pl:pl.name)===name);
-    return (p && typeof p!=="string" && p.color) ? p.color : null;
-  };
   const isOpen = !m.matchClosed;
 
   // ── Contrarreloj en lobby ──
@@ -3941,7 +3915,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:11,color:"#555",fontWeight:700,minWidth:14}}>{pos+1}.</span>
                   <div>
-                    <div style={{fontSize:12,fontWeight:800,color:isCurrent?"#4ade80":"#e0e0e0",cursor:"pointer"}} onClick={tapPerfil(name)}>{name}</div>
+                    <div style={{fontSize:12,fontWeight:800,color:isCurrent?"#4ade80":"#ffffff",cursor:"pointer"}} onClick={tapPerfil(name)}>{name}</div>
                     <div style={{fontSize:9,color:"#888"}}>
                       {(serieWins[pidx]||0)>0?`🏆 ${serieWins[pidx]}S`:""}{wins>0?` · ${wins}R`:""}
                     </div>
@@ -4116,7 +4090,7 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
               const isSaque=!m.seriesFinished&&m.currentServe===k;
               return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.2)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 10px",overflow:"hidden",boxSizing:"border-box"}}>
                 <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
-                  <div style={{fontSize:20,fontWeight:800,color:getPlayerColor(name)||"#e0e0e0",lineHeight:1.2,cursor:"pointer"}} onClick={tapPerfil(name)}>{name}</div>
+                  <div style={{fontSize:20,fontWeight:800,color:"#ffffff",lineHeight:1.2,cursor:"pointer"}} onClick={tapPerfil(name)}>{name}</div>
                   
                 </div>
                 <div style={{fontSize:18,display:"flex",flexWrap:"wrap",gap:2}}>{Array.from({length:k==="p1"?sw1:sw2},(_,i)=><span key={i}>&#127942;</span>)}</div>
@@ -4242,9 +4216,9 @@ function LobbyCard({m, onOpen, onDelete, onReplay, onUpdateMatch, onLobbyBallMen
             <div style={{background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"10px 10px 8px",marginBottom:8}}>
               {/* Nombres y bola */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                <div style={{fontSize:15,fontWeight:900,color:getPlayerColor(m.p1Name)||"#fff",flex:1,cursor:"pointer"}} onClick={tapPerfil(m.p1Name)}>{m.p1Name}</div>
+                <div style={{fontSize:15,fontWeight:900,color:"#ffffff",flex:1,cursor:"pointer"}} onClick={tapPerfil(m.p1Name)}>{m.p1Name}</div>
                 <BallIcon modalidad={m.modalidad} size={24}/>
-                <div style={{fontSize:15,fontWeight:900,color:getPlayerColor(m.p2Name)||"#fff",flex:1,textAlign:"right",cursor:"pointer"}} onClick={tapPerfil(m.p2Name)}>{m.p2Name}</div>
+                <div style={{fontSize:15,fontWeight:900,color:"#ffffff",flex:1,textAlign:"right",cursor:"pointer"}} onClick={tapPerfil(m.p2Name)}>{m.p2Name}</div>
               </div>
               {/* Trofeos y marcador */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(0,0,0,0.2)",borderRadius:8,padding:"6px 8px"}}>
