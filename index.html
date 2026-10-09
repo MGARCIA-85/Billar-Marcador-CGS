@@ -2429,7 +2429,7 @@ function BillarApp() {
       }
       return true; // "Todo"
     };
-    // Filas ordenadas por puntos (con desempates). El filtro de período/modalidad/jugadores solo afecta a esta tabla
+    // Filas ordenadas por puntos (con desempates). El filtro de período/modalidad/jugadores solo afecta a esta tabla y al podio
     const rows = construirFilasRanking(enVivo, filtered, playersList, diaEnPeriodo);
 
     const isCRonly = sfModalidades.length===1 && sfModalidades[0]==="Contrarreloj";
@@ -2532,6 +2532,36 @@ function BillarApp() {
           {rows.length===0
             ? <div style={{color:"#444",textAlign:"center",padding:"40px 0",fontSize:13}}>No hay datos para los filtros seleccionados</div>
             : (<>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+                {rows.slice(0,3).map((r)=>{
+                  const pi = Math.min(r.pos,3)-1;   // 0 oro, 1 plata, 2 bronce; los empatados comparten medalla
+                  return (
+                  <div key={r.name} style={{background:pi===0?"rgba(249,224,75,0.08)":pi===1?"rgba(180,180,180,0.06)":"rgba(100,60,20,0.08)",border:"1px solid "+(pi===0?"rgba(249,224,75,0.25)":pi===1?"rgba(200,200,200,0.15)":"rgba(150,100,50,0.2)"),borderRadius:14,padding:"14px 16px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <img src={pi===0?"https://em-content.zobj.net/source/google/387/1st-place-medal_1f947.png":pi===1?"https://em-content.zobj.net/source/google/387/2nd-place-medal_1f948.png":"https://em-content.zobj.net/source/google/387/3rd-place-medal_1f949.png"} style={{width:pi===0?42:34,height:pi===0?42:34,objectFit:"contain",flexShrink:0}} onError={e=>{e.target.style.display="none";}}/>
+                      <div style={{flex:1}}>
+                        <div data-pf="podio-nombre" style={{fontSize:17,fontWeight:900,color:"#ffffff",letterSpacing:0.5,wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</div>
+                        <div style={{fontSize:10,color:"#888"}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
+                        {(() => { const insR = insigniasDeFila(r); const ganadas = ORDEN_INSIGNIAS.filter(k => insR[k] > 0); return ganadas.length > 0 ? (
+                          <div data-pf="podio-insignias" style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:6}}>
+                            {ganadas.map(k => { const d = INSIGNIAS_DEF.find(x => x.k === k); return (
+                              <div key={k} data-pf={"podio-ins-" + k} title={d.label} style={{display:"flex",alignItems:"center",gap:1}}>
+                                <img src={d.src} alt={d.label} style={{width:36,height:36,objectFit:"contain"}}/>
+                                {insR[k] > 1 && <span style={{fontSize:12,fontWeight:800,color:d.color}}>{"x" + insR[k]}</span>}
+                              </div>
+                            ); })}
+                          </div>
+                        ) : null; })()}
+                      </div>
+                      <div data-pf="podio-pts" style={{textAlign:"right"}}>
+                        <div style={{fontSize:pi===0?22:17,fontWeight:900,color:pi===0?"#f9e04b":pi===1?"#e0e0e0":"#cd7f32"}}>{r.pts}</div>
+                        <div style={{fontSize:9,color:"#888"}}>pts</div>
+                      </div>
+                    </div>
+                  </div>
+                  );
+                })}
+              </div>
               {/* Tabla */}
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
@@ -2561,15 +2591,10 @@ function BillarApp() {
                         </tr>
                       </thead>
                       <tbody>
-                        {sortedRows.map((r,i)=>{
-                      const insR = insigniasDeFila(r);
-                      const ganadas = ORDEN_INSIGNIAS.filter(k => insR[k] > 0);
-                      const medalla = (sortCol==="pts"&&sortDir==="desc"&&numPos(r,i)<=3) ? ["🥇","🥈","🥉"][numPos(r,i)-1] : null;
-                      const fondo = i%2===0?"transparent":"rgba(255,255,255,0.01)";
-                      return (<React.Fragment key={r.name}>
-                      <tr style={{borderBottom:ganadas.length>0?"none":"1px solid rgba(255,255,255,0.05)",background:fondo}}>
-                        <td data-pf="celda-pos" style={{padding:"8px 4px",color:"#555",fontWeight:700,fontSize:medalla?20:11,lineHeight:1}}>{medalla||numPos(r,i)}</td>
-                        <td data-pf="celda-nombre" style={{padding:"8px 4px",fontWeight:800,fontSize:15,color:"#ffffff",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</td>
+                        {sortedRows.map((r,i)=>(
+                      <tr key={r.name} style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:i%2===0?"transparent":"rgba(255,255,255,0.01)"}}>
+                        <td style={{padding:"8px 4px",color:numPos(r,i)===1?"#f9e04b":numPos(r,i)===2?"#ccc":numPos(r,i)===3?"#cd7f32":"#555",fontWeight:700}}>{numPos(r,i)}</td>
+                        <td style={{padding:"8px 4px",fontWeight:700,color:"#ffffff",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</td>
                         <td data-pf="celda-pts" style={{padding:"8px 3px",textAlign:"center",color:"#f9e04b",fontWeight:800}}>{r.pts}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.partidasW}</td>
                         <td data-pf="celda-pi" style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.ptsIns}</td>
@@ -2578,23 +2603,7 @@ function BillarApp() {
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#888",fontWeight:600}}>{r.juegos}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:r.juegos>0&&(r.juegosW/r.juegos)>=0.5?"#4ade80":"#888",fontWeight:700}}>{r.juegos>0?Math.round(r.juegosW/r.juegos*100)+"%":"—"}</td>
                       </tr>
-                      {ganadas.length>0 && (
-                        <tr data-pf="fila-insignias" style={{borderBottom:"1px solid rgba(255,255,255,0.05)",background:fondo}}>
-                          <td></td>
-                          <td colSpan={8} style={{padding:"0 4px 8px"}}>
-                            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-                              {ganadas.map(k => { const d = INSIGNIAS_DEF.find(x => x.k === k); return (
-                                <div key={k} data-pf={"tabla-ins-" + k} title={d.label} style={{display:"flex",alignItems:"center",gap:1}}>
-                                  <img src={d.src} alt={d.label} style={{width:36,height:36,objectFit:"contain"}}/>
-                                  {insR[k] > 1 && <span style={{fontSize:12,fontWeight:800,color:d.color}}>{"x" + insR[k]}</span>}
-                                </div>
-                              ); })}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                      </React.Fragment>);
-                    })}
+                    ))}
                         </tbody>
                       </>);
                   })()}
