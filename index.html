@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v443</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v444</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v443</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v444</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -511,10 +511,10 @@ const INSIGNIAS_DEF = [
   { k: "rey", src: "insignia_rey_día.png",      label: "Rey del Día",      color: "#fbbf24" },
 ];
 // ===== Sistema de puntos del Ranking =====
-// Partida ganada 10 · serie ganada 3 · juego ganado 1 · insignias según su relevancia (cada vez que se ganan).
+// Partida ganada 5 · insignias según su relevancia (cada vez que se ganan). Series y juegos no dan puntos: solo desempatan.
 // Para cambiar los valores basta con editar estas dos líneas.
-const PUNTOS_RANKING = { partida: 10, serie: 3, juego: 1 };
-const PUNTOS_INSIGNIA = { br: 8, ro: 4, rey: 3, tal: 3, rem: 3, imp: 3, gd: 2, gb: 2 };
+const PUNTOS_RANKING = { partida: 5, serie: 0, juego: 0 };
+const PUNTOS_INSIGNIA = { br: 5, ro: 2, rey: 1, tal: 1, rem: 1, imp: 1, gd: 1, gb: 1 };
 // Orden en que se muestran las insignias (de más a menos relevante)
 const ORDEN_INSIGNIAS = ["br", "ro", "rey", "tal", "rem", "imp", "gd", "gb"];
 
@@ -528,6 +528,10 @@ function insigniasDeFila(r) {
 function totalInsignias(r) {
   const ins = insigniasDeFila(r);
   return Object.keys(ins).reduce((a, k) => a + ins[k], 0);
+}
+function puntosInsignias(r) {
+  const ins = insigniasDeFila(r);
+  return Object.keys(PUNTOS_INSIGNIA).reduce((a, k) => a + PUNTOS_INSIGNIA[k] * (ins[k] || 0), 0);
 }
 function puntosRanking(r) {
   const ins = insigniasDeFila(r);
@@ -554,10 +558,10 @@ function netoDirecto(lista, a, b) {
   return { p: p, s: s, j: j };
 }
 // Ordena las filas por puntos. Si hay empate de puntos: primero los enfrentamientos directos entre los empatados
-// (partidas, luego series, luego juegos), después las partidas ganadas y después la cantidad de insignias. Si aún siguen iguales comparten la posición.
+// (partidas, luego series, luego juegos), después partidas ganadas, mejor % de juegos ganados, puntos de insignias, series y juegos ganados. Si aún siguen iguales comparten la posición.
 // Los directos se miden entre todos los empatados a la vez, así un círculo (A le ganó a B, B a C, C a A) no desempata y pasa al siguiente criterio.
 function ordenarRanking(rows, lista) {
-  const filas = rows.map(r => Object.assign({}, r, { pts: puntosRanking(r), nIns: totalInsignias(r) }));
+  const filas = rows.map(r => Object.assign({}, r, { pts: puntosRanking(r), ptsIns: puntosInsignias(r), nIns: totalInsignias(r), pctJ: r.juegos > 0 ? r.juegosW / r.juegos : 0 }));
   filas.sort((a, b) => b.pts - a.pts);
   const salida = [];
   let i = 0;
@@ -569,13 +573,13 @@ function ordenarRanking(rows, lista) {
       g.dir = { p: 0, s: 0, j: 0 };
       if (grupo.length > 1) grupo.forEach(o => { if (o !== g) { const n = netoDirecto(lista, g.name, o.name); g.dir.p += n.p; g.dir.s += n.s; g.dir.j += n.j; } });
     });
-    if (grupo.length > 1) grupo.sort((a, b) => (b.dir.p - a.dir.p) || (b.dir.s - a.dir.s) || (b.dir.j - a.dir.j) || (b.partidasW - a.partidasW) || (b.nIns - a.nIns));
+    if (grupo.length > 1) grupo.sort((a, b) => (b.dir.p - a.dir.p) || (b.dir.s - a.dir.s) || (b.dir.j - a.dir.j) || (b.partidasW - a.partidasW) || (b.pctJ - a.pctJ) || (b.ptsIns - a.ptsIns) || (b.seriesW - a.seriesW) || (b.juegosW - a.juegosW));
     grupo.forEach(g => salida.push(g));
     i = j;
   }
   salida.forEach((r, k) => {
     const prev = salida[k - 1];
-    const igual = prev && prev.pts === r.pts && prev.dir.p === r.dir.p && prev.dir.s === r.dir.s && prev.dir.j === r.dir.j && prev.partidasW === r.partidasW && prev.nIns === r.nIns;
+    const igual = prev && prev.pts === r.pts && prev.dir.p === r.dir.p && prev.dir.s === r.dir.s && prev.dir.j === r.dir.j && prev.partidasW === r.partidasW && prev.pctJ === r.pctJ && prev.ptsIns === r.ptsIns && prev.seriesW === r.seriesW && prev.juegosW === r.juegosW;
     r.pos = igual ? prev.pos : k + 1;
   });
   return salida;
@@ -606,22 +610,26 @@ function calcSalonJugadores(matches, playersList) {
   const rg = calcRecordsGenerales(matches);
   const crGen = calcRecordCRGeneral(matches);
   const closed = matches.filter(m => m.matchClosed);
-  return filas.map(r => {
+  const salida = filas.map(r => {
     const ra = calcRachasJugador(matches, r.name);
     const cr = calcRecordCR(closed, r.name);
     const dueno = (k) => (ra[k].n > 0 && rg[k] > 0 && ra[k].n >= rg[k]) ? ra[k].n : 0;
     return { fila: r, ins: insigniasDeFila(r), rec: { partidas: dueno("partidas"), series: dueno("series"), juegos: dueno("juegos"), cr: (cr && cr.mejor !== null && crGen !== null && cr.mejor <= crGen) ? cr.mejor : null } };
   });
+  // El Salón se ordena solo por los puntos de las insignias de todos los tiempos (a igualdad, el orden del Ranking); los empatados comparten posición
+  salida.sort((a, b) => b.fila.ptsIns - a.fila.ptsIns);
+  salida.forEach((x, k) => { x.ptsIns = x.fila.ptsIns; x.pos = (k > 0 && salida[k - 1].ptsIns === x.ptsIns) ? salida[k - 1].pos : k + 1; });
+  return salida;
 }
 // El emoji ⏱ sale gris en muchos teléfonos: con este filtro se ve blanco y resalta
 const ICONO_BLANCO = { filter: "brightness(0) invert(1)" };
-// Una insignia del Salón de la fama: a color si ya se ganó, opaca si no. Con `src` usa imagen; si no, el emoji provisional.
-function InsigniaSalon({ src, emoji, label, color, ganada, texto, dataPf }) {
+// Una insignia del Salón de la fama: a color si ya se ganó, opaca si no (las de récord solo se dibujan cuando se tienen). Con `src` usa imagen; si no, el emoji provisional.
+function InsigniaSalon({ src, emoji, palabra, label, color, ganada, texto, dataPf }) {
   return (
     <div data-pf={dataPf} data-ganada={ganada ? "1" : "0"} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,width:"18%"}}>
       {src
         ? <img src={src} alt={label} style={{width:64,height:64,objectFit:"contain",opacity:ganada?1:0.2,filter:ganada?"none":"grayscale(100%)"}}/>
-        : <div style={{width:64,height:64,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,boxSizing:"border-box",background:ganada?"rgba(74,222,128,0.12)":"rgba(255,255,255,0.04)",border:"2px solid "+(ganada?color:"rgba(255,255,255,0.12)"),opacity:ganada?1:0.2,filter:ganada?"none":"grayscale(100%)"}}><span style={emoji==="⏱"?ICONO_BLANCO:undefined}>{emoji}</span></div>}
+        : <div style={{width:64,height:64,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:palabra?26:32,lineHeight:1,flexDirection:"column",boxSizing:"border-box",background:"rgba(74,222,128,0.12)",border:"2px solid "+color}}><span style={emoji==="⏱"?ICONO_BLANCO:undefined}>{emoji}</span>{palabra && <span style={{fontSize:9,fontWeight:800,color:"#fff",marginTop:2}}>{palabra}</span>}</div>}
       <span style={{fontSize:11,color:ganada?color:"#444",fontWeight:700,minHeight:13}}>{ganada?texto:""}</span>
       <span style={{fontSize:9,color:ganada?"#888":"#444",textAlign:"center",lineHeight:1.15,wordBreak:"break-word"}}>{label}</span>
     </div>
@@ -2235,7 +2243,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v443</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v444</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -2431,7 +2439,6 @@ function BillarApp() {
 
     const salon = calcSalonJugadores(matches, playersList);   // todo el histórico, sin filtros
     const isCRonly = sfModalidades.length===1 && sfModalidades[0]==="Contrarreloj";
-    const showCR = sfModalidades.includes("Contrarreloj") || sfModalidades.length===0;
 
     const chipS = (active) => ({
       padding:"5px 12px",borderRadius:20,fontFamily:"inherit",fontSize:11,fontWeight:600,cursor:"pointer",
@@ -2569,11 +2576,11 @@ function BillarApp() {
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                   {(()=>{
-                    const colMap = {pts:"Pts",partidasW:"👑",seriesW:"🏆",juegosW:"JG",breakRuns:"⭐BR",mesas:"⭐RO",goldenBreaks:"⭐GB",juegos:"JJ",pct:"%"};
-                    const rowsConPct = rows.map(r=>({...r, pct:r.juegos>0?r.juegosW/r.juegos:0, crAvg:r.crTimes.length>0?r.crTimes.reduce((a,b)=>a+b,0)/r.crTimes.length:Infinity}));
+                    const colMap = {pts:"Pts",partidasW:"👑",ptsIns:"PI",seriesW:"🏆",juegosW:"JG",juegos:"JJ",pct:"%"};
+                    const rowsConPct = rows.map(r=>({...r, pct:r.juegos>0?r.juegosW/r.juegos:0}));
                     const sortedRows = sortCol==="pts"
                       ? (sortDir==="desc" ? rowsConPct : [...rowsConPct].reverse())   // orden de puntos con sus desempates
-                      : [...rowsConPct].sort((a,b)=>{ const v=sortCol==="crAvg"?((a.crAvg===Infinity?9e9:a.crAvg)-(b.crAvg===Infinity?9e9:b.crAvg)):(a[sortCol]||0)-(b[sortCol]||0); return sortDir==="desc"?-v:v; });
+                      : [...rowsConPct].sort((a,b)=>{ const v=(a[sortCol]||0)-(b[sortCol]||0); return sortDir==="desc"?-v:v; });
                     const numPos = (r,i) => (sortCol==="pts"&&sortDir==="desc") ? r.pos : i+1;   // empatados comparten posición
                     const thStyle = (col) => ({padding:"4px 3px",textAlign:"center",fontWeight:700,cursor:"pointer",userSelect:"none",
                       color:sortCol===col?"#fff":"#f9e04b",
@@ -2588,13 +2595,9 @@ function BillarApp() {
                           <td style={{padding:"7px 4px",color:"#63b3ed",fontWeight:700}}>Jugador</td>
                           {Object.entries(colMap).map(([col,label])=>(
                             <td key={col} style={col==="pts"?{...thStyle(col),fontSize:14}:thStyle(col)} onClick={()=>toggleSort(col)} title={col}>
-                              {label==="⭐GB"?<img src="golden_break.png" style={{width:26,height:39,objectFit:"contain"}}/>:
-                               label==="⭐RO"?<img src="run_out.png" style={{width:26,height:39,objectFit:"contain",verticalAlign:"middle"}}/>:
-                               label==="⭐BR"?<img src="break_run.png" style={{width:26,height:39,objectFit:"contain",verticalAlign:"middle"}}/>:
-                               label}{arrow(col)}
+                              {label==="PI"?<span style={{fontSize:10,lineHeight:"11px",display:"inline-block"}}>Pts<br/>insig.</span>:label}{arrow(col)}
                             </td>
                           ))}
-                          {showCR&&<td style={{...thStyle("crAvg"),color:sortCol==="crAvg"?"#fff":"#4ade80"}} onClick={()=>toggleSort("crAvg")} title="Tiempo promedio CR por ronda">⏱{arrow("crAvg")}</td>}
                         </tr>
                       </thead>
                       <tbody>
@@ -2604,14 +2607,11 @@ function BillarApp() {
                         <td style={{padding:"8px 4px",fontWeight:700,color:"#e0e0e0",whiteSpace:"nowrap",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</td>
                         <td data-pf="celda-pts" style={{padding:"8px 3px",textAlign:"center",color:"#f9e04b",fontWeight:800}}>{r.pts}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.partidasW}</td>
+                        <td data-pf="celda-pi" style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.ptsIns}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:600}}>{r.seriesW}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:600}}>{r.juegosW}</td>
-                        <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.breakRuns||0}</td>
-                        <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.mesas}</td>
-                        <td style={{padding:"8px 3px",textAlign:"center",color:"#63b3ed",fontWeight:700}}>{r.goldenBreaks}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:"#888",fontWeight:600}}>{r.juegos}</td>
                         <td style={{padding:"8px 3px",textAlign:"center",color:r.juegos>0&&(r.juegosW/r.juegos)>=0.5?"#4ade80":"#888",fontWeight:700}}>{r.juegos>0?Math.round(r.juegosW/r.juegos*100)+"%":"—"}</td>
-                        {showCR&&<td style={{padding:"8px 3px",textAlign:"center",color:"#888",fontSize:10,fontVariantNumeric:"tabular-nums"}}>{r.crTimes.length>0?fmtTime(r.crTimes.reduce((a,b)=>a+b,0)/r.crTimes.length):"—"}</td>}
                       </tr>
                     ))}
                         </tbody>
@@ -2623,15 +2623,12 @@ function BillarApp() {
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontSize:18,lineHeight:1}}>👑</span></span><span style={{color:"#888"}}>Partidas</span></div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontSize:18,lineHeight:1}}>🏆</span></span><span style={{color:"#888"}}>Series</span></div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontWeight:800,fontSize:13}}>JG</span></span><span style={{color:"#888"}}>Juegos</span></div>
-                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="break_run.png" style={{width:20,height:30,objectFit:"contain"}}/></span><span style={{color:"#888"}}>Break & Run</span></div>
-                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="run_out.png" style={{width:20,height:30,objectFit:"contain"}}/></span><span style={{color:"#888"}}>Run Out</span></div>
-                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><img src="golden_break.png" style={{width:20,height:30,objectFit:"contain"}}/></span><span style={{color:"#888"}}>Golden Break</span></div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontWeight:800,fontSize:13}}>PI</span></span><span style={{color:"#888"}}>Pts insignias</span></div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontWeight:800,fontSize:13}}>JJ</span></span><span style={{color:"#888"}}>Jugados</span></div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#f9e04b",fontWeight:800,fontSize:13}}>%</span></span><span style={{color:"#888"}}>Promedio</span></div>
-                {showCR&&<div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:"#4ade80",fontSize:18,lineHeight:1}}>⏱</span></span><span style={{color:"#888"}}>T.prom CR</span></div>}
               </div>
               <div data-pf="nota-pts" style={{marginTop:14,fontSize:10,color:"#888",lineHeight:1.5}}>
-                {"Pts = partida ganada " + PUNTOS_RANKING.partida + " · serie " + PUNTOS_RANKING.serie + " · juego " + PUNTOS_RANKING.juego + " · insignias: " + ORDEN_INSIGNIAS.map(k => (INSIGNIAS_DEF.find(d => d.k === k) || {}).label + " " + PUNTOS_INSIGNIA[k]).join(" · ") + ". Si hay empate de puntos gana quien venció al otro en directo, luego quien tenga más partidas y más insignias."}
+                {"Pts = partida ganada " + PUNTOS_RANKING.partida + " + puntos de insignias (PI): " + ORDEN_INSIGNIAS.map(k => (INSIGNIAS_DEF.find(d => d.k === k) || {}).label + " " + PUNTOS_INSIGNIA[k]).join(" · ") + ". Series y juegos no suman puntos. Si hay empate de puntos gana quien venció al otro en directo, luego quien tenga más partidas ganadas, mejor % de juegos ganados, más puntos de insignias, más series y más juegos ganados."}
               </div>
             </>)
           }
@@ -2641,26 +2638,26 @@ function BillarApp() {
             <div data-pf="salon-fama" style={{marginTop:28}}>
               <div style={{marginBottom:12}}>
                 <div style={{fontSize:15,fontWeight:800,color:"#f9e04b",letterSpacing:1,textAlign:"center"}}>🏆 Salón de la fama</div>
-                <div style={{fontSize:10,color:"#888",textAlign:"center",marginTop:2}}>Insignias de todos los tiempos · jugadores activos</div>
+                <div style={{fontSize:10,color:"#888",textAlign:"center",marginTop:2}}>Puntos de insignias de todos los tiempos · jugadores activos</div>
                 <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,transparent,#f9e04b,transparent)",marginTop:6}}></div>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
                 {salon.map(s => (
                   <div key={s.fila.name} data-pf="salon-jugador" data-nombre={s.fila.name} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"12px 14px"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                      <div style={{width:34,textAlign:"center",fontSize:s.fila.pos<=3?24:14,fontWeight:800,color:"#888"}}>{s.fila.pos===1?"🥇":s.fila.pos===2?"🥈":s.fila.pos===3?"🥉":s.fila.pos+"."}</div>
+                      <div style={{width:34,textAlign:"center",fontSize:s.pos<=3?24:14,fontWeight:800,color:"#888"}}>{s.pos===1?"🥇":s.pos===2?"🥈":s.pos===3?"🥉":s.pos+"."}</div>
                       <div style={{flex:1,fontSize:18,fontWeight:900,color:"#e0e0e0",wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(s.fila.name)}>{s.fila.name}</div>
-                      <div style={{textAlign:"right"}}><span style={{fontSize:18,fontWeight:900,color:"#f9e04b"}}>{s.fila.pts}</span><span style={{fontSize:9,color:"#888"}}> pts</span></div>
+                      <div style={{textAlign:"right"}}><span data-pf="salon-pts" style={{fontSize:18,fontWeight:900,color:"#f9e04b"}}>{s.ptsIns}</span><span style={{fontSize:9,color:"#888"}}> pts</span></div>
                     </div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                       {ORDEN_INSIGNIAS.map(k => {
                         const d = INSIGNIAS_DEF.find(x => x.k === k);
                         return <InsigniaSalon key={k} dataPf={"salon-ins-" + k} src={d.src} label={d.label} color={d.color} ganada={s.ins[k] > 0} texto={"x" + s.ins[k]} />;
                       })}
-                      <InsigniaSalon dataPf="salon-rec-partidas" emoji="🔥" label="Racha de partidas" color={COLOR_RECORD.general} ganada={s.rec.partidas > 0} texto={String(s.rec.partidas)} />
-                      <InsigniaSalon dataPf="salon-rec-series" emoji="🔥" label="Racha de series" color={COLOR_RECORD.general} ganada={s.rec.series > 0} texto={String(s.rec.series)} />
-                      <InsigniaSalon dataPf="salon-rec-juegos" emoji="🔥" label="Racha de juegos" color={COLOR_RECORD.general} ganada={s.rec.juegos > 0} texto={String(s.rec.juegos)} />
-                      <InsigniaSalon dataPf="salon-rec-cr" emoji="⏱" label="Contrarreloj" color={COLOR_RECORD.general} ganada={s.rec.cr !== null} texto={s.rec.cr !== null ? fmtTime(s.rec.cr) : ""} />
+                      {s.rec.partidas > 0 && <InsigniaSalon dataPf="salon-rec-partidas" emoji="🔥" palabra="Partidas" label="Racha de partidas" color={COLOR_RECORD.general} ganada={true} texto={String(s.rec.partidas)} />}
+                      {s.rec.series > 0 && <InsigniaSalon dataPf="salon-rec-series" emoji="🔥" palabra="Series" label="Racha de series" color={COLOR_RECORD.general} ganada={true} texto={String(s.rec.series)} />}
+                      {s.rec.juegos > 0 && <InsigniaSalon dataPf="salon-rec-juegos" emoji="🔥" palabra="Juegos" label="Racha de juegos" color={COLOR_RECORD.general} ganada={true} texto={String(s.rec.juegos)} />}
+                      {s.rec.cr !== null && <InsigniaSalon dataPf="salon-rec-cr" emoji="⏱" label="Contrarreloj" color={COLOR_RECORD.general} ganada={true} texto={fmtTime(s.rec.cr)} />}
                     </div>
                   </div>
                 ))}
