@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v444</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v445</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v444</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v445</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -2243,7 +2243,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v444</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v445</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -2258,9 +2258,9 @@ function BillarApp() {
 
         </div>
         <div style={{display:"flex",padding:"12px 16px 0",gap:8,alignItems:"flex-end"}}>
-          {["active","closed","stats"].map(tab => (
+          {["active","closed","stats","salon"].map(tab => (
             <button key={tab} onClick={()=>{ setLobbyTab(tab); localStorage.setItem("bg_lobbyTab",tab); }} style={{flex:1,padding:"9px 0",borderRadius:"10px 10px 0 0",border:lobbyTab===tab?"1px solid rgba(74,222,128,0.25)":"1px solid rgba(255,255,255,0.07)",borderBottom:"none",background:lobbyTab===tab?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.04)",color:lobbyTab===tab?"#4ade80":"#777",fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
-              {tab==="active"?"En juego":tab==="closed"?"Terminadas":"Ranking"}
+              {tab==="active"?"En juego":tab==="closed"?"Terminadas":tab==="stats"?"Ranking":"Salón"}
               {tab==="active" && activeMatches.length > 0 && <span style={{background:"#4ade80",color:"#081530",borderRadius:20,padding:"1px 7px",fontSize:11,fontWeight:800,marginLeft:6}}>{activeMatches.length}</span>}
             </button>
           ))}
@@ -2275,7 +2275,8 @@ function BillarApp() {
             </button>
           )}
           {lobbyTab === "stats" && renderEstadisticas()}
-          {lobbyTab !== "stats" && list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
+          {lobbyTab === "salon" && renderSalon()}
+          {lobbyTab !== "stats" && lobbyTab !== "salon" && list.length === 0 && <div style={{color:"#444",textAlign:"center",marginTop:60,fontSize:14}}>{lobbyTab==="active"?"No hay partidas en juego.":"No hay partidas terminadas."}</div>}
           {/* Banner modo organizar */}
           {organizarMode && lobbyTab==="active" && (
             <div style={{background:"rgba(249,224,75,0.1)",border:"1px solid rgba(249,224,75,0.3)",borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:6}}>
@@ -2437,7 +2438,6 @@ function BillarApp() {
     // Filas ordenadas por puntos (con desempates). El filtro de período/modalidad/jugadores solo afecta a esta tabla y al podio
     const rows = construirFilasRanking(enVivo, filtered, playersList, diaEnPeriodo);
 
-    const salon = calcSalonJugadores(matches, playersList);   // todo el histórico, sin filtros
     const isCRonly = sfModalidades.length===1 && sfModalidades[0]==="Contrarreloj";
 
     const chipS = (active) => ({
@@ -2446,11 +2446,17 @@ function BillarApp() {
       border:active?"none":"1px solid rgba(255,255,255,0.11)",color:active?"#fff":"#999"
     });
 
+    const ahora = new Date();
+    const mesesTit=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    const tituloRanking = sfPeriod==="Hoy"?`Ranking · Hoy ${ahora.getDate()} ${mesesTit[ahora.getMonth()]}`:sfPeriod==="Esta semana"?`Ranking · Esta semana`:sfPeriod==="Este mes"?`Ranking · ${mesesTit[ahora.getMonth()]} ${ahora.getFullYear()}`:sfPeriod==="Rango"?`Ranking · Rango personalizado`:`Ranking · Todo el tiempo`;
+
     return (
       <div style={{paddingTop:8,paddingBottom:24}}>
-          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}>
-              <button onClick={()=>setFiltrosOpen(o=>!o)} style={{background:filtrosOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:"1px solid "+(filtrosOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"),color:filtrosOpen?"#63b3ed":"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>🔍 {filtrosOpen?"▲":"▼"}</button>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+              <div data-pf="titulo-ranking" style={{flex:1,fontSize:15,fontWeight:800,color:"#63b3ed",letterSpacing:1,textAlign:"left"}}>{tituloRanking}</div>
+              <button onClick={()=>setFiltrosOpen(o=>!o)} style={{background:filtrosOpen?"rgba(99,179,237,0.15)":"rgba(255,255,255,0.07)",border:"1px solid "+(filtrosOpen?"rgba(99,179,237,0.4)":"rgba(255,255,255,0.13)"),color:filtrosOpen?"#63b3ed":"#ccc",borderRadius:10,padding:"7px 13px",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:700,flexShrink:0}}>🔍 {filtrosOpen?"▲":"▼"}</button>
           </div>
+          <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,transparent,#06b6d4,transparent)",marginTop:6,marginBottom:12}}></div>
 
           {/* Filtros */}
           {filtrosOpen && <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"12px",marginBottom:14}}>
@@ -2532,16 +2538,6 @@ function BillarApp() {
           {rows.length===0
             ? <div style={{color:"#444",textAlign:"center",padding:"40px 0",fontSize:13}}>No hay datos para los filtros seleccionados</div>
             : (<>
-              {/* Título Ranking */}
-              {(()=>{
-                const now = new Date();
-                const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-                const tituloRanking = sfPeriod==="Hoy"?`Ranking · Hoy ${now.getDate()} ${meses[now.getMonth()]}`:sfPeriod==="Esta semana"?`Ranking · Esta semana`:sfPeriod==="Este mes"?`Ranking · ${meses[now.getMonth()]} ${now.getFullYear()}`:sfPeriod==="Rango"?`Ranking · Rango personalizado`:`Ranking · Todo el tiempo`;
-                return <div style={{marginBottom:12}}>
-                  <div style={{fontSize:15,fontWeight:800,color:"#63b3ed",letterSpacing:1,textAlign:"center"}}>{tituloRanking}</div>
-                  <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,transparent,#06b6d4,transparent)",marginTop:6}}></div>
-                </div>;
-              })()}
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
                 {rows.slice(0,3).map((r)=>{
                   const pi = Math.min(r.pos,3)-1;   // 0 oro, 1 plata, 2 bronce; los empatados comparten medalla
@@ -2553,11 +2549,11 @@ function BillarApp() {
                         <div style={{fontSize:pi===0?22:17,fontWeight:900,color:pi===0?"#f9e04b":pi===1?"#e0e0e0":"#cd7f32",letterSpacing:0.5,wordBreak:"break-word",cursor:"pointer"}} onClick={tapPerfil(r.name)}>{r.name}</div>
                         <div style={{fontSize:10,color:"#888"}}>{r.partidasW}P · {r.seriesW}S · {r.juegosW}J</div>
                         {(() => { const insR = insigniasDeFila(r); const ganadas = ORDEN_INSIGNIAS.filter(k => insR[k] > 0); return ganadas.length > 0 ? (
-                          <div data-pf="podio-insignias" style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:5}}>
+                          <div data-pf="podio-insignias" style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:6}}>
                             {ganadas.map(k => { const d = INSIGNIAS_DEF.find(x => x.k === k); return (
                               <div key={k} data-pf={"podio-ins-" + k} title={d.label} style={{display:"flex",alignItems:"center",gap:1}}>
-                                <img src={d.src} alt={d.label} style={{width:24,height:24,objectFit:"contain"}}/>
-                                {insR[k] > 1 && <span style={{fontSize:10,fontWeight:800,color:d.color}}>{"x" + insR[k]}</span>}
+                                <img src={d.src} alt={d.label} style={{width:36,height:36,objectFit:"contain"}}/>
+                                {insR[k] > 1 && <span style={{fontSize:12,fontWeight:800,color:d.color}}>{"x" + insR[k]}</span>}
                               </div>
                             ); })}
                           </div>
@@ -2633,9 +2629,19 @@ function BillarApp() {
             </>)
           }
 
-          {/* Salón de la fama: insignias de todos los tiempos de los jugadores activos; no depende de los filtros */}
-          {salon.length>0 && (
-            <div data-pf="salon-fama" style={{marginTop:28}}>
+      </div>
+    );
+  }
+
+
+  // ===== SALÓN DE LA FAMA (pestaña aparte): insignias de todos los tiempos de los jugadores activos; no depende de los filtros =====
+  function renderSalon() {
+    const salon = calcSalonJugadores(matches, playersList);
+    return (
+      <div style={{paddingBottom:24}}>
+        {salon.length===0 ? <div style={{color:"#444",textAlign:"center",padding:"40px 0",fontSize:13}}>Aún no hay jugadores activos</div> : (
+          
+            <div data-pf="salon-fama" style={{paddingTop:8}}>
               <div style={{marginBottom:12}}>
                 <div style={{fontSize:15,fontWeight:800,color:"#f9e04b",letterSpacing:1,textAlign:"center"}}>🏆 Salón de la fama</div>
                 <div style={{fontSize:10,color:"#888",textAlign:"center",marginTop:2}}>Puntos de insignias de todos los tiempos · jugadores activos</div>
@@ -2663,11 +2669,10 @@ function BillarApp() {
                 ))}
               </div>
             </div>
-          )}
+                  )}
       </div>
     );
   }
-
 
   // ===== JUGADORES =====
   if (screen === "players") {
