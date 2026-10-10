@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v453</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v454</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v453</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v454</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1473,6 +1473,20 @@ function BillarApp() {
     const racha = segmentosRachaActiva(calcRachasJugador(matches, miNombre), calcRecordsGenerales(matches));
     return (lider || racha.length > 0) ? { lider: lider, racha: racha } : null;
   }, [matches, playersList, miNombre]);
+  // Rachas activas de TODOS los jugadores (encabezado horizontal de operario/admin): quién la lleva (ID o nombre completo) y si es récord
+  const rachasLocal = React.useMemo(() => {
+    const rg = calcRecordsGenerales(matches);
+    const nombres = [...new Set(matches.filter(m => m.modalidad !== "Contrarreloj").flatMap(m => [m.p1Name, m.p2Name]).filter(Boolean))];
+    const out = { partidas: [], series: [], juegos: [] };
+    nombres.forEach(nom => {
+      const pl = playersList.find(p => typeof p !== "string" && p.name === nom);
+      const quien = (pl && pl.id) ? pl.id : nom;
+      const r = calcRachasJugador(matches, nom);
+      segmentosRachaActiva(r, rg).forEach(sg => out[sg.k].push({ quien: quien, actual: sg.actual, tipo: sg.tipo }));
+    });
+    Object.keys(out).forEach(k => out[k].sort((a, b) => b.actual - a.actual || (a.quien > b.quien ? 1 : -1)));
+    return out;
+  }, [matches, playersList]);
   const [organizarOrder, setOrganizarOrder] = React.useState([]); // ids en nuevo orden
   React.useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
@@ -2104,13 +2118,32 @@ function BillarApp() {
       );
     }
 
+    const encHorizOp = isLandscape && isOperario;   // encabezado horizontal solo para operario y admin
+    // Estado del encabezado: versión, sincronización, rol y líder. En horizontal (operario/admin) va en la misma fila que el título.
+    const chipsEstado = (
+      <>
+              <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v454</div>
+              <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
+              <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
+                background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
+                color:"#ffffff",cursor:miNombre?"pointer":"default"}} onClick={miNombre?tapPerfil(miNombre):undefined}>
+                {"🎱 " + (isAdmin?"ADMIN":isOperario?"OPERARIO":"JUGADOR") + (miNombre ? " · " + miNombre.toUpperCase() : "")}
+              </div>
+              {renderBannerAviso(false)}
+              {estatusYo && estatusYo.lider ? <div data-pf="estatus-lider" onClick={tapPerfil(miNombre)} style={{fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:6,background:"rgba(249,224,75,0.15)",color:"#f9e04b",cursor:"pointer"}}>👑 Líder actual</div> : null}
+
+      </>
+    );
+
     return (
       <>
       <div className="app-screen" onContextMenu={e=>e.preventDefault()} style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",WebkitTouchCallout:"none"}}>
         {modalesListaA}
         <div style={{padding:"14px 14px 0",position:"relative",zIndex:10}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+          <div style={{display:"flex",alignItems:"center",flexWrap:encHorizOp?"wrap":"nowrap",gap:8,marginBottom:encHorizOp?8:4}}>
             <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
+            {encHorizOp && chipsEstado}
             <div style={{display:"flex",flexWrap:"wrap",gap:6,marginLeft:"auto",justifyContent:"flex-end"}}>
               <button onClick={()=>{ localStorage.setItem("bg_screen","lobby"); window.location.reload(); }}
                 title="Actualizar"
@@ -2159,19 +2192,27 @@ function BillarApp() {
             )}
             </div>
           </div>
-          <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v453</div>
-            <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
-            <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
-            <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
-              background:isAdmin?"rgba(249,224,75,0.15)":isOperario?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.07)",
-              color:"#ffffff",cursor:miNombre?"pointer":"default"}} onClick={miNombre?tapPerfil(miNombre):undefined}>
-              {"🎱 " + (isAdmin?"ADMIN":isOperario?"OPERARIO":"JUGADOR") + (miNombre ? " · " + miNombre.toUpperCase() : "")}
+          {encHorizOp ? (
+            <div data-pf="rachas-local" style={{marginBottom:8,fontSize:12,fontWeight:800,color:"#ffffff",lineHeight:1.5}}>
+              <div>Rachas activas:</div>
+              {["partidas","series","juegos"].filter(k => rachasLocal[k].length > 0).map(k => (
+                <div key={k} data-pf={"rachas-local-"+k} style={{display:"flex",flexWrap:"wrap",columnGap:14}}>
+                  {rachasLocal[k].map(x => (
+                    <span key={x.quien} style={{whiteSpace:"nowrap"}}>
+                      {"🔥" + x.actual + " " + nombreRacha(k, x.actual) + " · " + x.quien}
+                      {x.tipo ? <span style={{marginLeft:5,fontSize:11,fontWeight:900,padding:"0 6px",borderRadius:5,background:COLOR_RECORD[x.tipo],color:"#111827"}}>{ETIQUETA_RECORD[x.tipo]}</span> : null}
+                    </span>
+                  ))}
+                </div>
+              ))}
+              {!["partidas","series","juegos"].some(k => rachasLocal[k].length > 0) && <div style={{color:"#aaa",fontWeight:600}}>Ninguna por ahora</div>}
             </div>
-            {renderBannerAviso(false)}
-            {estatusYo && estatusYo.lider ? <div data-pf="estatus-lider" onClick={tapPerfil(miNombre)} style={{fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:6,background:"rgba(249,224,75,0.15)",color:"#f9e04b",cursor:"pointer"}}>👑 Líder actual</div> : null}
+          ) : (
+          <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
+            {chipsEstado}
             {lobbyTab === "active" && estatusYo && estatusYo.racha.length > 0 ? <div style={{flexBasis:"100%"}}><ChipRacha segmentos={estatusYo.racha} dataPf="estatus-racha" onClick={tapPerfil(miNombre)} fontSize={11} padding="4px 10px" /></div> : null}
           </div>
+          )}
 
         </div>
         <div style={{display:"flex",padding:"12px 16px 0",gap:8,alignItems:"flex-end"}}>
