@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v454</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v455</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v454</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v455</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1133,6 +1133,7 @@ function BillarApp() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [newPId, setNewPId] = useState("");
   const [lobbyBallMenu, setLobbyBallMenu] = useState(null); // {matchId, k, ji}
+  const [verRachas, setVerRachas] = useState(false); // tarjeta de rachas activas (operario/admin en horizontal)
   const [marcador, setMarcador] = useState(null); // nombre del jugador "iluminado" que marca el siguiente juego (solo admin/operario)
 
   // Persistir navegación en sessionStorage para sobrevivir refrescos
@@ -1473,20 +1474,14 @@ function BillarApp() {
     const racha = segmentosRachaActiva(calcRachasJugador(matches, miNombre), calcRecordsGenerales(matches));
     return (lider || racha.length > 0) ? { lider: lider, racha: racha } : null;
   }, [matches, playersList, miNombre]);
-  // Rachas activas de TODOS los jugadores (encabezado horizontal de operario/admin): quién la lleva (ID o nombre completo) y si es récord
+  // Rachas activas de los jugadores que tienen partida en juego (tarjeta 🔥 de operario/admin). Nombre completo; quien no tiene racha activa no aparece.
   const rachasLocal = React.useMemo(() => {
     const rg = calcRecordsGenerales(matches);
-    const nombres = [...new Set(matches.filter(m => m.modalidad !== "Contrarreloj").flatMap(m => [m.p1Name, m.p2Name]).filter(Boolean))];
-    const out = { partidas: [], series: [], juegos: [] };
-    nombres.forEach(nom => {
-      const pl = playersList.find(p => typeof p !== "string" && p.name === nom);
-      const quien = (pl && pl.id) ? pl.id : nom;
-      const r = calcRachasJugador(matches, nom);
-      segmentosRachaActiva(r, rg).forEach(sg => out[sg.k].push({ quien: quien, actual: sg.actual, tipo: sg.tipo }));
-    });
-    Object.keys(out).forEach(k => out[k].sort((a, b) => b.actual - a.actual || (a.quien > b.quien ? 1 : -1)));
-    return out;
-  }, [matches, playersList]);
+    const nombres = [...new Set(matches.filter(m => !m.matchClosed && m.modalidad !== "Contrarreloj").flatMap(m => [m.p1Name, m.p2Name]).filter(Boolean))];
+    return nombres
+      .map(nom => ({ nombre: nom, segs: segmentosRachaActiva(calcRachasJugador(matches, nom), rg) }))
+      .filter(x => x.segs.length > 0);
+  }, [matches]);
   const [organizarOrder, setOrganizarOrder] = React.useState([]); // ids en nuevo orden
   React.useEffect(() => {
     const mq = window.matchMedia("(orientation: landscape)");
@@ -1560,6 +1555,33 @@ function BillarApp() {
            
              />
   );
+
+  // Tarjeta de rachas activas: se abre con el botón 🔥 (lista y Modo Enfoque)
+  const renderTarjetaRachas = () => verRachas ? (
+    <div data-pf="tarjeta-rachas-fondo" onClick={()=>setVerRachas(false)} style={{position:"fixed",inset:0,zIndex:1100,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div data-pf="tarjeta-rachas" onClick={(e)=>e.stopPropagation()} style={{background:"#0f2a5a",border:"1px solid rgba(99,179,237,0.35)",borderRadius:16,padding:"14px 18px",minWidth:280,maxWidth:"92vw",maxHeight:"88vh",overflowY:"auto",boxShadow:"0 8px 30px rgba(0,0,0,0.6)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:10}}>
+          <div style={{fontSize:16,fontWeight:900,color:"#ffffff"}}>🔥 Rachas activas</div>
+          <button data-pf="tarjeta-rachas-cerrar" onClick={()=>setVerRachas(false)} style={{width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,0.1)",border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer"}}>✕</button>
+        </div>
+        {rachasLocal.length === 0
+          ? <div style={{color:"#aaa",fontSize:13}}>Ninguna por ahora</div>
+          : rachasLocal.map(x => (
+            <div key={x.nombre} data-pf="rachas-jugador" style={{marginBottom:10}}>
+              <div style={{fontSize:15,fontWeight:900,color:"#ffffff"}}>{x.nombre}</div>
+              <div style={{display:"flex",flexWrap:"wrap",columnGap:12,rowGap:2,fontSize:14,fontWeight:800,color:"#ffffff"}}>
+                {x.segs.map(sg => (
+                  <span key={sg.k} style={{whiteSpace:"nowrap"}}>
+                    {"🔥" + sg.actual + " " + nombreRacha(sg.k, sg.actual)}
+                    {sg.tipo ? <span style={{marginLeft:5,fontSize:12,fontWeight:900,padding:"0 6px",borderRadius:5,background:COLOR_RECORD[sg.tipo],color:"#111827"}}>{ETIQUETA_RECORD[sg.tipo]}</span> : null}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+      </div>
+    </div>
+  ) : null;
 
   // Franja de aviso (récords e insignias). Se dibuja en el lobby y también en el Modo Enfoque, que es otra pantalla.
   const renderBannerAviso = (enfoque) => avisoRecord ? (
@@ -2102,6 +2124,7 @@ function BillarApp() {
             <div style={{color:"#ccc",fontSize:11,fontWeight:700,textAlign:"center"}}>{Math.round(focusZoom*100)}%</div>
             <button onClick={()=>changeFocusZoom(-0.1)}
               style={{width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,0.1)",border:"none",color:"#fff",fontSize:18,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>−</button>
+            {isOperario && <button data-pf="btn-rachas-enfoque" onClick={()=>setVerRachas(true)} title="Rachas activas" style={{width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,0.1)",border:"none",color:"#fff",fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>🔥</button>}
           </div>
           {activeMatches.length > 1 && <button onClick={()=>setFocusIdx(i => (i-1+activeMatches.length) % activeMatches.length)}
             style={{position:"absolute",top:"50%",transform:"translateY(-50%)",zIndex:999,width:46,height:68,borderRadius:14,background:"rgba(0,0,0,0.45)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:34,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,left:8}}>‹</button>}
@@ -2113,6 +2136,7 @@ function BillarApp() {
             </div>
           </div>
         </div>
+        {renderTarjetaRachas()}
         {modalesListaA}{modalesListaB}{modalesListaC}
         </>
       );
@@ -2122,7 +2146,7 @@ function BillarApp() {
     // Estado del encabezado: versión, sincronización, rol y líder. En horizontal (operario/admin) va en la misma fila que el título.
     const chipsEstado = (
       <>
-              <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v454</div>
+              <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v455</div>
               <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
               <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
               <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -2140,6 +2164,7 @@ function BillarApp() {
       <>
       <div className="app-screen" onContextMenu={e=>e.preventDefault()} style={{background:"radial-gradient(ellipse at 50% 35%,#0f2a5a 0%,#081530 55%,#05102a 100%)",WebkitTouchCallout:"none"}}>
         {modalesListaA}
+        {renderTarjetaRachas()}
         <div style={{padding:"14px 14px 0",position:"relative",zIndex:10}}>
           <div style={{display:"flex",alignItems:"center",flexWrap:encHorizOp?"wrap":"nowrap",gap:8,marginBottom:encHorizOp?8:4}}>
             <div style={{fontSize:"clamp(20px,5.5vw,26px)",fontWeight:800,color:"#63b3ed",letterSpacing:1,lineHeight:1}}>Billares García</div>
@@ -2150,6 +2175,12 @@ function BillarApp() {
                 style={{padding:"6px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#63b3ed",fontFamily:"inherit",fontSize:15,cursor:"pointer"}}>
                 🔄
               </button>
+              {encHorizOp && (
+                <button data-pf="btn-rachas" onClick={()=>setVerRachas(true)} title="Rachas activas"
+                  style={{padding:"6px 10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",fontFamily:"inherit",fontSize:15,cursor:"pointer"}}>
+                  🔥
+                </button>
+              )}
               {lobbyTab==="active" && activeMatches.length>1 && (
                 <button onClick={()=>{ setOrganizarMode(true); setOrganizarOrder([]); }}
                   title="Organizar partidas"
@@ -2192,22 +2223,7 @@ function BillarApp() {
             )}
             </div>
           </div>
-          {encHorizOp ? (
-            <div data-pf="rachas-local" style={{marginBottom:8,fontSize:12,fontWeight:800,color:"#ffffff",lineHeight:1.5}}>
-              <div>Rachas activas:</div>
-              {["partidas","series","juegos"].filter(k => rachasLocal[k].length > 0).map(k => (
-                <div key={k} data-pf={"rachas-local-"+k} style={{display:"flex",flexWrap:"wrap",columnGap:14}}>
-                  {rachasLocal[k].map(x => (
-                    <span key={x.quien} style={{whiteSpace:"nowrap"}}>
-                      {"🔥" + x.actual + " " + nombreRacha(k, x.actual) + " · " + x.quien}
-                      {x.tipo ? <span style={{marginLeft:5,fontSize:11,fontWeight:900,padding:"0 6px",borderRadius:5,background:COLOR_RECORD[x.tipo],color:"#111827"}}>{ETIQUETA_RECORD[x.tipo]}</span> : null}
-                    </span>
-                  ))}
-                </div>
-              ))}
-              {!["partidas","series","juegos"].some(k => rachasLocal[k].length > 0) && <div style={{color:"#aaa",fontWeight:600}}>Ninguna por ahora</div>}
-            </div>
-          ) : (
+          {encHorizOp ? null : (
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
             {chipsEstado}
             {lobbyTab === "active" && estatusYo && estatusYo.racha.length > 0 ? <div style={{flexBasis:"100%"}}><ChipRacha segmentos={estatusYo.racha} dataPf="estatus-racha" onClick={tapPerfil(miNombre)} fontSize={11} padding="4px 10px" /></div> : null}
