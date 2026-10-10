@@ -32,7 +32,7 @@
 <body>
 <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v452</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v453</div>
 </div>
 <div id="splash" style="position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#0f2a5a,#081530);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s ease;">
   <svg width="150" height="140" viewBox="0 0 150 140">
@@ -61,7 +61,7 @@
   <div style="margin-top:14px;font-size:11px;color:#c9a227;letter-spacing:5px;font-family:Georgia,serif;text-transform:uppercase;">Billares</div>
   <div style="font-size:42px;font-weight:900;color:#fff;letter-spacing:2px;font-family:Georgia,serif;line-height:1.1;">García</div>
   <div style="font-size:11px;color:#2a4a8a;letter-spacing:3px;font-family:Georgia,serif;margin-top:6px;">Control de partidas</div>
-  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v452</div>
+  <div style="position:absolute;bottom:30px;font-size:11px;color:#5a8fd6;letter-spacing:2px;font-family:Georgia,serif;font-weight:700;">Desarrollado por CGS · v453</div>
 </div>
 <script>
   var _splashStart = Date.now();
@@ -1133,6 +1133,7 @@ function BillarApp() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [newPId, setNewPId] = useState("");
   const [lobbyBallMenu, setLobbyBallMenu] = useState(null); // {matchId, k, ji}
+  const [marcador, setMarcador] = useState(null); // nombre del jugador "iluminado" que marca el siguiente juego (solo admin/operario)
 
   // Persistir navegación en sessionStorage para sobrevivir refrescos
   const setScreenP = (s) => { setScreen(s); localStorage.setItem("bg_screen", s); };
@@ -1515,7 +1516,7 @@ function BillarApp() {
   // Tarjeta de partida del lobby: se usa en la lista normal y en el Modo Enfoque (mismos botones y acciones)
   // Pausa: deja la partida guardada para jugarla otro día. Solo operario y admin pausan / reanudan.
   const renderLobbyCard = (m) => (
-    <LobbyCard key={m.id} m={m} onDelete={isAdmin?()=>deleteMatch(m.id):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onPausar={isOperario?(id,v)=>updateMatch(id, mm => ({...mm, pausada: v})):null} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+    <LobbyCard key={m.id} m={m} onDelete={isAdmin?()=>deleteMatch(m.id):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onPausar={isOperario?(id,v)=>updateMatch(id, mm => ({...mm, pausada: v})):null} marcador={marcador} onMarcador={isOperario?setMarcador:null} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
                 // Deshacer último juego
@@ -1888,7 +1889,8 @@ function BillarApp() {
             const newWins = {...lm.wins, [k]: lm.wins[k]+1};
             const nextServe = lm.currentServe==="p1"?"p2":"p1";
             const willFinish = newWins[k] >= lm.carrera;
-            updateMatch(lm.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:lm.currentServe,ballType:bt||"normal",device:deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+            updateMatch(lm.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:lm.currentServe,ballType:bt||"normal",device:marcador||deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+            setMarcador(null);
             setLobbyBallMenu(null);
           };
           return (
@@ -2158,7 +2160,7 @@ function BillarApp() {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:6,marginBottom:8}}>
-            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v452</div>
+            <div style={{fontSize:11,color:"#5a8fd6",letterSpacing:0.5,fontFamily:"Georgia,serif",fontWeight:700}}>v453</div>
             <div style={{width:10,height:10,borderRadius:"50%",background:syncColor,boxShadow:"0 0 6px "+syncColor,flexShrink:0}} title={syncLabel}/>
             <div style={{fontSize:10,fontWeight:700,color:syncColor}}>{syncLabel}</div>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:0.5,padding:"2px 8px",borderRadius:6,
@@ -3129,7 +3131,7 @@ function CrTimer({ startTs, base=0, big=false }) {
   return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
 }
 
-function LobbyCard({m, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onPausar=null, deviceName=null, playersList=[]}) {
+function LobbyCard({m, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onPausar=null, marcador=null, onMarcador=null, deviceName=null, playersList=[]}) {
   const isOpen = !m.matchClosed;
   const pausada = isOpen && m.pausada === true;
   const AMARILLO = "#f9e04b";
@@ -3529,7 +3531,8 @@ function LobbyCard({m, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpe
       const newWins = {...m.wins, [k]: m.wins[k]+1};
       const nextServe = m.currentServe==="p1"?"p2":"p1";
       const willFinish = newWins[k] >= m.carrera;
-      onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe,ballType:"normal",device:deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+      onUpdateMatch(m.id, mm => ({...mm, wins:newWins, games:[...mm.games,{winner:k,serve:m.currentServe,ballType:"normal",device:marcador||deviceName||undefined}], currentServe:nextServe, seriesFinished:willFinish, seriesWinner:willFinish?k:null}));
+      if (onMarcador && marcador) onMarcador(null);
     } else if (hasWon && isLastGame) {
       // Deshacer último juego — funciona aunque la serie esté terminada
       onUpdateMatch(m.id, mm => {
@@ -3566,9 +3569,10 @@ function LobbyCard({m, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpe
             <div style={{height:HDR_H}}/>
             {["p1","p2"].map((k,ri)=>{
               const name=k==="p1"?m.p1Name:m.p2Name;
-              return <div key={k} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:"rgba(0,0,0,0.2)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 10px",overflow:"hidden",boxSizing:"border-box"}}>
+              const iluminado = !!onMarcador && marcador === name;
+              return <div key={k} data-pf={onMarcador?"nombre-box-"+k:undefined} onClick={onMarcador?(e)=>{e.stopPropagation();onMarcador(iluminado?null:name);}:undefined} style={{width:NAM_W,height:CELL_H,borderBottom:ri===0?BORDER:"none",background:iluminado?"rgba(74,222,128,0.28)":"rgba(0,0,0,0.2)",boxShadow:iluminado?"inset 0 0 0 2px #4ade80":"none",cursor:onMarcador?"pointer":undefined,display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"flex-start",padding:"8px 10px",overflow:"hidden",boxSizing:"border-box"}}>
                 <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
-                  <div style={{fontSize:20,fontWeight:800,color:"#ffffff",lineHeight:1.2,cursor:"pointer"}} onClick={tapPerfil(name)}>{name}</div>
+                  <div style={{fontSize:20,fontWeight:800,color:"#ffffff",lineHeight:1.2,cursor:"pointer"}} onClick={onMarcador?undefined:tapPerfil(name)}>{name}</div>
                   
                 </div>
                 <div style={{fontSize:18,display:"flex",flexWrap:"wrap",gap:2}}>{Array.from({length:k==="p1"?sw1:sw2},(_,i)=><span key={i}>&#127942;</span>)}</div>
