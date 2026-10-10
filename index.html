@@ -1513,8 +1513,9 @@ function BillarApp() {
   }, [avisoRecord]);
 
   // Tarjeta de partida del lobby: se usa en la lista normal y en el Modo Enfoque (mismos botones y acciones)
-  const renderLobbyCardBase = (m) => (
-    <LobbyCard key={m.id} m={m} onDelete={isAdmin?()=>deleteMatch(m.id):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
+  // Pausa: deja la partida guardada para jugarla otro día. Solo operario y admin pausan / reanudan.
+  const renderLobbyCard = (m) => (
+    <LobbyCard key={m.id} m={m} onDelete={isAdmin?()=>deleteMatch(m.id):null} onReplay={replayMatch} onUpdateMatch={updateMatch} onLobbyBallMenu={setLobbyBallMenu} onOpenHistory={(id)=>{setActiveIdP(id||m.id);setShowHistoryP(true);}} deviceName={deviceName} playersList={playersList} onPausar={isOperario?(id,v)=>updateMatch(id, mm => ({...mm, pausada: v})):null} onNextSeries={(id)=>{ updateMatch(id, mm => { const sw=mm.seriesWinner; return {...mm, seriesHistory:[...mm.seriesHistory,{winner:sw,p1wins:mm.wins.p1,p2wins:mm.wins.p2,seriesNum:mm.seriesCount,games:[...mm.games]}], seriesWins:{...mm.seriesWins,[sw]:mm.seriesWins[sw]+1}, seriesCount:mm.seriesCount+1, games:[], wins:{p1:0,p2:0}, seriesFinished:false, seriesWinner:null}; }); }}
             onUndo={(id)=>{ updateMatch(id, mm => {
               if (mm.games.length > 0) {
                 // Deshacer último juego
@@ -1544,32 +1545,6 @@ function BillarApp() {
            
              />
   );
-
-  // Pausa de partida: deja la partida guardada para jugarla otro día. Solo operario y admin pausan / reanudan.
-  const cambiarPausa = (id, valor) => updateMatch(id, mm => ({...mm, pausada: valor}));
-  const renderLobbyCard = (m) => {
-    const abierta = !m.matchClosed;
-    const pausada = abierta && m.pausada === true;
-    const relojAndando = m.modalidad === "Contrarreloj" && m.crRunning === true;
-    return (
-      <div key={m.id} data-pf={pausada ? "tarjeta-pausada" : undefined} style={pausada ? {border:"2px dashed rgba(249,224,75,0.55)",borderRadius:18,padding:4,background:"rgba(249,224,75,0.04)"} : undefined}>
-        {pausada && (
-          <div data-pf="franja-pausa" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"8px 12px",marginBottom:4,borderRadius:12,background:"rgba(249,224,75,0.15)",color:"#f9e04b",fontWeight:800,fontSize:13}}>
-            <span>⏸ EN PAUSA · se sigue otro día</span>
-            {isOperario && <button data-pf="btn-reanudar" onClick={()=>cambiarPausa(m.id,false)} style={{padding:"6px 12px",borderRadius:8,border:"none",background:"#f9e04b",color:"#222",fontFamily:"inherit",fontSize:12,fontWeight:800,cursor:"pointer"}}>▶ Reanudar</button>}
-          </div>
-        )}
-        {!pausada && abierta && isOperario && (
-          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:4}}>
-            {relojAndando
-              ? <span data-pf="btn-pausar-bloqueado" style={{fontSize:11,color:"#888",padding:"4px 8px"}}>⏸ Para pausar, detén el reloj</span>
-              : <button data-pf="btn-pausar" onClick={()=>cambiarPausa(m.id,true)} style={{padding:"5px 12px",borderRadius:8,background:"rgba(249,224,75,0.12)",border:"1px solid rgba(249,224,75,0.35)",color:"#f9e04b",fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer"}}>⏸ Pausar</button>}
-          </div>
-        )}
-        <div style={pausada ? {opacity:0.55,pointerEvents:"none"} : undefined}>{renderLobbyCardBase(m)}</div>
-      </div>
-    );
-  };
 
   // Franja de aviso (récords e insignias). Se dibuja en el lobby y también en el Modo Enfoque, que es otra pantalla.
   const renderBannerAviso = (enfoque) => avisoRecord ? (
@@ -3154,8 +3129,18 @@ function CrTimer({ startTs, base=0, big=false }) {
   return <span style={{color:"#f9e04b",fontVariantNumeric:"tabular-nums"}}>{display}</span>;
 }
 
-function LobbyCard({m, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, deviceName=null, playersList=[]}) {
+function LobbyCard({m, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpenHistory, onNextSeries, onUndo, onReactivar, onTerminar, onPausar=null, deviceName=null, playersList=[]}) {
   const isOpen = !m.matchClosed;
+  const pausada = isOpen && m.pausada === true;
+  const AMARILLO = "#f9e04b";
+  const estiloPausa = pausada ? {border:"2px dashed rgba(249,224,75,0.55)",pointerEvents:"none"} : null;
+  const clicPausa = (e) => {
+    e.stopPropagation();
+    if (!pausada && m.modalidad === "Contrarreloj" && m.crRunning) { alert("Para pausar la partida primero detén el reloj."); return; }
+    onPausar(m.id, !pausada);
+  };
+  const botonPausa = (onPausar && isOpen) ? <button data-pf={pausada?"btn-reanudar":"btn-pausar"} onClick={clicPausa} style={{pointerEvents:"auto",background:"rgba(249,224,75,0.14)",border:"1px solid rgba(249,224,75,0.4)",color:AMARILLO,borderRadius:8,padding:"3px 7px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:(!pausada&&m.modalidad==="Contrarreloj"&&m.crRunning)?0.45:1}}>{pausada?"▶ Reanudar":"⏸ Pausar"}</button> : null;
+  const etiquetaPausa = pausada ? <div data-pf="etiqueta-pausa" style={{fontSize:9,color:AMARILLO,background:"rgba(249,224,75,0.12)",border:"1px solid rgba(249,224,75,0.35)",borderRadius:20,padding:"2px 7px",fontWeight:700}}>EN PAUSA</div> : null;
 
   // ── Contrarreloj en lobby ──
   if (m.modalidad === "Contrarreloj" && isOpen) {
@@ -3321,7 +3306,7 @@ function LobbyCard({m, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpe
     const matchOver2 = m.crMatchOver || false;
 
     return (
-      <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(74,222,128,0.18)",borderRadius:16,padding:"12px 14px",marginBottom:12}}>
+      <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(74,222,128,0.18)",borderRadius:16,padding:"12px 14px",marginBottom:12,...estiloPausa}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:18}}>⏱</span>
@@ -3330,7 +3315,8 @@ function LobbyCard({m, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpe
               <div style={{fontSize:13,fontWeight:700,color:"#63b3ed"}}>Serie {currentSerie}/{totalSeries} · Ronda {currentRound}/{totalRounds}</div>
             </div>
           </div>
-          <div style={{display:"flex",gap:6}}>
+          <div style={{display:"flex",gap:6,alignItems:"center",pointerEvents:"auto"}}>
+            {etiquetaPausa}{botonPausa}
             <button style={{padding:"4px 10px",borderRadius:8,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.13)",color:"#bbb",fontFamily:"inherit",fontSize:11,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onOpenHistory(m.id);}}>Hist.</button>
             {onDelete && <button style={{width:28,height:28,borderRadius:8,background:"rgba(239,68,68,0.15)",border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:900,cursor:"pointer"}} onClick={e=>{e.stopPropagation();onDelete(m.id);}}>✕</button>}
           </div>
@@ -3554,7 +3540,7 @@ function LobbyCard({m, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpe
   };
 
   return (
-    <div style={{display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"10px 12px",marginBottom:10,opacity:isOpen?1:0.95}}>
+    <div style={{display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"10px 12px",marginBottom:10,opacity:isOpen?1:0.95,...estiloPausa}}>
 
       {/* Cabecera */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
@@ -3565,8 +3551,9 @@ function LobbyCard({m, onDelete, onReplay, onUpdateMatch, onLobbyBallMenu, onOpe
             <div style={{fontSize:13,fontWeight:700,color:m.modalidad==="Bola 9"?"#f9e04b":m.modalidad==="Bola 7"?"#e05050":m.modalidad==="Bola 8"?"#cccccc":m.modalidad==="Contrarreloj"?"#4ade80":"#4ade80"}}>{m.modalidad==="Contrarreloj"?`Contrarreloj · ${m.crTotalSeries||1}S · ${m.crTotalRounds||1}R`:`${m.modalidad} · Carrera ${m.carrera}`}</div>
           </div>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-          <div style={{fontSize:9,color:isOpen?"#4ade80":"#888",background:isOpen?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.05)",border:isOpen?"1px solid rgba(74,222,128,0.22)":"none",borderRadius:20,padding:"2px 7px",fontWeight:700}}>{isOpen?"EN JUEGO":"FIN"}</div>
+        <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0,pointerEvents:"auto"}}>
+          {pausada ? etiquetaPausa : <div style={{fontSize:9,color:isOpen?"#4ade80":"#888",background:isOpen?"rgba(74,222,128,0.1)":"rgba(255,255,255,0.05)",border:isOpen?"1px solid rgba(74,222,128,0.22)":"none",borderRadius:20,padding:"2px 7px",fontWeight:700}}>{isOpen?"EN JUEGO":"FIN"}</div>}
+          {botonPausa}
           {isOpen && <button style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",color:"#bbb",borderRadius:8,padding:"3px 7px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}} onClick={e=>{e.stopPropagation();onOpenHistory(m.id);}}>Hist.</button>}
           {onDelete && <button style={{background:"rgba(255,80,80,0.1)",border:"1px solid rgba(255,80,80,0.2)",color:"#f87171",borderRadius:8,padding:"3px 7px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}} onClick={e=>{e.stopPropagation();onDelete(m.id);}}>x</button>}
         </div>
